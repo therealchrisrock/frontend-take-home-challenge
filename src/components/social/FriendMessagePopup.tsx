@@ -1,0 +1,165 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "~/components/ui/tabs";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Users, MessageCircle, X, Minus, Maximize2 } from "lucide-react";
+import { FriendsList } from "./FriendsList";
+import { MessageCenter } from "./MessageCenter";
+import { api } from "~/trpc/react";
+import type { SocialPopupProps, SocialTab } from "./types";
+
+export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
+  const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState<SocialTab>("friends");
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  // Get unread message count for badge
+  const { data: unreadCount } = api.message.getUnreadCount.useQuery(
+    undefined,
+    { enabled: !!session?.user, refetchInterval: 30000 }
+  );
+
+  // Get pending friend requests count
+  const { data: pendingRequests } = api.user.getPendingFriendRequests.useQuery(
+    undefined,
+    { enabled: !!session?.user }
+  );
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (event.key === "Escape") {
+        onClose();
+      } else if (event.key === "1" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setActiveTab("friends");
+      } else if (event.key === "2" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setActiveTab("messages");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!session?.user) return null;
+
+  const pendingCount = pendingRequests?.length ?? 0;
+  const messageCount = unreadCount?.count ?? 0;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent 
+        className={`
+          ${isMaximized 
+            ? "max-w-[95vw] w-full h-[95vh]" 
+            : "max-w-4xl w-full max-h-[80vh]"
+          }
+          ${isMinimized ? "h-16" : ""}
+          transition-all duration-200 ease-in-out
+          overflow-hidden
+        `}
+        showCloseButton={false}
+      >
+        {/* Custom Header with Controls */}
+        <DialogHeader className="flex-row items-center justify-between space-y-0 pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold">
+            Social Center
+          </DialogTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="h-8 w-8 p-0"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="h-8 w-8 p-0"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        {!isMinimized && (
+          <div className="flex-1 overflow-hidden">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SocialTab)}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="friends" className="relative">
+                  <Users className="h-4 w-4 mr-2" />
+                  Friends
+                  {pendingCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
+                    >
+                      {pendingCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="messages" className="relative">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Messages
+                  {messageCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
+                    >
+                      {messageCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="friends" className="h-full overflow-hidden">
+                <FriendsList />
+              </TabsContent>
+
+              <TabsContent value="messages" className="h-full overflow-hidden">
+                <MessageCenter />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
+        {/* Keyboard Shortcuts Help */}
+        <div className="text-xs text-muted-foreground mt-4 pt-2 border-t">
+          <span>Shortcuts: </span>
+          <span className="font-mono">Esc</span> to close, 
+          <span className="font-mono"> Ctrl+1/2</span> to switch tabs
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
