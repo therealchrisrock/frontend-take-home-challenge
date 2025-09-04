@@ -1,0 +1,64 @@
+{
+  "enabled": true,
+  "ticket_format": "TICKET-{:03d}",
+  "project_name": "Frontend Take-Home Challenge",
+  "docs_location": ".",
+  "detection_modes": {
+    "explicit_agent": {
+      "enabled": true,
+      "triggers": [
+        "feature-doc-manager",
+        "@feature-doc-manager",
+        "use feature-doc-manager"
+      ]
+    },
+    "intelligent_detection": {
+      "enabled": true,
+      "documentation_keywords": [
+        "document",
+        "documentation",
+        "create docs",
+        "write docs",
+        "spec out",
+        "requirements for",
+        "functional requirements",
+        "success criteria",
+        "test coverage",
+        "implementation plan"
+      ],
+      "feature_keywords": [
+        "feature",
+        "functionality",
+        "system",
+        "component",
+        "module",
+        "capability",
+        "authentication",
+        "testing",
+        "UI component"
+      ],
+      "implementation_keywords": [
+        "implement",
+        "build",
+        "create",
+        "develop",
+        "add",
+        "test",
+        "verify"
+      ]
+    }
+  },
+  "confidence_threshold": 0.7,
+  "exclude_patterns": [
+    "fix",
+    "bug",
+    "error",
+    "debug",
+    "refactor",
+    "optimize",
+    "update existing",
+    "modify",
+    "lint",
+    "format"
+  ]
+}

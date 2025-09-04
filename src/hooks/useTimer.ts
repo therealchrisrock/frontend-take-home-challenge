@@ -67,11 +67,17 @@ export function useTimer({
   const lastUpdateRef = useRef<number>(Date.now());
   const isRunning = Boolean(timeState.activePlayer && !timeState.isPaused);
 
+  // Store callback in ref to avoid dependency issues
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
+
   // Update time state and notify listeners
   const updateTimeState = useCallback((newState: TimeState) => {
     setTimeStateInternal(newState);
-    onTimeUpdate?.(newState);
-  }, [onTimeUpdate]);
+    onTimeUpdateRef.current?.(newState);
+  }, []); // No dependencies to avoid infinite loops
 
   // Calculate elapsed time since last update
   const calculateElapsedTime = useCallback(() => {
@@ -302,8 +308,30 @@ export function useTimer({
 
   // Reset timers when time control changes
   useEffect(() => {
-    resetTimers();
-  }, [timeControl, resetTimers]);
+    if (!timeControl) {
+      const newTimeState: TimeState = {
+        isRunning: false,
+        redTime: 0,
+        blackTime: 0,
+        activePlayer: null,
+        isPaused: false,
+        lastUpdateTime: Date.now(),
+        turnStartTime: null
+      };
+      updateTimeState(newTimeState);
+    } else {
+      const newTimeState: TimeState = {
+        isRunning: false,
+        redTime: timeControl.initialTime * 1000,
+        blackTime: timeControl.initialTime * 1000,
+        activePlayer: null,
+        isPaused: false,
+        lastUpdateTime: Date.now(),
+        turnStartTime: null
+      };
+      updateTimeState(newTimeState);
+    }
+  }, [timeControl, updateTimeState]); // Now updateTimeState is stable
 
   return {
     timeState,

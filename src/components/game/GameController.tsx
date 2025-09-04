@@ -32,6 +32,7 @@ import { useGameStorage } from '~/hooks/useGameStorage';
 import { useMultiTabSync } from '~/hooks/useMultiTabSync';
 import { useOfflineSync } from '~/hooks/useOfflineSync';
 import { useTimer } from '~/hooks/useTimer';
+import { useAudioWarnings } from '~/hooks/useAudioWarnings';
 import { Badge } from '~/components/ui/badge';
 import { api } from '~/trpc/react';
 import { useRouter } from 'next/navigation';
@@ -60,6 +61,7 @@ export function GameController({ gameId }: GameControllerProps = {}) {
   const [isLoading, setIsLoading] = useState(!!gameId);
   const [timeControl, setTimeControl] = useState<TimeControl | null>(null);
   const [showTimeControlDialog, setShowTimeControlDialog] = useState(false);
+  const [audioWarningsEnabled, setAudioWarningsEnabled] = useState(true);
   
   // Load game data if gameId is provided
   const { data: gameData } = api.game.load.useQuery(
@@ -151,6 +153,12 @@ export function GameController({ gameId }: GameControllerProps = {}) {
     }
   });
 
+  // Audio warnings hook
+  const audioWarnings = useAudioWarnings({
+    enabled: audioWarningsEnabled && !!timeControl,
+    timeState: timer.timeState
+  });
+
   const handleMove = useCallback(async (move: Move) => {
     // Only use multi-tab sync for online games
     if (gameMode === 'online') {
@@ -226,7 +234,10 @@ export function GameController({ gameId }: GameControllerProps = {}) {
           moveHistory: newMoveHistory,
           gameMode,
           gameStartTime,
-          winner: gameWinner
+          winner: gameWinner,
+          timeControl,
+          timeState: timer.timeState,
+          audioWarningsEnabled
         };
         
         await storageActions.saveGame(gameState);
@@ -335,6 +346,17 @@ export function GameController({ gameId }: GameControllerProps = {}) {
       setWinner(savedGame.winner);
       setSelectedPosition(null);
       setValidMoves([]);
+      
+      // Restore time control settings
+      if (savedGame.timeControl) {
+        setTimeControl(savedGame.timeControl);
+      }
+      if (savedGame.audioWarningsEnabled !== undefined) {
+        setAudioWarningsEnabled(savedGame.audioWarningsEnabled);
+      }
+      if (savedGame.timeState) {
+        timer.setTimeState(savedGame.timeState);
+      }
     }
     setShowContinueDialog(false);
   };
@@ -408,6 +430,26 @@ export function GameController({ gameId }: GameControllerProps = {}) {
       }
     }
   }, [isAIThinking, timeControl, gameMode, timer]);
+
+  // Keyboard shortcuts for pause/resume
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Space bar for pause/resume (only if time control is active)
+      if (event.code === 'Space' && timeControl && !winner) {
+        event.preventDefault();
+        if (timer.timeState.isPaused) {
+          timer.resumeTimer();
+        } else {
+          timer.pauseTimer();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [timeControl, timer, winner]);
 
   // Highlight mandatory captures
   const mustCapturePositions = getMustCapturePositions(board, currentPlayer);
@@ -620,7 +662,10 @@ export function GameController({ gameId }: GameControllerProps = {}) {
                       moveHistory,
                       gameMode,
                       gameStartTime,
-                      winner
+                      winner,
+                      timeControl,
+                      timeState: timer.timeState,
+                      audioWarningsEnabled
                     })}
                     variant="outline"
                     size="sm"
@@ -719,6 +764,8 @@ export function GameController({ gameId }: GameControllerProps = {}) {
           timer.resetTimers(); // Reset timers when time control changes
         }}
         gameActive={!winner && moveCount > 0}
+        audioEnabled={audioWarningsEnabled}
+        onAudioEnabledChange={setAudioWarningsEnabled}
       />
     </div>
   );

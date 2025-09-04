@@ -1,0 +1,74 @@
+'use client';
+
+import { type Position } from '~/lib/game-logic';
+import { cn } from '~/lib/utils';
+
+interface SquareProps {
+  position: Position;
+  isBlack: boolean;
+  isHighlighted: boolean;
+  isSelected: boolean;
+  isPossibleMove: boolean;
+  onClick: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  children?: React.ReactNode;
+}
+
+export function Square({
+  position,
+  isBlack,
+  isHighlighted,
+  isSelected,
+  isPossibleMove,
+  onClick,
+  onDrop,
+  onDragOver,
+  children
+}: SquareProps) {
+  const squareStyle = isBlack ? {
+    background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`
+  } : {
+    background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`
+  };
+
+  const ringStyle = isSelected ? {
+    boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`
+  } : isHighlighted ? {
+    boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`
+  } : undefined;
+
+  return (
+    <div
+      className={cn(
+        'relative aspect-square transition-all duration-200 flex items-center justify-center',
+        isPossibleMove && 'cursor-pointer',
+        !isBlack && 'shadow-inner'
+      )}
+      style={{
+        ...squareStyle,
+        ...ringStyle
+      }}
+      onClick={onClick}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+    >
+      {isPossibleMove && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{
+            '--move-color': 'var(--board-possible-move-glow)'
+          } as React.CSSProperties}
+        >
+          <div 
+            className="w-8 h-8 rounded-full animate-pulse shadow-lg"
+            style={{
+              backgroundColor: 'var(--board-possible-move-glow)'
+            }}
+          />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}

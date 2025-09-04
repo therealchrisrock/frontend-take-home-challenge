@@ -1,0 +1,91 @@
+/**
+ * Brazilian Draughts rule configuration
+ */
+
+export const BrazilianConfig = {
+  "metadata": {
+    "name": "brazilian",
+    "displayName": "Brazilian Draughts",
+    "description": "8×8 draughts with backward captures for all pieces and maximum capture rule. Also known as Damas Brasileiras.",
+    "origin": "Brazil",
+    "aliases": ["Damas Brasileiras", "Brazilian Checkers"],
+    "popularity": "regional" as const,
+    "officialRules": {
+      "organization": "Confederação Brasileira de Damas (CBD)",
+      "lastUpdated": "2022-06-15",
+      "version": "2022.2"
+    }
+  },
+  "board": {
+    "size": 8,
+    "pieceCount": 12,
+    "startingRows": {
+      "black": [0, 1, 2],
+      "red": [5, 6, 7]
+    },
+    "squareColors": {
+      "light": "#F0D9B5",
+      "dark": "#B58863"
+    }
+  },
+  "movement": {
+    "regularPieces": {
+      "directions": {
+        "red": "forward" as const,
+        "black": "forward" as const
+      },
+      "canCaptureBackward": true,
+      "canMoveBackward": false
+    },
+    "kings": {
+      "canFly": true,
+      "canCaptureBackward": true
+    }
+  },
+  "capture": {
+    "mandatory": true,
+    "requireMaximum": true,
+    "kingPriority": true,
+    "chainCaptures": true,
+    "captureDirection": {
+      "regular": "all" as const,
+      "king": "all" as const
+    },
+    "promotion": {
+      "duringCapture": false,
+      "stopsCaptureChain": true
+    }
+  },
+  "promotion": {
+    "toOppositeEnd": true,
+    "immediateEffect": true
+  },
+  "draws": {
+    "fortyMoveRule": true,
+    "twentyFiveMoveRule": false,
+    "repetitionLimit": 3,
+    "insufficientMaterial": true,
+    "staleMate": true
+  },
+  "tournament": {
+    "touchMove": true,
+    "timeControls": {
+      "enabled": true,
+      "blitz": { "baseTime": 5, "increment": 3 },
+      "rapid": { "baseTime": 20, "increment": 5 },
+      "classical": { "baseTime": 90, "increment": 0 }
+    },
+    "notation": {
+      "required": true,
+      "format": "algebraic" as const
+    },
+    "openingRestrictions": {
+      "threeMove": false
+    },
+    "officialCompliance": {
+      "wcdf": false,
+      "fmjd": false
+    }
+  },
+  "schemaVersion": "1.0.0"
+} as const;

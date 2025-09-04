@@ -1,114 +1,64 @@
-# Take-Home Challenge: Checkers Game
+# Checkers Game - T3 Stack Implementation
 
-## Overview
+A modern TypeScript implementation of Checkers built with the [T3 Stack](https://create.t3.gg/), featuring real-time gameplay, multi-tab synchronization, and offline support.
 
-Build a **ReactJS** (or **TypeScript React**) application that implements a playable Checkers game in the browser. Your goal is to demonstrate clean component design, effective state management, and a pleasant user experience. You should structure your app as if shipping to production, with clear documentation and a basic test suite to validate core behavior.
+## Design Notes & Trade-offs
 
-> **Note:** It’s fine if you can’t complete every feature—focus on the essentials first, and document any trade‑offs or unfinished work.
+Detailed architectural decisions and implementation trade-offs are documented in the following notes:
 
----
+- [**Architecture Overview**](./notes/01-architecture-overview.md) - T3 Stack choice, project structure, routing strategy
+- [**State Management**](./notes/02-state-management.md) - React state, persistence layers, optimistic updates
+- [**Game Logic Separation**](./notes/03-game-logic-separation.md) - Pure functions vs UI components, validation architecture
+- [**Multi-Tab Synchronization**](./notes/04-multi-tab-sync.md) - BroadcastChannel API, master election, fallback strategies
+- [**Offline Support**](./notes/05-offline-support.md) - PWA approach, storage strategy, conflict resolution
+- [**UI Component Architecture**](./notes/06-ui-component-architecture.md) - Shadcn/ui integration, responsive design, 3D backgrounds
+- [**Performance Optimizations**](./notes/07-performance-optimizations.md) - Rendering strategy, bundle optimization, AI workers
 
-## Requirements
+### Design Notes Management
 
-### 1. Core Game Mechanics
-- **Board & Pieces**  
-  - Render an 8×8 checkers board with alternating light/dark squares.  
-  - Place 12 red and 12 black pieces on their standard starting positions.
-- **Turns & Moves**  
-  - Enforce alternating turns between players.  
-  - Allow pieces to move diagonally forward one square when unblocked.  
-  - Highlight valid move targets when the user hovers over or selects a piece.
-- **Captures & Jumps**  
-  - If an opponent’s piece is adjacent and the landing square beyond is empty, enforce a mandatory jump over it.  
-  - Support multiple sequential jumps in a single turn.
-- **Kinging**  
-  - When a piece reaches the opponent’s back row, crown it as a “King.”  
-  - Kings may move and jump both forward and backward.
+The design documentation is actively maintained using the [Design Notes Manager Agent](./notes/DESIGN_NOTES_AGENT.md). This agent:
+- Keeps documentation synchronized with code changes
+- Creates notes for new architectural decisions
+- Removes obsolete documentation
+- Updates trade-offs as implementation evolves
 
-### 2. User Interaction
-- **Drag‑and‑Drop**  
-  - Enable players to drag pieces to their destination square.  
-  - Provide keyboard or click‑to‑select alternatives if desired.
-- **Visual Feedback**  
-  - Highlight all legal destination squares on hover or select.  
-  - Display an indicator for the active player’s turn.
-- **No‑Brain AI**  
-  - Implement a simple AI opponent that picks a random valid move when it’s its turn.  
-  - Allow human vs. human and human vs. AI modes.
+To request a documentation review: "Review and update the design notes based on recent changes"
 
-### 3. Stability & Compatibility
-- Ensure the app runs correctly in the latest versions of **Chrome**, **Firefox**, and **Safari**.
-- Handle window resizes gracefully (responsive layout).
+## Quick Start
 
----
+```bash
+# Install dependencies
+pnpm install
 
-## Additional Considerations
+# Set up environment
+cp .env.example .env
 
-### State Management
-- You may use React’s built‑in state/hooks, Context API, Redux, Zustand, or any other library.  
-- Structure your state so that game logic (valid moves, captures, kinging) is testable in isolation from UI components.
+# Run development server
+pnpm dev
+```
 
-### Code Quality & Documentation
-- Write idiomatic, modular React code with clear component boundaries (e.g. `Board`, `Square`, `Piece`, `GameController`).  
-- Include concise docstrings or comments explaining non‑obvious logic.  
-- Provide a **README.md** (this file) with:
-  - Project description  
-  - Installation and running instructions  
-  - Testing instructions  
-  - Design notes or trade-offs  
+## What's next? How do I make an app with this?
 
-### Testing
-- Include a basic test suite (using **Jest**, **React Testing Library**, or similar) covering:
-  - Move validation logic  
-  - Capture sequences  
-  - Kinging behavior  
-- Bonus: End‑to‑end tests (e.g. **Cypress**) that exercise dragging and dropping.
+We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
 
-### Deployment
-- Provide a **Dockerfile**, or simply document `npm install && npm start`.  
-- (Optional) Host a live demo on Netlify, Vercel, GitHub Pages, etc., and include the URL.
+If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
 
----
+- [Next.js](https://nextjs.org)
+- [NextAuth.js](https://next-auth.js.org)
+- [Prisma](https://prisma.io)
+- [Drizzle](https://orm.drizzle.team)
+- [Tailwind CSS](https://tailwindcss.com)
+- [tRPC](https://trpc.io)
 
-## Suggested Ways to Stand Out
+## Learn More
 
-- **TypeScript** for full static typing.  
-- **Game stats UI**: track time elapsed, move count, captures, and display a summary panel.  
-- **Improved AI**: implement a basic minimax algorithm or heuristic move ranking.  
-- **Theming**: allow users to switch checker/board color schemes.  
-- **Animations**: add smooth transitions for moves and captures.  
-- **Undo/Redo**: support stepping backward and forward through move history.
+To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
 
----
+- [Documentation](https://create.t3.gg/)
+- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
 
-## Evaluation Criteria
+You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
 
-- **Functionality**: Does the game enforce all Checkers rules correctly?  
-- **User Experience**: Is drag‑and‑drop smooth? Are valid moves clearly indicated?  
-- **Code Organization**: Are components and state layers well separated?  
-- **Readability & Maintainability**: Are functions and modules logically named and documented?  
-- **Testing**: Is core logic covered by tests? Do they pass reliably?  
-- **Bonus Features**: Any extra polish or enhancements beyond the basic spec.
+## How do I deploy this?
 
----
-
-## Deliverables
-
-1. **Source Code**  
-   - React project (JavaScript or TypeScript) with clear folder structure.  
-   - `package.json` and any build/configuration files.
-
-2. **Documentation**  
-   - **README.md** with:
-     - Setup and run instructions  
-     - Testing instructions  
-     - Design notes and trade‑offs
-
-3. **Tests**  
-   - Unit tests for game logic.  
-   - (Optional) Integration or E2E tests.
-
-4. **Demo**  
-   - A running instance (local instructions or hosted URL).
-
-Good luck—have fun building your Checkers game!
+Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.

@@ -1,0 +1,321 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String?
+    access_token      String?
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String?
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+model User {
+    id                 String              @id @default(cuid())
+    email              String?             @unique
+    emailVerified      DateTime?
+    username           String              @unique
+    password           String?
+    name               String?
+    image              String?
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
+    
+    accounts           Account[]
+    sessions           Session[]
+    gamesAsPlayer1     Game[]              @relation("Player1")
+    gamesAsPlayer2     Game[]              @relation("Player2")
+    gameEvents         GameEvent[]
+    sentFriendships    Friendship[]        @relation("FriendshipSender")
+    receivedFriendships Friendship[]       @relation("FriendshipReceiver")
+    blockedUsers       Block[]             @relation("BlockedBy")
+    blockedByUsers     Block[]             @relation("Blocking")
+    sentMessages       Message[]           @relation("MessageSender")
+    receivedMessages   Message[]           @relation("MessageReceiver")
+    passwordResetTokens PasswordResetToken[]
+    
+    // New rating and tournament fields
+    playerRatings      PlayerRating[]
+    tournamentEntries  TournamentEntry[]
+    createdTournaments Tournament[]        @relation("TournamentCreator")
+
+    @@index([email])
+    @@index([username])
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+    id      String   @id @default(cuid())
+    token   String   @unique
+    userId  String
+    expires DateTime
+    user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+// Social Features
+model Friendship {
+    id         String           @id @default(cuid())
+    senderId   String
+    receiverId String
+    status     FriendshipStatus @default(PENDING)
+    createdAt  DateTime         @default(now())
+    updatedAt  DateTime         @updatedAt
+    
+    sender     User             @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+    receiver   User             @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+    @@unique([senderId, receiverId])
+    @@index([senderId])
+    @@index([receiverId])
+}
+
+enum FriendshipStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+}
+
+model Block {
+    id          String   @id @default(cuid())
+    blockerId   String
+    blockedId   String
+    createdAt   DateTime @default(now())
+    
+    blocker     User     @relation("BlockedBy", fields: [blockerId], references: [id], onDelete: Cascade)
+    blocked     User     @relation("Blocking", fields: [blockedId], references: [id], onDelete: Cascade)
+
+    @@unique([blockerId, blockedId])
+    @@index([blockerId])
+    @@index([blockedId])
+}
+
+model Message {
+    id         String   @id @default(cuid())
+    content    String
+    senderId   String
+    receiverId String
+    read       Boolean  @default(false)
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+    
+    sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+    receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+    @@index([senderId])
+    @@index([receiverId])
+    @@index([createdAt])
+}
+
+// Game Models
+model Game {
+    id            String     @id @default(cuid())
+    board         String     // JSON string of Board type
+    currentPlayer String     // 'red' or 'black'
+    moveCount     Int        @default(0)
+    gameMode      String     // 'ai', 'local', or 'online'
+    gameStartTime DateTime   @default(now())
+    lastSaved     DateTime   @updatedAt
+    winner        String?    // 'red', 'black', 'draw', or null
+    version       Int        @default(1) // For optimistic locking
+    syncMetadata  String?    // JSON for sync-specific data
+    player1Id     String?
+    player2Id     String?
+    
+    // New variant and tournament fields (optional for backward compatibility)
+    variant       GameVariantEnum? // Game variant
+    playMode      PlayModeEnum?    // Play mode
+    boardSize     Int?             // Board size for this game
+    gameConfig    String?          // JSON GameConfig object
+    timeControl   String?          // JSON TimeControl object
+    timeRemaining String?          // JSON time remaining for each player
+    notation      String?          // JSON array of moves in algebraic notation
+    
+    // Tournament-specific fields
+    tournamentId  String?         // Reference to tournament if part of one
+    roundNumber   Int?            // Tournament round
+    tableNumber   Int?            // Tournament table/board number
+    
+    player1       User?      @relation("Player1", fields: [player1Id], references: [id], onDelete: SetNull)
+    player2       User?      @relation("Player2", fields: [player2Id], references: [id], onDelete: SetNull)
+    moves         GameMove[]
+    events        GameEvent[]
+    tournament    Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+    
+    @@index([lastSaved])
+    @@index([player1Id])
+    @@index([player2Id])
+    @@index([version])
+    @@index([variant])
+    @@index([playMode])
+    @@index([tournamentId])
+}
+
+enum GameVariantEnum {
+    AMERICAN
+    BRAZILIAN
+    INTERNATIONAL
+}
+
+enum PlayModeEnum {
+    CASUAL
+    TOURNAMENT
+}
+
+model GameMove {
+    id        String   @id @default(cuid())
+    gameId    String
+    game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    moveIndex Int      // Order of the move in the game
+    fromRow   Int
+    fromCol   Int
+    toRow     Int
+    toCol     Int
+    captures  String?  // JSON array of captured positions
+    createdAt DateTime @default(now())
+    
+    @@unique([gameId, moveIndex])
+    @@index([gameId])
+}
+
+model GameEvent {
+    id            String   @id @default(cuid())
+    gameId        String
+    eventType     String   // 'MOVE', 'TAB_ACTIVATED', 'TAB_CLOSED', 'CONFLICT_RESOLVED', etc.
+    eventData     String   // JSON event payload
+    tabId         String?  // Which tab triggered the event
+    userId        String?  // Which user triggered the event (if applicable)
+    gameVersion   Int      // Game version at time of event
+    createdAt     DateTime @default(now())
+    
+    game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+    @@index([gameId, createdAt])
+    @@index([eventType])
+    @@index([createdAt])
+}
+
+// Tournament and Rating Models
+model PlayerRating {
+    id            String          @id @default(cuid())
+    userId        String
+    variant       GameVariantEnum
+    playMode      PlayModeEnum
+    rating        Int             @default(1200)
+    gamesPlayed   Int             @default(0)
+    wins          Int             @default(0)
+    losses        Int             @default(0)
+    draws         Int             @default(0)
+    provisional   Boolean         @default(true) // First 20 games
+    lastGameDate  DateTime?
+    peakRating    Int             @default(1200)
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt
+    
+    user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@unique([userId, variant, playMode])
+    @@index([variant, playMode, rating])
+    @@index([userId])
+}
+
+model Tournament {
+    id              String              @id @default(cuid())
+    name            String
+    description     String?
+    variant         GameVariantEnum
+    timeControl     String              // JSON TimeControl
+    maxPlayers      Int
+    currentPlayers  Int                 @default(0)
+    status          TournamentStatus    @default(REGISTRATION)
+    format          TournamentFormat    @default(SWISS)
+    rounds          Int                 @default(3)
+    currentRound    Int                 @default(0)
+    startDate       DateTime?
+    endDate         DateTime?
+    registrationEnd DateTime?
+    prize           String?             // Prize description
+    creatorId       String
+    createdAt       DateTime            @default(now())
+    updatedAt       DateTime            @updatedAt
+    
+    creator         User                @relation("TournamentCreator", fields: [creatorId], references: [id])
+    entries         TournamentEntry[]
+    games           Game[]
+    
+    @@index([status])
+    @@index([variant])
+    @@index([creatorId])
+    @@index([startDate])
+}
+
+enum TournamentStatus {
+    REGISTRATION
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED
+}
+
+enum TournamentFormat {
+    SWISS
+    ROUND_ROBIN
+    ELIMINATION
+    DOUBLE_ELIMINATION
+}
+
+model TournamentEntry {
+    id           String     @id @default(cuid())
+    tournamentId String
+    userId       String
+    score        Float      @default(0) // Points in tournament
+    tiebreak1    Float      @default(0) // Buchholz or similar
+    tiebreak2    Float      @default(0) // Secondary tiebreak
+    withdrawn    Boolean    @default(false)
+    joinedAt     DateTime   @default(now())
+    
+    tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+    user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@unique([tournamentId, userId])
+    @@index([tournamentId, score])
+    @@index([userId])
+}

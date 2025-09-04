@@ -7,6 +7,7 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
+import { Switch } from '~/components/ui/switch';
 import { 
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
   DialogTitle,
   DialogFooter
 } from '~/components/ui/dialog';
-import { Clock, Zap, Timer, Trophy, Settings } from 'lucide-react';
+import { Clock, Zap, Timer, Trophy, Settings, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import {
   type TimeControl,
@@ -37,6 +38,10 @@ interface TimeControlSelectorProps {
   onTimeControlChange: (timeControl: TimeControl | null) => void;
   /** Whether game is active (disable changes) */
   gameActive?: boolean;
+  /** Audio warnings enabled */
+  audioEnabled?: boolean;
+  /** Callback when audio setting changes */
+  onAudioEnabledChange?: (enabled: boolean) => void;
 }
 
 export function TimeControlSelector({
@@ -44,7 +49,9 @@ export function TimeControlSelector({
   open,
   onOpenChange,
   onTimeControlChange,
-  gameActive = false
+  gameActive = false,
+  audioEnabled = true,
+  onAudioEnabledChange
 }: TimeControlSelectorProps) {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(
     timeControl?.preset && timeControl.preset !== 'custom' ? timeControl.preset : null
@@ -221,6 +228,31 @@ export function TimeControlSelector({
               Format: <code>Minutes|Increment</code> or <code>Minutes+Increment</code>
               <br />
               Examples: <code>5|0</code> (5 min, no increment), <code>10+5</code> (10 min + 5 sec)
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Audio settings */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Audio Settings</Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {audioEnabled ? (
+                  <Volume2 className="w-4 h-4 text-blue-600" />
+                ) : (
+                  <VolumeX className="w-4 h-4 text-gray-400" />
+                )}
+                <span className="text-sm">Warning sounds</span>
+              </div>
+              <Switch
+                checked={audioEnabled}
+                onCheckedChange={onAudioEnabledChange}
+                disabled={gameActive}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Play audio alerts when time is running low (10s, 5s, 3s, 2s, 1s)
             </div>
           </div>
 
