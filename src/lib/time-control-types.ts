@@ -222,7 +222,8 @@ export function createInitialTimeState(timeControl: TimeControl): TimeState {
  */
 export function isTimeExpired(timeState: TimeState, player: PieceColor): boolean {
   const playerTime = player === 'red' ? timeState.redTime : timeState.blackTime;
-  return playerTime <= 0;
+  // Don't consider time expired if it's -1 (uninitialized)
+  return playerTime === 0 || (playerTime > 0 && playerTime < 1);
 }
 
 /**

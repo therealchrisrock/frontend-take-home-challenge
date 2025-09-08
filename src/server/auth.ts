@@ -17,12 +17,14 @@ declare module "next-auth" {
       id: string;
       username: string;
       needsUsername: boolean;
+      avatarUrl?: string | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     username: string;
     needsUsername?: boolean;
+    avatarUrl?: string | null;
   }
 }
 
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
     userId: string;
     username: string;
     needsUsername: boolean;
+    avatarUrl?: string | null;
   }
 }
 
@@ -43,13 +46,19 @@ export const authOptions: NextAuthOptions = {
         id: token.userId,
         username: token.username,
         needsUsername: token.needsUsername,
+        avatarUrl: token.avatarUrl,
       },
     }),
     jwt: async ({ token, user, trigger, session }) => {
       if (user) {
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { avatarUrl: true },
+        });
         token.userId = user.id;
         token.username = user.username;
         token.needsUsername = user.username.startsWith('user_');
+        token.avatarUrl = dbUser?.avatarUrl || null;
       }
 
       if (trigger === "update" && session?.username) {
@@ -105,6 +114,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           username: user.username,
           image: user.image,
+          avatarUrl: user.avatarUrl,
         };
       },
     }),

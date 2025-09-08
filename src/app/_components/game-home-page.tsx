@@ -8,17 +8,45 @@ import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
 import { PlusCircle, Users, Bot, Trophy, Info } from 'lucide-react';
 import { api } from '~/trpc/react';
+import { BoardVariantSelector } from '~/components/game/BoardVariantSelector';
+import { type BoardVariant, getBoardConfig } from '~/lib/board-config';
+import { BoardPreview } from '~/components/game/BoardPreview';
 
 export function GameHomePage() {
   const router = useRouter();
   const [playerName, setPlayerName] = useState('');
+  const [boardVariant, setBoardVariant] = useState<BoardVariant>('american');
+  const boardConfig = getBoardConfig(boardVariant);
 
-  const handleStartGame = () => {
-    router.push('/game');
+  const handleStartGame = (gameMode: 'ai' | 'local' = 'ai') => {
+    const params = new URLSearchParams({
+      gameMode,
+      ...(boardVariant !== 'american' && { boardVariant })
+    });
+    router.push(`/game/simple?${params.toString()}`);
   };
 
   return (
     <>
+      {/* Board Preview Section */}
+      <div className="mb-8">
+        <Card className="bg-white/90 backdrop-blur border-amber-200 shadow-xl">
+          <CardHeader className="text-center pb-3">
+            <CardTitle className="text-lg font-semibold text-orange-800">
+              {boardConfig.name} Preview
+            </CardTitle>
+            <CardDescription className="text-sm text-amber-700">
+              {boardConfig.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="max-w-md mx-auto">
+              <BoardPreview config={boardConfig} gameMode="ai" aiDifficulty="medium" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
         {/* Game Creation Section */}
         <Card className="bg-white/90 backdrop-blur border-amber-200 shadow-xl">
@@ -41,8 +69,13 @@ export function GameHomePage() {
               className="bg-white/50 border-amber-300 placeholder:text-amber-400"
             />
             
+            <BoardVariantSelector
+              value={boardVariant}
+              onValueChange={setBoardVariant}
+            />
+            
             <Button
-              onClick={handleStartGame}
+              onClick={() => handleStartGame('ai')}
               className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transform transition hover:scale-[1.02]"
             >
               <Bot className="mr-2 h-5 w-5" />
@@ -53,7 +86,7 @@ export function GameHomePage() {
             </Button>
             
             <Button
-              onClick={handleStartGame}
+              onClick={() => handleStartGame('local')}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform transition hover:scale-[1.02]"
             >
               <Users className="mr-2 h-5 w-5" />

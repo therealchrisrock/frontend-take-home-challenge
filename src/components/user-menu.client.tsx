@@ -41,7 +41,7 @@ export function UserMenuClient({ session }: UserMenuClientProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={session.user.image ?? undefined} alt={session.user.name ?? ""} />
+            <AvatarImage src={session.user.avatarUrl ?? session.user.image ?? undefined} alt={session.user.name ?? ""} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           {unreadCount && unreadCount.count > 0 && (
@@ -56,7 +56,7 @@ export function UserMenuClient({ session }: UserMenuClientProps) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{session.user.name ?? session.user.username}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {session.user.email}
+              {session.user.username}
             </p>
           </div>
         </DropdownMenuLabel>

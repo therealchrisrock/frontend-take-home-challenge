@@ -86,6 +86,9 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--board-highlighted-ring', skin.board.highlightedRing);
     root.style.setProperty('--board-possible-move', skin.board.possibleMove);
     root.style.setProperty('--board-possible-move-glow', skin.board.possibleMoveGlow);
+    root.style.setProperty('--board-arrow-stroke', skin.board.arrow.stroke);
+    root.style.setProperty('--board-arrow-fill', skin.board.arrow.fill);
+    root.style.setProperty('--board-arrow-glow', skin.board.arrow.glow);
     
     // Piece colors
     root.style.setProperty('--piece-red-base', skin.pieces.red.base);

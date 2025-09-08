@@ -168,7 +168,8 @@ describe('Game Logic', () => {
       expect(moves[0]).toEqual({
         from: { row: 5, col: 2 },
         to: { row: 3, col: 4 },
-        captures: [{ row: 4, col: 3 }]
+        captures: [{ row: 4, col: 3 }],
+        path: [{ row: 5, col: 2 }, { row: 3, col: 4 }]
       });
     });
 
@@ -198,7 +199,8 @@ describe('Game Logic', () => {
       expect(captures[0]).toEqual({
         from: { row: 5, col: 2 },
         to: { row: 3, col: 4 },
-        captures: [{ row: 4, col: 3 }]
+        captures: [{ row: 4, col: 3 }],
+        path: [{ row: 5, col: 2 }, { row: 3, col: 4 }]
       });
     });
 

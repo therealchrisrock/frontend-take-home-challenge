@@ -50,6 +50,7 @@ interface GameState {
   timeControl?: TimeControl | null;
   timeState?: TimeState | null;
   audioWarningsEnabled?: boolean;
+  soundEffectsEnabled?: boolean;
 }
 
 export function useGameStorage({

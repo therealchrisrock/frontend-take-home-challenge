@@ -12,7 +12,6 @@ import { PlusCircle, Users, Bot, Trophy, Target, Crown, Zap, Sparkles, GamepadIc
 import { api } from '~/trpc/react';
 import { UserMenuClient } from '~/components/user-menu.client';
 import Link from 'next/link';
-import { Background3D } from '~/components/ui/background-3d';
 
 export default function HomeEnhanced() {
   const router = useRouter();
@@ -50,14 +49,8 @@ export default function HomeEnhanced() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* 3D Background - Only loads Three.js if you set enable3D={true} */}
-      <Background3D 
-        enable3D={true} 
-        fallbackGradient="bg-gradient-to-br from-amber-50 via-amber-100 to-orange-100"
-      />
-      
-      {/* Content Overlay */}
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-amber-50 via-amber-100 to-orange-100">
+      {/* Content */}
       <div className="relative z-10 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header with User Menu */}

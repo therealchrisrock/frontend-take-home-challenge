@@ -9,6 +9,7 @@ interface SquareProps {
   isHighlighted: boolean;
   isSelected: boolean;
   isPossibleMove: boolean;
+  isKeyboardFocused?: boolean;
   onClick: () => void;
   onDrop: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -21,6 +22,7 @@ export function Square({
   isHighlighted,
   isSelected,
   isPossibleMove,
+  isKeyboardFocused = false,
   onClick,
   onDrop,
   onDragOver,
@@ -36,6 +38,9 @@ export function Square({
     boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`
   } : isHighlighted ? {
     boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`
+  } : isKeyboardFocused ? {
+    boxShadow: `inset 0 0 0 3px #3b82f6, 0 0 8px rgba(59, 130, 246, 0.4)`,
+    outline: 'none'
   } : undefined;
 
   return (

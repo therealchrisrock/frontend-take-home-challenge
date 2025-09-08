@@ -20,6 +20,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(250, 204, 21)', // yellow-400
       possibleMove: 'rgb(74, 222, 128)', // green-400
       possibleMoveGlow: 'rgba(74, 222, 128, 0.5)',
+      arrow: {
+        stroke: 'rgb(59, 130, 246)', // blue-500
+        fill: 'rgba(59, 130, 246, 0.8)', // blue-500 with transparency
+        glow: 'rgba(59, 130, 246, 0.3)', // blue-500 glow
+      },
     },
     pieces: {
       red: {
@@ -80,6 +85,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(217, 70, 239)', // fuchsia-400
       possibleMove: 'rgb(167, 139, 250)', // violet-400
       possibleMoveGlow: 'rgba(167, 139, 250, 0.5)',
+      arrow: {
+        stroke: 'rgb(168, 85, 247)', // purple-500
+        fill: 'rgba(168, 85, 247, 0.8)', // purple-500 with transparency
+        glow: 'rgba(168, 85, 247, 0.3)', // purple-500 glow
+      },
     },
     pieces: {
       red: {
@@ -145,6 +155,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(94, 234, 212)', // teal-300
       possibleMove: 'rgb(52, 211, 153)', // emerald-400
       possibleMoveGlow: 'rgba(52, 211, 153, 0.5)',
+      arrow: {
+        stroke: 'rgb(34, 211, 238)', // cyan-400
+        fill: 'rgba(34, 211, 238, 0.8)', // cyan-400 with transparency
+        glow: 'rgba(34, 211, 238, 0.3)', // cyan-400 glow
+      },
     },
     pieces: {
       red: {
@@ -210,6 +225,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(253, 224, 71)', // yellow-300
       possibleMove: 'rgb(254, 240, 138)', // yellow-200
       possibleMoveGlow: 'rgba(254, 240, 138, 0.5)',
+      arrow: {
+        stroke: 'rgb(251, 191, 36)', // amber-400
+        fill: 'rgba(251, 191, 36, 0.8)', // amber-400 with transparency
+        glow: 'rgba(251, 191, 36, 0.3)', // amber-400 glow
+      },
     },
     pieces: {
       red: {
@@ -275,6 +295,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(168, 85, 247)', // purple-500
       possibleMove: 'rgb(129, 140, 248)', // indigo-400
       possibleMoveGlow: 'rgba(129, 140, 248, 0.8)',
+      arrow: {
+        stroke: 'rgb(34, 211, 238)', // cyan-400
+        fill: 'rgba(34, 211, 238, 0.9)', // cyan-400 with transparency
+        glow: 'rgba(34, 211, 238, 0.4)', // cyan-400 glow
+      },
     },
     pieces: {
       red: {
@@ -340,6 +365,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(217, 119, 6)',
       possibleMove: 'rgb(251, 191, 36)',
       possibleMoveGlow: 'rgba(251, 191, 36, 0.5)',
+      arrow: {
+        stroke: 'rgb(217, 119, 6)', // amber-600
+        fill: 'rgba(217, 119, 6, 0.8)', // amber-600 with transparency
+        glow: 'rgba(217, 119, 6, 0.3)', // amber-600 glow
+      },
     },
     pieces: {
       red: {
@@ -405,6 +435,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(250, 204, 21)',
       possibleMove: 'rgb(254, 240, 138)',
       possibleMoveGlow: 'rgba(254, 240, 138, 0.7)',
+      arrow: {
+        stroke: 'rgb(251, 191, 36)', // amber-400
+        fill: 'rgba(251, 191, 36, 0.8)', // amber-400 with transparency
+        glow: 'rgba(251, 191, 36, 0.3)', // amber-400 glow
+      },
     },
     pieces: {
       red: {
@@ -471,6 +506,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(254, 240, 138)',
       possibleMove: 'rgb(254, 215, 170)',
       possibleMoveGlow: 'rgba(254, 215, 170, 0.6)',
+      arrow: {
+        stroke: 'rgb(251, 146, 60)', // orange-400
+        fill: 'rgba(251, 146, 60, 0.8)', // orange-400 with transparency
+        glow: 'rgba(251, 146, 60, 0.3)', // orange-400 glow
+      },
     },
     pieces: {
       red: {
@@ -531,6 +571,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(139, 92, 246)',
       possibleMove: 'rgb(167, 139, 250)',
       possibleMoveGlow: 'rgba(167, 139, 250, 0.4)',
+      arrow: {
+        stroke: 'rgb(99, 102, 241)', // indigo-500
+        fill: 'rgba(99, 102, 241, 0.8)', // indigo-500 with transparency
+        glow: 'rgba(99, 102, 241, 0.3)', // indigo-500 glow
+      },
     },
     pieces: {
       red: {
@@ -591,6 +636,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(250, 204, 21)',
       possibleMove: 'rgb(187, 247, 208)',
       possibleMoveGlow: 'rgba(187, 247, 208, 0.7)',
+      arrow: {
+        stroke: 'rgb(244, 114, 182)', // pink-400
+        fill: 'rgba(244, 114, 182, 0.8)', // pink-400 with transparency
+        glow: 'rgba(244, 114, 182, 0.3)', // pink-400 glow
+      },
     },
     pieces: {
       red: {
@@ -651,6 +701,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(34, 211, 238)',
       possibleMove: 'rgb(251, 146, 60)',
       possibleMoveGlow: 'rgba(251, 146, 60, 0.6)',
+      arrow: {
+        stroke: 'rgb(236, 72, 153)', // pink-500
+        fill: 'rgba(236, 72, 153, 0.8)', // pink-500 with transparency
+        glow: 'rgba(236, 72, 153, 0.3)', // pink-500 glow
+      },
     },
     pieces: {
       red: {
@@ -711,6 +766,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(251, 191, 36)',
       possibleMove: 'rgb(253, 186, 116)',
       possibleMoveGlow: 'rgba(253, 186, 116, 0.5)',
+      arrow: {
+        stroke: 'rgb(234, 88, 12)', // orange-600
+        fill: 'rgba(234, 88, 12, 0.8)', // orange-600 with transparency
+        glow: 'rgba(234, 88, 12, 0.3)', // orange-600 glow
+      },
     },
     pieces: {
       red: {
@@ -771,6 +831,11 @@ export const skins: Record<string, Skin> = {
       highlightedRing: 'rgb(240, 171, 252)',
       possibleMove: 'rgb(243, 232, 255)',
       possibleMoveGlow: 'rgba(243, 232, 255, 0.7)',
+      arrow: {
+        stroke: 'rgb(217, 70, 239)', // fuchsia-500
+        fill: 'rgba(217, 70, 239, 0.8)', // fuchsia-500 with transparency
+        glow: 'rgba(217, 70, 239, 0.3)', // fuchsia-500 glow
+      },
     },
     pieces: {
       red: {

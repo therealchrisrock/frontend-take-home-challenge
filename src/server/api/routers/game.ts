@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { createTRPCRouter, publicProcedure } from '~/server/api/trpc';
+import { createTRPCRouter, publicProcedure, protectedProcedure } from '~/server/api/trpc';
 import { type Board, type Move, createInitialBoard, makeMove } from '~/lib/game-logic';
+import { getBoardConfig, type BoardVariant } from '~/lib/board-config';
 import { STORAGE_VERSION } from '~/lib/storage/types';
 import { gameSessionManager } from '~/lib/multi-tab/session-manager';
 import type { InitialStatePayload, MoveAppliedPayload } from '~/lib/multi-tab/types';
@@ -30,19 +31,74 @@ export const gameRouter = createTRPCRouter({
   create: publicProcedure
     .input(z.object({
       mode: z.enum(['ai', 'local', 'online']),
-      playerName: z.string().optional()
+      playerName: z.string().optional(),
+      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional()
     }))
     .mutation(async ({ ctx, input }) => {
       // Generate a simple 6-character game code
       const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
+      // If user is authenticated, set them as player1
+      const player1Id = ctx.session?.user?.id ?? null;
+      
+      // Get the board configuration based on the variant
+      const boardVariant = input.boardVariant || 'american';
+      const boardConfig = getBoardConfig(boardVariant);
+      
       const game = await ctx.db.game.create({
         data: {
-          board: JSON.stringify(createInitialBoard()),
+          board: JSON.stringify(createInitialBoard(boardConfig)),
           currentPlayer: 'red',
           gameMode: input.mode,
           moveCount: 0,
-          version: STORAGE_VERSION
+          version: STORAGE_VERSION,
+          player1Id: player1Id, // Set authenticated user as player 1
+          player2Id: input.mode === 'ai' || input.mode === 'local' ? player1Id : null, // For AI/local, both players are the same user
+          // Map the board variant to the enum values, Canadian uses International enum with boardSize
+          variant: boardVariant === 'canadian' ? 'INTERNATIONAL' : 
+                  boardVariant === 'brazilian' ? 'BRAZILIAN' : 
+                  boardVariant === 'international' ? 'INTERNATIONAL' : 'AMERICAN',
+          boardSize: boardConfig.size, // Store the actual board size
+          gameConfig: JSON.stringify(boardConfig) // Store full config for reference
+        }
+      });
+
+      return {
+        id: game.id,
+        gameCode,
+        success: true
+      };
+    }),
+
+  createWithAuth: protectedProcedure
+    .input(z.object({
+      mode: z.enum(['ai', 'local', 'online']),
+      playerName: z.string().optional(),
+      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Generate a simple 6-character game code
+      const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      // Get the board configuration based on the variant
+      const boardVariant = input.boardVariant || 'american';
+      const boardConfig = getBoardConfig(boardVariant);
+      
+      const game = await ctx.db.game.create({
+        data: {
+          board: JSON.stringify(createInitialBoard(boardConfig)),
+          currentPlayer: 'red',
+          gameMode: input.mode,
+          moveCount: 0,
+          version: STORAGE_VERSION,
+          player1Id: ctx.session.user.id, // Authenticated user is always player 1
+          player2Id: input.mode === 'ai' || input.mode === 'local' ? ctx.session.user.id : null,
+          // Map the board variant to the enum values, Canadian uses International enum with boardSize
+          variant: boardVariant === 'canadian' ? 'INTERNATIONAL' : 
+                  boardVariant === 'brazilian' ? 'BRAZILIAN' : 
+                  boardVariant === 'international' ? 'INTERNATIONAL' : 'AMERICAN',
+          boardSize: boardConfig.size, // Store the actual board size
+          gameConfig: JSON.stringify(boardConfig) // Store full config for reference
         }
       });
 
@@ -84,15 +140,33 @@ export const gameRouter = createTRPCRouter({
       moves: z.array(MoveSchema).optional()
     }))
     .mutation(async ({ ctx, input }) => {
+      // If user is authenticated and no players are set, update player IDs
+      const existingGame = await ctx.db.game.findUnique({
+        where: { id: input.id },
+        select: { player1Id: true, player2Id: true, gameMode: true }
+      });
+
+      const updateData: any = {
+        board: JSON.stringify(input.board),
+        currentPlayer: input.currentPlayer,
+        moveCount: input.moveCount,
+        gameMode: input.gameMode,
+        winner: input.winner
+      };
+
+      // Set player IDs if not already set and user is authenticated
+      if (ctx.session?.user?.id && existingGame) {
+        if (!existingGame.player1Id) {
+          updateData.player1Id = ctx.session.user.id;
+        }
+        if (!existingGame.player2Id && (existingGame.gameMode === 'ai' || existingGame.gameMode === 'local')) {
+          updateData.player2Id = ctx.session.user.id;
+        }
+      }
+
       const game = await ctx.db.game.update({
         where: { id: input.id },
-        data: {
-          board: JSON.stringify(input.board),
-          currentPlayer: input.currentPlayer,
-          moveCount: input.moveCount,
-          gameMode: input.gameMode,
-          winner: input.winner
-        }
+        data: updateData
       });
 
       // Save moves if provided
@@ -206,6 +280,67 @@ export const gameRouter = createTRPCRouter({
     .mutation(async ({ ctx }) => {
       await ctx.db.game.deleteMany();
       return { success: true };
+    }),
+
+  getGameWithMoves: publicProcedure
+    .input(z.object({
+      gameId: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          moves: {
+            orderBy: { moveIndex: 'asc' }
+          },
+          player1: {
+            select: {
+              id: true,
+              username: true,
+              name: true,
+              image: true
+            }
+          },
+          player2: {
+            select: {
+              id: true,
+              username: true,
+              name: true,
+              image: true
+            }
+          }
+        }
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Game not found'
+        });
+      }
+
+      return {
+        id: game.id,
+        board: JSON.parse(game.board),
+        currentPlayer: game.currentPlayer,
+        moveCount: game.moveCount,
+        gameMode: game.gameMode,
+        gameStartTime: game.gameStartTime,
+        lastSaved: game.lastSaved,
+        winner: game.winner,
+        player1Id: game.player1Id,
+        player2Id: game.player2Id,
+        player1: game.player1,
+        player2: game.player2,
+        moves: game.moves.map(move => ({
+          moveIndex: move.moveIndex,
+          fromRow: move.fromRow,
+          fromCol: move.fromCol,
+          toRow: move.toRow,
+          toCol: move.toCol,
+          captures: move.captures
+        }))
+      };
     }),
 
   // Multi-tab synchronization procedures

@@ -155,7 +155,7 @@ export function IntegratedChat({ gameId }: IntegratedChatProps) {
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
   const onlineFriends = friends.filter(f => f.status === 'online').length;
-
+  console.log('session', session);
   if (!session?.user) return null;
 
   return (

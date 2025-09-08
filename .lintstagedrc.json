@@ -1,5 +1,5 @@
 {
-  "*.{ts,tsx}": ["pnpm lint:fix", "pnpm typecheck", "vitest related --run"],
-  "*.{js,jsx}": ["pnpm lint:fix"],
+  "*.{ts,tsx}": ["pnpm lint:staged", "pnpm typecheck", "vitest related --run"],
+  "*.{js,jsx}": ["pnpm lint:staged"],
   "*.{json,md,mdx}": ["pnpm format:write"]
 }

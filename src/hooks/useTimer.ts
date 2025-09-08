@@ -50,11 +50,11 @@ export function useTimer({
   updateInterval = 100 // 100ms for smooth updates
 }: UseTimerOptions): UseTimerReturn {
   
-  // Initialize time state
+  // Initialize time state - start with non-zero times to prevent false expiry
   const [timeState, setTimeStateInternal] = useState<TimeState>(() => 
     timeControl ? createInitialTimeState(timeControl) : {
-      redTime: 0,
-      blackTime: 0,
+      redTime: -1, // Use -1 to indicate uninitialized state
+      blackTime: -1, // Use -1 to indicate uninitialized state
       activePlayer: null,
       isPaused: false,
       lastUpdateTime: Date.now(),
@@ -65,7 +65,18 @@ export function useTimer({
   // Track animation frame and interval refs
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<number>(Date.now());
+  const timeStateRef = useRef(timeState);
+  const timeControlRef = useRef(timeControl);
   const isRunning = Boolean(timeState.activePlayer && !timeState.isPaused);
+  
+  // Keep refs up to date
+  useEffect(() => {
+    timeStateRef.current = timeState;
+  }, [timeState]);
+  
+  useEffect(() => {
+    timeControlRef.current = timeControl;
+  }, [timeControl]);
 
   // Store callback in ref to avoid dependency issues
   const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -87,26 +98,29 @@ export function useTimer({
     return elapsed;
   }, []);
 
-  // Timer tick function
+  // Timer tick function - uses refs to avoid recreating on every state update
   const tick = useCallback(() => {
-    if (!timeControl || !timeState.activePlayer || timeState.isPaused) {
+    const currentTimeState = timeStateRef.current;
+    const currentTimeControl = timeControlRef.current;
+    
+    if (!currentTimeControl || !currentTimeState.activePlayer || currentTimeState.isPaused) {
       return;
     }
 
     const elapsed = calculateElapsedTime();
-    const newTimeState = { ...timeState };
+    const newTimeState = { ...currentTimeState };
     
     // Subtract elapsed time from active player
-    if (timeState.activePlayer === 'red') {
-      newTimeState.redTime = Math.max(0, timeState.redTime - elapsed);
+    if (currentTimeState.activePlayer === 'red') {
+      newTimeState.redTime = Math.max(0, currentTimeState.redTime - elapsed);
     } else {
-      newTimeState.blackTime = Math.max(0, timeState.blackTime - elapsed);
+      newTimeState.blackTime = Math.max(0, currentTimeState.blackTime - elapsed);
     }
     
     newTimeState.lastUpdateTime = Date.now();
     
     // Check for time expiration
-    if (isTimeExpired(newTimeState, timeState.activePlayer)) {
+    if (isTimeExpired(newTimeState, currentTimeState.activePlayer)) {
       newTimeState.activePlayer = null;
       newTimeState.isPaused = true;
       newTimeState.turnStartTime = null;
@@ -118,15 +132,15 @@ export function useTimer({
       }
       
       // Notify time expiration
-      onTimeExpired?.(timeState.activePlayer);
+      onTimeExpired?.(currentTimeState.activePlayer);
     }
     
     updateTimeState(newTimeState);
-  }, [timeState, timeControl, calculateElapsedTime, updateTimeState, onTimeExpired]);
+  }, [calculateElapsedTime, updateTimeState, onTimeExpired]);
 
   // Start timer for specified player
   const startTimer = useCallback((player: PieceColor) => {
-    if (!timeControl) return;
+    if (!timeControlRef.current) return;
     
     // Stop existing timer
     if (intervalRef.current) {
@@ -137,7 +151,7 @@ export function useTimer({
     lastUpdateRef.current = now;
     
     const newTimeState: TimeState = {
-      ...timeState,
+      ...timeStateRef.current,
       activePlayer: player,
       isPaused: false,
       turnStartTime: now,
@@ -148,7 +162,7 @@ export function useTimer({
     
     // Start new interval
     intervalRef.current = setInterval(tick, updateInterval);
-  }, [timeControl, timeState, updateTimeState, tick, updateInterval]);
+  }, [updateTimeState, tick, updateInterval]);
 
   // Stop timer
   const stopTimer = useCallback(() => {
@@ -158,7 +172,7 @@ export function useTimer({
     }
     
     const newTimeState: TimeState = {
-      ...timeState,
+      ...timeStateRef.current,
       activePlayer: null,
       isPaused: false,
       turnStartTime: null,
@@ -166,21 +180,22 @@ export function useTimer({
     };
     
     updateTimeState(newTimeState);
-  }, [timeState, updateTimeState]);
+  }, [updateTimeState]);
 
   // Pause timer
   const pauseTimer = useCallback(() => {
-    if (!timeState.activePlayer) return;
+    const currentTimeState = timeStateRef.current;
+    if (!currentTimeState.activePlayer) return;
     
     // Perform final tick to account for time up to pause
-    if (!timeState.isPaused) {
+    if (!currentTimeState.isPaused) {
       const elapsed = calculateElapsedTime();
-      const newTimeState = { ...timeState };
+      const newTimeState = { ...currentTimeState };
       
-      if (timeState.activePlayer === 'red') {
-        newTimeState.redTime = Math.max(0, timeState.redTime - elapsed);
+      if (currentTimeState.activePlayer === 'red') {
+        newTimeState.redTime = Math.max(0, currentTimeState.redTime - elapsed);
       } else {
-        newTimeState.blackTime = Math.max(0, timeState.blackTime - elapsed);
+        newTimeState.blackTime = Math.max(0, currentTimeState.blackTime - elapsed);
       }
       
       newTimeState.isPaused = true;
@@ -194,17 +209,18 @@ export function useTimer({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, [timeState, updateTimeState, calculateElapsedTime]);
+  }, [updateTimeState, calculateElapsedTime]);
 
   // Resume timer
   const resumeTimer = useCallback(() => {
-    if (!timeState.activePlayer || !timeState.isPaused) return;
+    const currentTimeState = timeStateRef.current;
+    if (!currentTimeState.activePlayer || !currentTimeState.isPaused) return;
     
     const now = Date.now();
     lastUpdateRef.current = now;
     
     const newTimeState: TimeState = {
-      ...timeState,
+      ...currentTimeState,
       isPaused: false,
       lastUpdateTime: now
     };
@@ -213,14 +229,15 @@ export function useTimer({
     
     // Restart interval
     intervalRef.current = setInterval(tick, updateInterval);
-  }, [timeState, updateTimeState, tick, updateInterval]);
+  }, [updateTimeState, tick, updateInterval]);
 
   // Add increment to specified player
   const addIncrement = useCallback((player: PieceColor) => {
-    if (!timeControl || timeControl.incrementSeconds === 0) return;
+    const currentTimeControl = timeControlRef.current;
+    if (!currentTimeControl || currentTimeControl.incrementSeconds === 0) return;
     
-    const incrementMs = timeControl.incrementSeconds * 1000;
-    const newTimeState = { ...timeState };
+    const incrementMs = currentTimeControl.incrementSeconds * 1000;
+    const newTimeState = { ...timeStateRef.current };
     
     if (player === 'red') {
       newTimeState.redTime += incrementMs;
@@ -230,7 +247,7 @@ export function useTimer({
     
     newTimeState.lastUpdateTime = Date.now();
     updateTimeState(newTimeState);
-  }, [timeControl, timeState, updateTimeState]);
+  }, [updateTimeState]);
 
   // Reset timers
   const resetTimers = useCallback(() => {
@@ -240,8 +257,9 @@ export function useTimer({
       intervalRef.current = null;
     }
     
-    const newTimeState = timeControl 
-      ? createInitialTimeState(timeControl)
+    const currentTimeControl = timeControlRef.current;
+    const newTimeState = currentTimeControl 
+      ? createInitialTimeState(currentTimeControl)
       : {
           redTime: 0,
           blackTime: 0,
@@ -252,7 +270,7 @@ export function useTimer({
         };
     
     updateTimeState(newTimeState);
-  }, [timeControl, updateTimeState]);
+  }, [updateTimeState]);
 
   // Set time state (for synchronization)
   const setTimeState = useCallback((state: TimeState) => {
@@ -306,11 +324,28 @@ export function useTimer({
     };
   }, []);
 
-  // Reset timers when time control changes
+  // Initialize timers when time control is first set (not on every change)
+  const hasInitializedRef = useRef(false);
   useEffect(() => {
-    if (!timeControl) {
+    // Only initialize if we haven't done so already and timeControl is set
+    if (timeControl && !hasInitializedRef.current) {
+      // Don't reset if we already have time values (from saved state)
+      // Check for -1 which indicates uninitialized state
+      if (timeStateRef.current.redTime <= 0 && timeStateRef.current.blackTime <= 0) {
+        const newTimeState: TimeState = {
+          redTime: timeControl.initialMinutes * 60 * 1000,
+          blackTime: timeControl.initialMinutes * 60 * 1000,
+          activePlayer: null,
+          isPaused: false,
+          lastUpdateTime: Date.now(),
+          turnStartTime: null
+        };
+        updateTimeState(newTimeState);
+      }
+      hasInitializedRef.current = true;
+    } else if (!timeControl && hasInitializedRef.current) {
+      // Reset when time control is removed
       const newTimeState: TimeState = {
-        isRunning: false,
         redTime: 0,
         blackTime: 0,
         activePlayer: null,
@@ -319,19 +354,9 @@ export function useTimer({
         turnStartTime: null
       };
       updateTimeState(newTimeState);
-    } else {
-      const newTimeState: TimeState = {
-        isRunning: false,
-        redTime: timeControl.initialTime * 1000,
-        blackTime: timeControl.initialTime * 1000,
-        activePlayer: null,
-        isPaused: false,
-        lastUpdateTime: Date.now(),
-        turnStartTime: null
-      };
-      updateTimeState(newTimeState);
+      hasInitializedRef.current = false;
     }
-  }, [timeControl, updateTimeState]); // Now updateTimeState is stable
+  }, [timeControl, updateTimeState]);
 
   return {
     timeState,

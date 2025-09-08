@@ -20,7 +20,9 @@ describe('Board Component', () => {
   const defaultProps = {
     board: createTestBoard(),
     selectedPosition: null,
+    draggingPosition: null,
     validMoves: [],
+    mustCapturePositions: [],
     currentPlayer: 'red' as const,
     onSquareClick: mockOnSquareClick,
     onDragStart: mockOnDragStart,

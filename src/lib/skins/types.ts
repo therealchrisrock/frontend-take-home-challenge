@@ -12,6 +12,11 @@ export interface BoardColors {
   highlightedRing: string;
   possibleMove: string;
   possibleMoveGlow: string;
+  arrow: {
+    stroke: string;
+    fill: string;
+    glow: string;
+  };
 }
 
 export interface PieceColors {

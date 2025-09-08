@@ -69,7 +69,7 @@ describe('Piece Component', () => {
 
     const piece = container.firstChild as HTMLElement;
     expect(piece.getAttribute('draggable')).toBe('true');
-    expect(piece.className).toContain('cursor-move');
+    expect(piece.className).toContain('cursor-grab');
   });
 
   it('should not be draggable when isDraggable is false', () => {
