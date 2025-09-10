@@ -1,10 +1,10 @@
-import { createInitialBoard } from '~/lib/game-logic';
-import type { GameAction, GameState } from './game-types';
-import { createDrawState, updateDrawState, type DrawResult } from '~/lib/draw-detection';
+import { createInitialBoard } from "~/lib/game-logic";
+import type { GameAction, GameState } from "./game-types";
+import { createDrawState, updateDrawState } from "~/lib/draw-detection";
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'SET_RULES': {
+    case "SET_RULES": {
       const initialBoard = createInitialBoard(action.payload);
       return {
         ...state,
@@ -20,7 +20,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         drawReason: null,
       };
     }
-    case 'RESET': {
+    case "RESET": {
       return {
         ...state,
         board: action.payload.initialBoard,
@@ -43,31 +43,40 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         gameStartTime: new Date(),
       };
     }
-    case 'APPLY_MOVE': {
+    case "APPLY_MOVE": {
       const { newBoard, move, winner } = action.payload;
       const newHistory = [...state.moveHistory, move];
-      const newBoardHistory = [...state.boardHistory.slice(0, state.currentMoveIndex + 2), newBoard];
-      
+      const newBoardHistory = [
+        ...state.boardHistory.slice(0, state.currentMoveIndex + 2),
+        newBoard,
+      ];
+
       // Check if promotion occurred (piece became king)
       const pieceBeforeMove = state.board[move.from.row]?.[move.from.col];
       const pieceAfterMove = newBoard[move.to.row]?.[move.to.col];
-      const wasPromotion = pieceBeforeMove?.type === 'regular' && pieceAfterMove?.type === 'king';
-      
+      const wasPromotion =
+        pieceBeforeMove?.type === "regular" && pieceAfterMove?.type === "king";
+
       // Update draw state with the move
-      const nextPlayer = winner ? state.currentPlayer : (state.currentPlayer === 'red' ? 'black' : 'red');
+      const nextPlayer = winner
+        ? state.currentPlayer
+        : state.currentPlayer === "red"
+          ? "black"
+          : "red";
       const newDrawState = updateDrawState(
         state.drawState,
         newBoard,
         move,
         nextPlayer,
-        wasPromotion
+        wasPromotion,
       );
-      
+
       // Check if winner is a DrawResult object
-      const isDrawResult = winner && typeof winner === 'object' && 'type' in winner;
-      const finalWinner = isDrawResult ? 'draw' : winner;
+      const isDrawResult =
+        winner && typeof winner === "object" && "type" in winner;
+      const finalWinner = isDrawResult ? "draw" : winner;
       const drawReason = isDrawResult ? winner : null;
-      
+
       return {
         ...state,
         board: newBoard,
@@ -86,11 +95,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentPlayer: nextPlayer,
       };
     }
-    case 'NAVIGATE_TO_MOVE': {
+    case "NAVIGATE_TO_MOVE": {
       const idx = action.payload;
       const historicalBoard = state.boardHistory[idx + 1];
       if (!historicalBoard) return state;
-      const player = idx % 2 === -1 ? 'red' : idx % 2 === 0 ? 'black' : 'red';
+      const player = idx % 2 === -1 ? "red" : idx % 2 === 0 ? "black" : "red";
       return {
         ...state,
         currentMoveIndex: idx,
@@ -102,75 +111,87 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         moveCount: idx + 1,
       };
     }
-    case 'SET_SELECTED':
+    case "SET_SELECTED":
       return { ...state, selectedPosition: action.payload };
-    case 'SET_DRAGGING':
+    case "SET_DRAGGING":
       return { ...state, draggingPosition: action.payload };
-    case 'SET_VALID_MOVES':
+    case "SET_VALID_MOVES":
       return { ...state, validMoves: action.payload };
-    case 'SET_PLAYER_COLOR':
+    case "SET_PLAYER_COLOR":
       return { ...state, playerColor: action.payload };
-    case 'SET_MODE':
+    case "SET_MODE":
       return { ...state, gameMode: action.payload };
-    case 'SET_AI_DIFFICULTY':
+    case "SET_AI_DIFFICULTY":
       return { ...state, aiDifficulty: action.payload };
-    case 'SET_AI_THINKING':
+    case "SET_AI_THINKING":
       return { ...state, isAIThinking: action.payload };
-    case 'SET_TIMECONTROL':
+    case "SET_TIMECONTROL":
       return { ...state, timeControl: action.payload };
-    case 'TOGGLE_REVIEW_MODE':
-      return { ...state, isReviewMode: action.payload, showWinnerDialog: action.payload ? false : state.showWinnerDialog };
-    case 'SET_WINNER':
-      return { ...state, winner: action.payload, showWinnerDialog: !!action.payload };
-    case 'SET_ANALYSIS': {
+    case "TOGGLE_REVIEW_MODE":
+      return {
+        ...state,
+        isReviewMode: action.payload,
+        showWinnerDialog: action.payload ? false : state.showWinnerDialog,
+      };
+    case "SET_WINNER":
+      return {
+        ...state,
+        winner: action.payload,
+        showWinnerDialog: !!action.payload,
+      };
+    case "SET_ANALYSIS": {
       const { analysis, isAnalyzing, progress } = action.payload;
-      return { ...state, gameAnalysis: analysis, isAnalyzing, analyzeProgress: progress ?? state.analyzeProgress };
+      return {
+        ...state,
+        gameAnalysis: analysis,
+        isAnalyzing,
+        analyzeProgress: progress ?? state.analyzeProgress,
+      };
     }
-    case 'DIALOGS': {
+    case "DIALOGS": {
       const updates = { ...action.payload };
       // If closing draw dialog, also clear the draw request
-      if ('showDrawDialog' in updates && !updates.showDrawDialog) {
+      if ("showDrawDialog" in updates && !updates.showDrawDialog) {
         return { ...state, ...updates, drawRequestedBy: null } as GameState;
       }
       return { ...state, ...updates } as GameState;
     }
-    case 'LOAD_SNAPSHOT':
+    case "LOAD_SNAPSHOT":
       return { ...state, ...action.payload } as GameState;
-    case 'RESIGN': {
-      const winner = action.payload === 'red' ? 'black' : 'red';
-      return { 
-        ...state, 
-        winner, 
+    case "RESIGN": {
+      const winner = action.payload === "red" ? "black" : "red";
+      return {
+        ...state,
+        winner,
         showWinnerDialog: true,
         selectedPosition: null,
         draggingPosition: null,
-        validMoves: []
+        validMoves: [],
       };
     }
-    case 'REQUEST_DRAW':
-      return { 
-        ...state, 
+    case "REQUEST_DRAW":
+      return {
+        ...state,
         showDrawDialog: true,
-        drawRequestedBy: state.currentPlayer
+        drawRequestedBy: state.currentPlayer,
       };
-    case 'ACCEPT_DRAW':
-      return { 
-        ...state, 
-        winner: 'draw', 
+    case "ACCEPT_DRAW":
+      return {
+        ...state,
+        winner: "draw",
         drawReason: {
-          type: 'draw',
-          reason: 'stalemate',
-          explanation: 'The game has ended in a draw by mutual agreement.'
+          type: "draw",
+          reason: "stalemate",
+          explanation: "The game has ended in a draw by mutual agreement.",
         },
         showWinnerDialog: true,
         showDrawDialog: false,
         drawRequestedBy: null,
         selectedPosition: null,
         draggingPosition: null,
-        validMoves: []
+        validMoves: [],
       };
     default:
       return state;
   }
 }
-

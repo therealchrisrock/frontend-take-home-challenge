@@ -3,14 +3,14 @@
  * Handles loading, validation, and caching of rule configurations
  */
 
-import type { VariantConfig, VariantCollection } from './rule-schema';
-import { validateConfig, validateConfigWithErrors } from './rule-schema';
+import type { VariantConfig } from "./rule-schema";
+import { validateConfigWithErrors } from "./rule-schema";
 
 // Import TypeScript configurations (these will be bundled)
-import { AmericanConfig } from './rule-configs/american';
-import { BrazilianConfig } from './rule-configs/brazilian';
-import { InternationalConfig } from './rule-configs/international';
-import { CanadianConfig } from './rule-configs/canadian';
+import { AmericanConfig } from "./rule-configs/american";
+import { BrazilianConfig } from "./rule-configs/brazilian";
+import { InternationalConfig } from "./rule-configs/international";
+import { CanadianConfig } from "./rule-configs/canadian";
 
 /**
  * Built-in variant configurations
@@ -19,7 +19,7 @@ const BUILT_IN_CONFIGS: Record<string, VariantConfig> = {
   american: AmericanConfig,
   brazilian: BrazilianConfig,
   international: InternationalConfig,
-  canadian: CanadianConfig
+  canadian: CanadianConfig,
 };
 
 /**
@@ -51,8 +51,10 @@ class ConfigCache {
   }
 
   has(variantName: string): boolean {
-    return this.configs.has(variantName) || 
-           BUILT_IN_CONFIGS.hasOwnProperty(variantName);
+    return (
+      this.configs.has(variantName) ||
+      BUILT_IN_CONFIGS.hasOwnProperty(variantName)
+    );
   }
 
   getAllVariantNames(): string[] {
@@ -87,7 +89,7 @@ export class GameConfigLoader {
     // Check built-in configurations
     if (BUILT_IN_CONFIGS[variantName]) {
       config = BUILT_IN_CONFIGS[variantName];
-    } 
+    }
     // Check custom configurations
     else {
       config = configCache.getCustom(variantName);
@@ -102,7 +104,9 @@ export class GameConfigLoader {
     if (!BUILT_IN_CONFIGS[variantName]) {
       const validation = validateConfigWithErrors(config);
       if (!validation.valid) {
-        throw new Error(`Invalid configuration for ${variantName}: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Invalid configuration for ${variantName}: ${validation.errors.join(", ")}`,
+        );
       }
     }
 
@@ -117,7 +121,7 @@ export class GameConfigLoader {
    */
   static loadVariants(variantNames: string[]): Record<string, VariantConfig> {
     const configs: Record<string, VariantConfig> = {};
-    
+
     for (const name of variantNames) {
       configs[name] = this.loadVariant(name);
     }
@@ -146,7 +150,9 @@ export class GameConfigLoader {
     // Validate the configuration
     const validation = validateConfigWithErrors(config);
     if (!validation.valid) {
-      throw new Error(`Invalid custom configuration for ${name}: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Invalid custom configuration for ${name}: ${validation.errors.join(", ")}`,
+      );
     }
 
     // Store in cache
@@ -171,7 +177,8 @@ export class GameConfigLoader {
     boardSize: number;
     pieceCount: number;
   } | null {
-    const config = BUILT_IN_CONFIGS[variantName] || configCache.getCustom(variantName);
+    const config =
+      BUILT_IN_CONFIGS[variantName] || configCache.getCustom(variantName);
     if (!config) {
       return null;
     }
@@ -181,7 +188,7 @@ export class GameConfigLoader {
       displayName: config.metadata.displayName,
       description: config.metadata.description,
       boardSize: config.board.size,
-      pieceCount: config.board.pieceCount
+      pieceCount: config.board.pieceCount,
     };
   }
 
@@ -196,7 +203,9 @@ export class GameConfigLoader {
     pieceCount: number;
   }> {
     const variants = this.getAvailableVariants();
-    return variants.map(name => this.getVariantMetadata(name)!).filter(Boolean);
+    return variants
+      .map((name) => this.getVariantMetadata(name)!)
+      .filter(Boolean);
   }
 
   /**
@@ -218,7 +227,11 @@ export class GameConfigLoader {
    * Export variant configuration (for saving/sharing)
    */
   static exportVariant(variantName: string): VariantConfig | null {
-    return BUILT_IN_CONFIGS[variantName] || configCache.getCustom(variantName) || null;
+    return (
+      BUILT_IN_CONFIGS[variantName] ||
+      configCache.getCustom(variantName) ||
+      null
+    );
   }
 
   /**
@@ -229,7 +242,9 @@ export class GameConfigLoader {
       const config = JSON.parse(jsonConfig) as VariantConfig;
       this.registerCustomVariant(name, config);
     } catch (error) {
-      throw new Error(`Failed to import variant ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to import variant ${name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -239,7 +254,7 @@ export class GameConfigLoader {
   static createVariantTemplate(
     name: string,
     displayName: string,
-    basedOn = 'american'
+    basedOn = "american",
   ): VariantConfig {
     const baseConfig = BUILT_IN_CONFIGS[basedOn];
     if (!baseConfig) {
@@ -253,11 +268,11 @@ export class GameConfigLoader {
         name,
         displayName,
         description: `Custom variant based on ${baseConfig.metadata.displayName}`,
-        popularity: 'rare',
-        officialRules: undefined
+        popularity: "rare",
+        officialRules: undefined,
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
   }
 
@@ -275,15 +290,17 @@ export class GameConfigLoader {
     // Check for schema version compatibility
     if (validation.valid && validation.data) {
       const schemaVersion = validation.data.schemaVersion;
-      if (schemaVersion !== '1.0.0') {
-        warnings.push(`Schema version ${schemaVersion} may not be fully compatible with current version 1.0.0`);
+      if (schemaVersion !== "1.0.0") {
+        warnings.push(
+          `Schema version ${schemaVersion} may not be fully compatible with current version 1.0.0`,
+        );
       }
     }
 
     return {
       valid: validation.valid,
       errors: validation.errors,
-      warnings
+      warnings,
     };
   }
 }

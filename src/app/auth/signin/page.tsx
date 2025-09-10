@@ -59,8 +59,12 @@ function SignInInner() {
   return (
     <>
       <div className="mb-6 space-y-1 text-center md:text-left">
-        <h1 className="text-2xl font-semibold tracking-tight">Login to your account</h1>
-        <p className="text-sm text-muted-foreground">Enter your email below to login to your account</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Login to your account
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Enter your email below to login to your account
+        </p>
       </div>
       <form onSubmit={signinForm.handleSubmit(onSignIn)} className="space-y-4">
         <div className="space-y-2">
@@ -73,7 +77,9 @@ function SignInInner() {
             disabled={isLoading}
           />
           {signinForm.formState.errors.emailOrUsername && (
-            <p className="text-sm text-red-500">{signinForm.formState.errors.emailOrUsername.message}</p>
+            <p className="text-sm text-red-500">
+              {signinForm.formState.errors.emailOrUsername.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -85,7 +91,9 @@ function SignInInner() {
             disabled={isLoading}
           />
           {signinForm.formState.errors.password && (
-            <p className="text-sm text-red-500">{signinForm.formState.errors.password.message}</p>
+            <p className="text-sm text-red-500">
+              {signinForm.formState.errors.password.message}
+            </p>
           )}
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -93,7 +101,10 @@ function SignInInner() {
           {isLoading ? "Signing in..." : "Sign In"}
         </Button>
         <div className="text-center text-sm">
-          <Link href="/auth/forgot-password" className="text-blue-600 hover:underline">
+          <Link
+            href="/auth/forgot-password"
+            className="text-blue-600 hover:underline"
+          >
             Forgot your password?
           </Link>
         </div>
@@ -106,7 +117,7 @@ function SignInInner() {
 
         <div className="relative my-4">
           <Separator />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-sm text-gray-500">
+          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-sm text-gray-500">
             Or continue with
           </span>
         </div>
@@ -133,7 +144,13 @@ function SignInInner() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center px-4">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center px-4">
+          Loading...
+        </div>
+      }
+    >
       <SignInInner />
     </Suspense>
   );

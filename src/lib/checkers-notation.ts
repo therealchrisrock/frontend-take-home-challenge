@@ -1,17 +1,20 @@
-import type { Move, Position, Board, Piece } from './game-logic';
+import type { Move, Position, Board } from "./game-logic";
 
 /**
  * Convert a board position to standard checkers notation.
  * Standard checkers notation numbers squares from 1-32 (for 8x8 board) on dark squares only.
  * Numbering goes from top-left to bottom-right, only counting dark squares.
  */
-export function positionToSquareNumber(position: Position, boardSize = 8): number {
+export function positionToSquareNumber(
+  position: Position,
+  boardSize = 8,
+): number {
   const { row, col } = position;
   // Calculate the square number (1-based) for dark squares only
   // Dark squares are where (row + col) % 2 === 1
-  const squaresBefore = Math.floor(row * boardSize / 2);
+  const squaresBefore = Math.floor((row * boardSize) / 2);
   const squareInRow = Math.floor(col / 2);
-  
+
   // For odd rows, dark squares are at even columns
   // For even rows, dark squares are at odd columns
   if (row % 2 === 0) {
@@ -26,11 +29,14 @@ export function positionToSquareNumber(position: Position, boardSize = 8): numbe
 /**
  * Convert square number back to board position
  */
-export function squareNumberToPosition(squareNum: number, boardSize = 8): Position {
+export function squareNumberToPosition(
+  squareNum: number,
+  boardSize = 8,
+): Position {
   const squareIndex = squareNum - 1; // Convert to 0-based
   const row = Math.floor(squareIndex / (boardSize / 2));
   const colIndex = squareIndex % (boardSize / 2);
-  
+
   // Calculate actual column based on row parity
   let col: number;
   if (row % 2 === 0) {
@@ -40,7 +46,7 @@ export function squareNumberToPosition(squareNum: number, boardSize = 8): Positi
     // Odd row: dark squares at even columns
     col = colIndex * 2;
   }
-  
+
   return { row, col };
 }
 
@@ -58,21 +64,23 @@ export interface NotatedMove {
  * Multiple captures: "fromxmidxto"
  */
 export function moveToNotation(
-  move: Move, 
-  board: Board, 
+  move: Move,
+  board: Board,
   boardSize: number,
-  wasKinged = false
+  wasKinged = false,
 ): NotatedMove {
   const fromSquare = positionToSquareNumber(move.from, boardSize);
   const toSquare = positionToSquareNumber(move.to, boardSize);
   const isCapture = move.captures && move.captures.length > 0;
-  
+
   let notation: string;
-  
+
   if (isCapture && move.path && move.path.length > 2) {
     // Multi-jump capture - show all intermediate squares
-    const squares = move.path.map(pos => positionToSquareNumber(pos, boardSize));
-    notation = squares.join('x');
+    const squares = move.path.map((pos) =>
+      positionToSquareNumber(pos, boardSize),
+    );
+    notation = squares.join("x");
   } else if (isCapture) {
     // Single capture
     notation = `${fromSquare}x${toSquare}`;
@@ -80,18 +88,18 @@ export function moveToNotation(
     // Regular move
     notation = `${fromSquare}-${toSquare}`;
   }
-  
+
   // Add king annotation if piece was kinged
   if (wasKinged) {
-    notation += '(K)';
+    notation += "(K)";
   }
-  
+
   return {
     notation,
     move,
     isCapture: !!isCapture,
     isKinging: wasKinged,
-    capturedPieces: move.captures
+    capturedPieces: move.captures,
   };
 }
 
@@ -102,36 +110,38 @@ export function moveToNotation(
 export function notationToMove(notation: string, boardSize = 8): Move | null {
   try {
     // Remove king annotation if present
-    const cleanNotation = notation.replace('(K)', '');
-    
+    const cleanNotation = notation.replace("(K)", "");
+
     // Check if it's a capture (contains 'x') or regular move (contains '-')
-    if (cleanNotation.includes('x')) {
+    if (cleanNotation.includes("x")) {
       // Capture move
-      const squares = cleanNotation.split('x').map(s => parseInt(s.trim()));
+      const squares = cleanNotation.split("x").map((s) => parseInt(s.trim()));
       if (squares.some(isNaN) || squares.length < 2) return null;
-      
-      const positions = squares.map(sq => squareNumberToPosition(sq, boardSize));
+
+      const positions = squares.map((sq) =>
+        squareNumberToPosition(sq, boardSize),
+      );
       const from = positions[0]!;
       const to = positions[positions.length - 1]!;
-      
+
       // For multi-jump, include the full path
       const path = positions.length > 2 ? positions : undefined;
-      
+
       return { from, to, path };
-    } else if (cleanNotation.includes('-')) {
+    } else if (cleanNotation.includes("-")) {
       // Regular move
-      const [fromStr, toStr] = cleanNotation.split('-');
+      const [fromStr, toStr] = cleanNotation.split("-");
       const fromSquare = parseInt(fromStr!.trim());
       const toSquare = parseInt(toStr!.trim());
-      
+
       if (isNaN(fromSquare) || isNaN(toSquare)) return null;
-      
+
       return {
         from: squareNumberToPosition(fromSquare, boardSize),
-        to: squareNumberToPosition(toSquare, boardSize)
+        to: squareNumberToPosition(toSquare, boardSize),
       };
     }
-    
+
     return null;
   } catch {
     return null;
@@ -149,20 +159,20 @@ export interface GameHistoryEntry {
 
 export function formatGameHistory(moves: NotatedMove[]): GameHistoryEntry[] {
   const history: GameHistoryEntry[] = [];
-  
+
   for (let i = 0; i < moves.length; i += 2) {
     const entry: GameHistoryEntry = {
       moveNumber: Math.floor(i / 2) + 1,
-      redMove: moves[i]
+      redMove: moves[i],
     };
-    
+
     if (i + 1 < moves.length) {
       entry.blackMove = moves[i + 1];
     }
-    
+
     history.push(entry);
   }
-  
+
   return history;
 }
 
@@ -170,28 +180,33 @@ export function formatGameHistory(moves: NotatedMove[]): GameHistoryEntry[] {
  * Convert history entries back to a string format (for export/saving)
  */
 export function historyToString(history: GameHistoryEntry[]): string {
-  return history.map(entry => {
-    const parts = [`${entry.moveNumber}.`];
-    if (entry.redMove) parts.push(entry.redMove.notation);
-    if (entry.blackMove) parts.push(entry.blackMove.notation);
-    return parts.join(' ');
-  }).join(' ');
+  return history
+    .map((entry) => {
+      const parts = [`${entry.moveNumber}.`];
+      if (entry.redMove) parts.push(entry.redMove.notation);
+      if (entry.blackMove) parts.push(entry.blackMove.notation);
+      return parts.join(" ");
+    })
+    .join(" ");
 }
 
 /**
  * Parse a string format back to history entries
  */
-export function stringToHistory(str: string, boardSize = 8): GameHistoryEntry[] {
+export function stringToHistory(
+  str: string,
+  boardSize = 8,
+): GameHistoryEntry[] {
   const history: GameHistoryEntry[] = [];
-  const tokens = str.split(/\s+/).filter(t => t.length > 0);
-  
+  const tokens = str.split(/\s+/).filter((t) => t.length > 0);
+
   let currentEntry: GameHistoryEntry | null = null;
   let expectingRed = false;
   let expectingBlack = false;
-  
+
   for (const token of tokens) {
     // Check if it's a move number
-    if (token.endsWith('.')) {
+    if (token.endsWith(".")) {
       const moveNum = parseInt(token.slice(0, -1));
       if (!isNaN(moveNum)) {
         if (currentEntry) history.push(currentEntry);
@@ -201,17 +216,17 @@ export function stringToHistory(str: string, boardSize = 8): GameHistoryEntry[] 
         continue;
       }
     }
-    
+
     // Otherwise it should be a move notation
     const move = notationToMove(token, boardSize);
     if (move && currentEntry) {
       const notatedMove: NotatedMove = {
         notation: token,
         move,
-        isCapture: token.includes('x'),
-        isKinging: token.includes('(K)')
+        isCapture: token.includes("x"),
+        isKinging: token.includes("(K)"),
       };
-      
+
       if (expectingRed) {
         currentEntry.redMove = notatedMove;
         expectingRed = false;
@@ -222,8 +237,8 @@ export function stringToHistory(str: string, boardSize = 8): GameHistoryEntry[] 
       }
     }
   }
-  
+
   if (currentEntry) history.push(currentEntry);
-  
+
   return history;
 }

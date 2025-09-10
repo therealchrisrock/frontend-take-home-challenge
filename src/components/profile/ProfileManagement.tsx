@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -17,7 +22,11 @@ interface ProfileManagementProps {
 }
 
 export default function ProfileManagement({ userId }: ProfileManagementProps) {
-  const { data: profile, isLoading, refetch } = api.user.getProfile.useQuery({ userId });
+  const {
+    data: profile,
+    isLoading,
+    refetch,
+  } = api.user.getProfile.useQuery({ userId });
   const updateProfile = api.user.updateProfile.useMutation({
     onSuccess: () => {
       toast({
@@ -99,16 +108,18 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <AvatarUpload 
+          <AvatarUpload
             currentAvatarUrl={profile.image}
             onUploadComplete={() => void refetch()}
           />
-          
+
           <Separator />
-          
+
           <div>
-            <h3 className="text-xl font-semibold">{profile.name ?? profile.username}</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-xl font-semibold">
+              {profile.name ?? profile.username}
+            </h3>
+            <p className="text-muted-foreground text-sm">
               Member since {new Date(profile.createdAt).toLocaleDateString()}
             </p>
           </div>
@@ -121,7 +132,9 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter your display name"
               />
             ) : (
@@ -135,7 +148,9 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 placeholder="Enter your username"
               />
             ) : (
@@ -150,7 +165,9 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 placeholder="Enter your email"
               />
             ) : (
@@ -161,9 +178,13 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
           <div className="space-y-2">
             <Label>Account Status</Label>
             <div className="flex items-center space-x-2">
-              <span className={`inline-flex h-2 w-2 rounded-full ${profile.emailVerified ? "bg-green-500" : "bg-yellow-500"}`} />
+              <span
+                className={`inline-flex h-2 w-2 rounded-full ${profile.emailVerified ? "bg-green-500" : "bg-yellow-500"}`}
+              />
               <span className="text-sm">
-                {profile.emailVerified ? "Email verified" : "Email not verified"}
+                {profile.emailVerified
+                  ? "Email verified"
+                  : "Email not verified"}
               </span>
             </div>
           </div>
@@ -179,10 +200,7 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={updateProfile.isPending}
-              >
+              <Button onClick={handleSave} disabled={updateProfile.isPending}>
                 {updateProfile.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </>

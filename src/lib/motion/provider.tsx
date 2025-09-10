@@ -18,7 +18,10 @@ interface MotionProviderProps {
  * LazyMotion provider that enables tree-shaking and reduces bundle size
  * from ~34kb to ~5kb by loading only the features you need
  */
-export function MotionProvider({ children, strict = false }: MotionProviderProps) {
+export function MotionProvider({
+  children,
+  strict = false,
+}: MotionProviderProps) {
   return (
     <LazyMotion features={domAnimation} strict={strict}>
       {children}

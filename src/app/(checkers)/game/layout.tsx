@@ -5,10 +5,12 @@ export const metadata: Metadata = {
     default: "Play Checkers",
     template: "%s - Birdseye Checkers",
   },
-  description: "Play checkers online. Choose from local multiplayer, AI opponents, or online battles with friends.",
+  description:
+    "Play checkers online. Choose from local multiplayer, AI opponents, or online battles with friends.",
   openGraph: {
     title: "Play Checkers Online",
-    description: "Challenge friends or AI opponents in classic checkers gameplay.",
+    description:
+      "Challenge friends or AI opponents in classic checkers gameplay.",
     images: ["/og-image.png"],
   },
 };

@@ -1,7 +1,13 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Progress } from "~/components/ui/progress";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Badge } from "~/components/ui/badge";
@@ -16,7 +22,7 @@ export default function StatsSection({ userId }: StatsSectionProps) {
   if (isLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6) as unknown[]].map((_, i) => (
+        {[...(Array(6) as unknown[])].map((_, i) => (
           <Card key={i}>
             <CardHeader>
               <Skeleton className="h-4 w-24" />
@@ -41,9 +47,10 @@ export default function StatsSection({ userId }: StatsSectionProps) {
     );
   }
 
-  const winRate = stats.totalGames > 0 
-    ? Math.round((stats.wins / stats.totalGames) * 100) 
-    : 0;
+  const winRate =
+    stats.totalGames > 0
+      ? Math.round((stats.wins / stats.totalGames) * 100)
+      : 0;
 
   const gamesByMode = [
     { mode: "vs AI", count: stats.aiGames },
@@ -62,7 +69,7 @@ export default function StatsSection({ userId }: StatsSectionProps) {
             <CardTitle className="text-3xl">{stats.totalGames}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               {stats.recentGames?.length ?? 0} in last 30 days
             </p>
           </CardContent>
@@ -81,24 +88,24 @@ export default function StatsSection({ userId }: StatsSectionProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Wins</CardDescription>
-            <CardTitle className="text-3xl text-green-600">{stats.wins}</CardTitle>
+            <CardTitle className="text-3xl text-green-600">
+              {stats.wins}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
-              {stats.draws} draws
-            </p>
+            <p className="text-muted-foreground text-xs">{stats.draws} draws</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Losses</CardDescription>
-            <CardTitle className="text-3xl text-red-600">{stats.losses}</CardTitle>
+            <CardTitle className="text-3xl text-red-600">
+              {stats.losses}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Keep practicing!
-            </p>
+            <p className="text-muted-foreground text-xs">Keep practicing!</p>
           </CardContent>
         </Card>
       </div>
@@ -116,8 +123,12 @@ export default function StatsSection({ userId }: StatsSectionProps) {
                   <span>{mode.mode}</span>
                   <span className="font-medium">{mode.count}</span>
                 </div>
-                <Progress 
-                  value={stats.totalGames > 0 ? (mode.count / stats.totalGames) * 100 : 0} 
+                <Progress
+                  value={
+                    stats.totalGames > 0
+                      ? (mode.count / stats.totalGames) * 100
+                      : 0
+                  }
                   className="h-2"
                 />
               </div>
@@ -137,19 +148,23 @@ export default function StatsSection({ userId }: StatsSectionProps) {
                   <Badge
                     key={index}
                     variant={
-                      game.result === "win" 
-                        ? "default" 
-                        : game.result === "loss" 
-                        ? "destructive" 
-                        : "secondary"
+                      game.result === "win"
+                        ? "default"
+                        : game.result === "loss"
+                          ? "destructive"
+                          : "secondary"
                     }
                   >
-                    {game.result === "win" ? "W" : game.result === "loss" ? "L" : "D"}
+                    {game.result === "win"
+                      ? "W"
+                      : game.result === "loss"
+                        ? "L"
+                        : "D"}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No recent games</p>
+              <p className="text-muted-foreground text-sm">No recent games</p>
             )}
           </CardContent>
         </Card>
@@ -165,37 +180,37 @@ export default function StatsSection({ userId }: StatsSectionProps) {
             {stats.totalGames >= 1 && (
               <div className="flex items-center space-x-2">
                 <Badge variant="outline">First Game</Badge>
-                <span className="text-xs text-muted-foreground">Completed</span>
+                <span className="text-muted-foreground text-xs">Completed</span>
               </div>
             )}
             {stats.wins >= 1 && (
               <div className="flex items-center space-x-2">
                 <Badge variant="outline">First Victory</Badge>
-                <span className="text-xs text-muted-foreground">Achieved</span>
+                <span className="text-muted-foreground text-xs">Achieved</span>
               </div>
             )}
             {stats.totalGames >= 10 && (
               <div className="flex items-center space-x-2">
                 <Badge variant="outline">10 Games Played</Badge>
-                <span className="text-xs text-muted-foreground">Milestone</span>
+                <span className="text-muted-foreground text-xs">Milestone</span>
               </div>
             )}
             {stats.wins >= 10 && (
               <div className="flex items-center space-x-2">
                 <Badge>10 Wins</Badge>
-                <span className="text-xs text-muted-foreground">Champion</span>
+                <span className="text-muted-foreground text-xs">Champion</span>
               </div>
             )}
             {winRate >= 50 && stats.totalGames >= 10 && (
               <div className="flex items-center space-x-2">
                 <Badge>50%+ Win Rate</Badge>
-                <span className="text-xs text-muted-foreground">Skilled</span>
+                <span className="text-muted-foreground text-xs">Skilled</span>
               </div>
             )}
             {stats.totalGames >= 50 && (
               <div className="flex items-center space-x-2">
                 <Badge variant="default">Veteran</Badge>
-                <span className="text-xs text-muted-foreground">50+ Games</span>
+                <span className="text-muted-foreground text-xs">50+ Games</span>
               </div>
             )}
           </div>

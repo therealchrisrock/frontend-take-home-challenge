@@ -1,9 +1,8 @@
-import { skins } from './definitions';
-import type { Skin } from './types';
+import { skins } from "./definitions";
 
 export function getSkinStyles(skinId: string): string {
-  const skin = skins[skinId] ?? skins['the-og'];
-  if (!skin) return '';
+  const skin = skins[skinId] ?? skins["the-og"];
+  if (!skin) return "";
 
   // Generate CSS custom properties as a string
   return `
@@ -34,8 +33,8 @@ export function getSkinStyles(skinId: string): string {
 
 export function getSkinStyleTag(skinId: string): string {
   const styles = getSkinStyles(skinId);
-  if (!styles) return '';
-  
+  if (!styles) return "";
+
   // Return a style tag that sets CSS variables on :root
   return `<style id="skin-styles">:root {${styles}}</style>`;
 }

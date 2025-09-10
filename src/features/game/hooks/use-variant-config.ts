@@ -1,7 +1,6 @@
-import { useMemo } from 'react';
-import { GameConfigLoader } from '~/lib/game-engine/config-loader';
-import type { VariantConfig } from '~/lib/game-engine/rule-schema';
-import type { BoardVariant } from '~/lib/variants';
+import { useMemo } from "react";
+import { GameConfigLoader } from "~/lib/game-engine/config-loader";
+import type { BoardVariant } from "~/lib/variants";
 
 export function useVariantConfig(variant: BoardVariant) {
   const result = useMemo(() => {
@@ -9,14 +8,13 @@ export function useVariantConfig(variant: BoardVariant) {
       const resolved = GameConfigLoader.loadVariant(variant);
       return { resolved, loading: false, error: null };
     } catch (e) {
-      return { 
-        resolved: null, 
-        loading: false, 
-        error: e instanceof Error ? e.message : String(e) 
+      return {
+        resolved: null,
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
       };
     }
   }, [variant]);
 
   return result;
 }
-

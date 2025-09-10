@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { PlayerCard } from '~/components/game/PlayerCard';
-import { PlayerCardSkeleton } from '~/components/game/PlayerCardSkeleton';
-import { LoadingDots } from '~/components/ui/loading-dots';
-import { usePlayerCard } from '../hooks/use-player-card';
-import { type PieceColor } from '~/lib/game-logic';
-import { type PlayerInfo } from '~/lib/player-types';
-import { type TimeState } from '~/lib/time-control-types';
-import { PlayerTimer } from '~/components/game/player-timer';
+import { PlayerCard } from "~/components/game/PlayerCard";
+import { PlayerCardSkeleton } from "~/components/game/PlayerCardSkeleton";
+import { LoadingDots } from "~/components/ui/loading-dots";
+import { usePlayerCard } from "../hooks/use-player-card";
+import { type PieceColor } from "~/lib/game-logic";
+import { type PlayerInfo } from "~/lib/player-types";
+import { type TimeState } from "~/lib/time-control-types";
+import { PlayerTimer } from "~/components/game/player-timer";
 
 interface PlayerCardContainerProps {
   player: PlayerInfo;
   color: PieceColor;
-  position: 'top' | 'bottom';
+  position: "top" | "bottom";
   isActive?: boolean;
   className?: string;
   enableServerData?: boolean;
@@ -26,13 +26,16 @@ export function PlayerCardContainer({
   color,
   position,
   isActive = false,
-  className = '',
+  className = "",
   enableServerData = false,
   showLoadingSkeleton = true,
   timeState,
   isAIThinking = false,
 }: PlayerCardContainerProps) {
-  const { player: viewModel, isLoading } = usePlayerCard({ player, enableServerData });
+  const { player: viewModel, isLoading } = usePlayerCard({
+    player,
+    enableServerData,
+  });
 
   if (isLoading && showLoadingSkeleton) {
     return (
@@ -53,9 +56,7 @@ export function PlayerCardContainer({
           position={position}
           isActive={isActive}
         />
-        {timeState && (
-          <PlayerTimer timeState={timeState} color={color} />
-        )}
+        {timeState && <PlayerTimer timeState={timeState} color={color} />}
         {isAIThinking && (
           <div className="flex items-center gap-2">
             <LoadingDots size="sm" color="secondary" />
@@ -66,4 +67,3 @@ export function PlayerCardContainer({
     </div>
   );
 }
-

@@ -23,7 +23,7 @@ const signupSchema = z
       .max(20)
       .regex(
         /^[a-zA-Z0-9_-]+$/,
-        "Username can only contain letters, numbers, underscores, and hyphens"
+        "Username can only contain letters, numbers, underscores, and hyphens",
       ),
     name: z.string().optional(),
   })
@@ -70,7 +70,7 @@ function SignUpInner() {
     {
       enabled: !!form.watch("username") && form.watch("username").length >= 3,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const onSignUp = async (data: SignupData) => {
@@ -88,8 +88,12 @@ function SignUpInner() {
   return (
     <>
       <div className="mb-6 space-y-1 text-center md:text-left">
-        <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
-        <p className="text-sm text-muted-foreground">Enter your details below to create your account</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Create an account
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Enter your details below to create your account
+        </p>
       </div>
       <form onSubmit={form.handleSubmit(onSignUp)} className="space-y-4">
         <div className="space-y-2">
@@ -102,7 +106,9 @@ function SignUpInner() {
             disabled={isLoading}
           />
           {form.formState.errors.email && (
-            <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+            <p className="text-sm text-red-500">
+              {form.formState.errors.email.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -115,7 +121,9 @@ function SignUpInner() {
             disabled={isLoading}
           />
           {form.formState.errors.username && (
-            <p className="text-sm text-red-500">{form.formState.errors.username.message}</p>
+            <p className="text-sm text-red-500">
+              {form.formState.errors.username.message}
+            </p>
           )}
           {checkUsername.data && !checkUsername.data.available && (
             <p className="text-sm text-red-500">Username is already taken</p>
@@ -143,7 +151,9 @@ function SignUpInner() {
             disabled={isLoading}
           />
           {form.formState.errors.password && (
-            <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
+            <p className="text-sm text-red-500">
+              {form.formState.errors.password.message}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -155,11 +165,17 @@ function SignUpInner() {
             disabled={isLoading}
           />
           {form.formState.errors.confirmPassword && (
-            <p className="text-sm text-red-500">{form.formState.errors.confirmPassword.message}</p>
+            <p className="text-sm text-red-500">
+              {form.formState.errors.confirmPassword.message}
+            </p>
           )}
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isLoading || !checkUsername.data?.available}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading || !checkUsername.data?.available}
+        >
           {isLoading ? "Creating account..." : "Sign Up"}
         </Button>
         <div className="text-center text-sm text-gray-600">
@@ -175,7 +191,13 @@ function SignUpInner() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center px-4">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center px-4">
+          Loading...
+        </div>
+      }
+    >
       <SignUpInner />
     </Suspense>
   );

@@ -1,6 +1,12 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 
 export interface GameSettings {
   soundEffectsEnabled: boolean;
@@ -20,26 +26,29 @@ const defaultSettings: GameSettings = {
   reducedMotion: false,
 };
 
-const STORAGE_KEY = 'checkers-game-settings';
+const STORAGE_KEY = "checkers-game-settings";
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined,
+);
 
 export function useSettings(): SettingsContextType {
   const context = useContext(SettingsContext);
   if (!context) {
-    throw new Error('useSettings must be used within a SettingsProvider');
+    throw new Error("useSettings must be used within a SettingsProvider");
   }
   return context;
 }
 
 function getInitialSettings(): GameSettings {
   // Check for browser's prefers-reduced-motion setting
-  const prefersReducedMotion = typeof window !== 'undefined' 
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
+  const prefersReducedMotion =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
 
   // Try to load from localStorage
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -53,7 +62,7 @@ function getInitialSettings(): GameSettings {
         };
       }
     } catch (error) {
-      console.warn('Failed to load settings from localStorage:', error);
+      console.warn("Failed to load settings from localStorage:", error);
     }
   }
 
@@ -71,26 +80,28 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      
+
       // Dispatch custom event for reduced motion changes
       // This allows components to react immediately to changes
-      window.dispatchEvent(new CustomEvent('reducedMotionChanged', { 
-        detail: settings.reducedMotion 
-      }));
+      window.dispatchEvent(
+        new CustomEvent("reducedMotionChanged", {
+          detail: settings.reducedMotion,
+        }),
+      );
     } catch (error) {
-      console.warn('Failed to save settings to localStorage:', error);
+      console.warn("Failed to save settings to localStorage:", error);
     }
   }, [settings]);
 
   // Listen for browser preference changes
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     const handleChange = (e: MediaQueryListEvent) => {
       // Only update if user hasn't explicitly set a preference
-      setSettings(prev => {
+      setSettings((prev) => {
         // Check if current setting matches the previous browser preference
         // If so, update to new browser preference
         const wasBrowserDefault = prev.reducedMotion === !e.matches;
@@ -101,19 +112,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       });
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   const updateSettings = useCallback((partial: Partial<GameSettings>) => {
-    setSettings(prev => ({ ...prev, ...partial }));
+    setSettings((prev) => ({ ...prev, ...partial }));
   }, []);
 
   const resetSettings = useCallback(() => {
-    const prefersReducedMotion = typeof window !== 'undefined' 
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false;
-    
+    const prefersReducedMotion =
+      typeof window !== "undefined"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        : false;
+
     setSettings({
       ...defaultSettings,
       reducedMotion: prefersReducedMotion,

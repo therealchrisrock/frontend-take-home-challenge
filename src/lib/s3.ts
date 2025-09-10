@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "~/env";
 
@@ -15,7 +19,7 @@ export const s3Client = new S3Client({
 export async function generatePresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 3600
+  expiresIn = 3600,
 ) {
   const command = new PutObjectCommand({
     Bucket: env.AWS_S3_BUCKET,
@@ -40,7 +44,7 @@ export function getPublicUrl(key: string) {
 }
 
 export function generateAvatarKey(userId: string, filename: string) {
-  const extension = filename.split('.').pop();
+  const extension = filename.split(".").pop();
   const timestamp = Date.now();
   return `avatars/${userId}/${timestamp}.${extension}`;
 }

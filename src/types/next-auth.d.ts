@@ -24,4 +24,3 @@ declare module "next-auth/jwt" {
     image?: string | null;
   }
 }
-

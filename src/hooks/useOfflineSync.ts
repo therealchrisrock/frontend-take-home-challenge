@@ -1,15 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { api } from '~/trpc/react';
-import type { Board, PieceColor, Move } from '~/lib/game-logic';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { api } from "~/trpc/react";
+import type { Board, PieceColor, Move } from "~/lib/game-logic";
 
 export interface GameState {
   board: Board;
   currentPlayer: PieceColor;
   moveCount: number;
   moveHistory: Move[];
-  gameMode: 'ai' | 'local' | 'online';
+  gameMode: "ai" | "local" | "online";
   gameStartTime: Date;
-  winner: PieceColor | 'draw' | null;
+  winner: PieceColor | "draw" | null;
 }
 
 export interface UseOfflineSyncOptions {
@@ -28,18 +28,20 @@ export interface OfflineSyncState {
   forceSync: () => Promise<void>;
 }
 
-export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSyncState {
+export function useOfflineSync(
+  options: UseOfflineSyncOptions = {},
+): OfflineSyncState {
   const { gameId, enabled = false, syncInterval = 30000 } = options;
-  
+
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  
+
   const pendingUpdatesRef = useRef<GameState[]>([]);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const createGameMutation = api.game.create.useMutation();
   const saveGameMutation = api.game.save.useMutation();
 
@@ -53,49 +55,54 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
         void syncToServer();
       }
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
     };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [enabled, syncToServer]);
 
   // Sync function to send pending updates to server
   const syncToServer = useCallback(async () => {
-    if (!enabled || !isOnline || isSyncing || pendingUpdatesRef.current.length === 0) {
+    if (
+      !enabled ||
+      !isOnline ||
+      isSyncing ||
+      pendingUpdatesRef.current.length === 0
+    ) {
       return;
     }
-    
+
     setIsSyncing(true);
     setSyncError(null);
-    
+
     try {
       const updates = [...pendingUpdatesRef.current];
-      
+
       for (const gameState of updates) {
         // If no gameId exists, create a new game on server
         let currentGameId = gameId;
-        
+
         if (!currentGameId) {
           const result = await createGameMutation.mutateAsync({
             mode: gameState.gameMode,
-            playerName: 'Player'
+            playerName: "Player",
           });
           currentGameId = result.id;
-          
+
           // Store the new game ID in local storage for future reference
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('offline_game_id', currentGameId);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("offline_game_id", currentGameId);
           }
         }
-        
+
         // Save game state to server
         await saveGameMutation.mutateAsync({
           id: currentGameId,
@@ -104,40 +111,49 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
           moveCount: gameState.moveCount,
           gameMode: gameState.gameMode,
           winner: gameState.winner,
-          moves: gameState.moveHistory
+          moves: gameState.moveHistory,
         });
-        
+
         // Remove successfully synced update
         const index = pendingUpdatesRef.current.indexOf(gameState);
         if (index > -1) {
           pendingUpdatesRef.current.splice(index, 1);
         }
       }
-      
+
       setPendingChanges(pendingUpdatesRef.current.length);
       setLastSyncTime(new Date());
-      
     } catch (error) {
-      console.error('Sync failed:', error);
-      setSyncError(error instanceof Error ? error.message : 'Sync failed');
+      console.error("Sync failed:", error);
+      setSyncError(error instanceof Error ? error.message : "Sync failed");
     } finally {
       setIsSyncing(false);
     }
-  }, [enabled, isOnline, isSyncing, gameId, createGameMutation, saveGameMutation]);
+  }, [
+    enabled,
+    isOnline,
+    isSyncing,
+    gameId,
+    createGameMutation,
+    saveGameMutation,
+  ]);
 
   // Queue a game update for syncing
-  const queueGameUpdate = useCallback((gameState: GameState) => {
-    if (!enabled) return;
-    
-    // Add to pending updates (replace if same game state)
-    pendingUpdatesRef.current = [gameState]; // Keep only latest state
-    setPendingChanges(1);
-    
-    // Trigger sync if online
-    if (isOnline && !isSyncing) {
-      void syncToServer();
-    }
-  }, [enabled, isOnline, isSyncing, syncToServer]);
+  const queueGameUpdate = useCallback(
+    (gameState: GameState) => {
+      if (!enabled) return;
+
+      // Add to pending updates (replace if same game state)
+      pendingUpdatesRef.current = [gameState]; // Keep only latest state
+      setPendingChanges(1);
+
+      // Trigger sync if online
+      if (isOnline && !isSyncing) {
+        void syncToServer();
+      }
+    },
+    [enabled, isOnline, isSyncing, syncToServer],
+  );
 
   // Set up periodic sync interval
   useEffect(() => {
@@ -147,7 +163,7 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
           void syncToServer();
         }
       }, syncInterval);
-      
+
       return () => {
         if (syncIntervalRef.current) {
           clearInterval(syncIntervalRef.current);
@@ -171,6 +187,6 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
     lastSyncTime,
     syncError,
     queueGameUpdate,
-    forceSync
+    forceSync,
   };
 }

@@ -1,20 +1,20 @@
-import type { PieceColor } from './game-logic';
+import type { PieceColor } from "./game-logic";
 
 // Re-export PieceColor for convenience
-export type { PieceColor } from './game-logic';
+export type { PieceColor } from "./game-logic";
 
 /**
  * Time control configuration for a game
  */
 export interface TimeControl {
   /** Display format preference */
-  format: 'X|Y' | 'X+Y';
+  format: "X|Y" | "X+Y";
   /** Starting time in minutes */
   initialMinutes: number;
   /** Seconds added per move (increment) */
   incrementSeconds: number;
   /** Preset type or custom */
-  preset?: 'bullet' | 'blitz' | 'rapid' | 'classical' | 'custom';
+  preset?: "bullet" | "blitz" | "rapid" | "classical" | "custom";
 }
 
 /**
@@ -54,29 +54,29 @@ export interface TimedMove {
  */
 export const TIME_CONTROL_PRESETS: Record<string, TimeControl> = {
   bullet: {
-    format: 'X|Y',
+    format: "X|Y",
     initialMinutes: 1,
     incrementSeconds: 0,
-    preset: 'bullet'
+    preset: "bullet",
   },
   blitz: {
-    format: 'X|Y',
+    format: "X|Y",
     initialMinutes: 5,
     incrementSeconds: 0,
-    preset: 'blitz'
+    preset: "blitz",
   },
   rapid: {
-    format: 'X|Y',
+    format: "X|Y",
     initialMinutes: 10,
     incrementSeconds: 5,
-    preset: 'rapid'
+    preset: "rapid",
   },
   classical: {
-    format: 'X|Y',
+    format: "X|Y",
     initialMinutes: 30,
     incrementSeconds: 0,
-    preset: 'classical'
-  }
+    preset: "classical",
+  },
 } as const;
 
 /**
@@ -84,7 +84,7 @@ export const TIME_CONTROL_PRESETS: Record<string, TimeControl> = {
  */
 export interface TimeWarning {
   /** Warning level */
-  level: 'low' | 'critical' | 'urgent';
+  level: "low" | "critical" | "urgent";
   /** Threshold in milliseconds */
   threshold: number;
   /** Visual indicator */
@@ -98,23 +98,23 @@ export interface TimeWarning {
  */
 export const DEFAULT_TIME_WARNINGS: TimeWarning[] = [
   {
-    level: 'low',
+    level: "low",
     threshold: 30000, // 30 seconds
-    color: 'orange',
-    playSound: false
+    color: "orange",
+    playSound: false,
   },
   {
-    level: 'critical',
+    level: "critical",
     threshold: 10000, // 10 seconds
-    color: 'red',
-    playSound: true
+    color: "red",
+    playSound: true,
   },
   {
-    level: 'urgent',
+    level: "urgent",
     threshold: 5000, // 5 seconds
-    color: 'red',
-    playSound: true
-  }
+    color: "red",
+    playSound: true,
+  },
 ];
 
 /**
@@ -136,15 +136,15 @@ export interface TimeControlSettings {
  */
 export function formatTime(milliseconds: number, showTenths = false): string {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  
+
   if (totalSeconds < 60 && showTenths) {
     const tenths = Math.floor((milliseconds % 1000) / 100);
     return `${totalSeconds}.${tenths}`;
   }
-  
+
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 /**
@@ -152,29 +152,29 @@ export function formatTime(milliseconds: number, showTenths = false): string {
  */
 export function parseTimeControl(input: string): TimeControl | null {
   const trimmed = input.trim();
-  
+
   // Match X|Y format
   const pipeMatch = /^(\d+(?:\.\d+)?)\|(\d+)$/.exec(trimmed);
   if (pipeMatch) {
     return {
-      format: 'X|Y',
+      format: "X|Y",
       initialMinutes: parseFloat(pipeMatch[1]!),
       incrementSeconds: parseInt(pipeMatch[2]!, 10),
-      preset: 'custom'
+      preset: "custom",
     };
   }
-  
+
   // Match X+Y format
   const plusMatch = /^(\d+(?:\.\d+)?)\+(\d+)$/.exec(trimmed);
   if (plusMatch) {
     return {
-      format: 'X+Y',
+      format: "X+Y",
       initialMinutes: parseFloat(plusMatch[1]!),
       incrementSeconds: parseInt(plusMatch[2]!, 10),
-      preset: 'custom'
+      preset: "custom",
     };
   }
-  
+
   return null;
 }
 
@@ -183,21 +183,21 @@ export function parseTimeControl(input: string): TimeControl | null {
  */
 export function validateTimeControl(timeControl: TimeControl): string | null {
   if (timeControl.initialMinutes < 0.5) {
-    return 'Initial time must be at least 0.5 minutes';
+    return "Initial time must be at least 0.5 minutes";
   }
-  
+
   if (timeControl.initialMinutes > 180) {
-    return 'Initial time cannot exceed 180 minutes';
+    return "Initial time cannot exceed 180 minutes";
   }
-  
+
   if (timeControl.incrementSeconds < 0) {
-    return 'Increment cannot be negative';
+    return "Increment cannot be negative";
   }
-  
+
   if (timeControl.incrementSeconds > 60) {
-    return 'Increment cannot exceed 60 seconds';
+    return "Increment cannot exceed 60 seconds";
   }
-  
+
   return null;
 }
 
@@ -206,22 +206,25 @@ export function validateTimeControl(timeControl: TimeControl): string | null {
  */
 export function createInitialTimeState(timeControl: TimeControl): TimeState {
   const initialTime = Math.floor(timeControl.initialMinutes * 60 * 1000);
-  
+
   return {
     redTime: initialTime,
     blackTime: initialTime,
     activePlayer: null,
     isPaused: false,
     lastUpdateTime: Date.now(),
-    turnStartTime: null
+    turnStartTime: null,
   };
 }
 
 /**
  * Check if time has expired for a player
  */
-export function isTimeExpired(timeState: TimeState, player: PieceColor): boolean {
-  const playerTime = player === 'red' ? timeState.redTime : timeState.blackTime;
+export function isTimeExpired(
+  timeState: TimeState,
+  player: PieceColor,
+): boolean {
+  const playerTime = player === "red" ? timeState.redTime : timeState.blackTime;
   // Don't consider time expired if it's -1 (uninitialized)
   return playerTime === 0 || (playerTime > 0 && playerTime < 1);
 }
@@ -230,19 +233,19 @@ export function isTimeExpired(timeState: TimeState, player: PieceColor): boolean
  * Get current time warning level for a player
  */
 export function getTimeWarningLevel(
-  timeState: TimeState, 
+  timeState: TimeState,
   player: PieceColor,
-  warnings: TimeWarning[] = DEFAULT_TIME_WARNINGS
+  warnings: TimeWarning[] = DEFAULT_TIME_WARNINGS,
 ): TimeWarning | null {
-  const playerTime = player === 'red' ? timeState.redTime : timeState.blackTime;
-  
+  const playerTime = player === "red" ? timeState.redTime : timeState.blackTime;
+
   // Find the most severe warning that applies
   for (const warning of warnings.sort((a, b) => a.threshold - b.threshold)) {
     if (playerTime <= warning.threshold) {
       return warning;
     }
   }
-  
+
   return null;
 }
 
@@ -251,7 +254,7 @@ export function getTimeWarningLevel(
  */
 export function timeControlToString(timeControl: TimeControl): string {
   const { format, initialMinutes, incrementSeconds } = timeControl;
-  const separator = format === 'X|Y' ? '|' : '+';
+  const separator = format === "X|Y" ? "|" : "+";
   return `${initialMinutes}${separator}${incrementSeconds}`;
 }
 

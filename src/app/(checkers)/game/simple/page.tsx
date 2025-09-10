@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { GameController } from "~/components/game/GameController";
 

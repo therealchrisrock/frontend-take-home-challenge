@@ -14,21 +14,27 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Trophy, 
-  Target, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Trophy,
+  Target,
   Handshake,
   Clock,
   TrendingUp,
   Eye,
-  RotateCcw
+  RotateCcw,
 } from "lucide-react";
 
 interface MatchHistoryTableProps {
@@ -44,23 +50,24 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
   const [searchOpponent, setSearchOpponent] = useState("");
   const pageSize = 15;
 
-  const { data, isLoading, refetch } = api.user.getEnhancedMatchHistory.useQuery({
-    userId,
-    skip: page * pageSize,
-    take: pageSize,
-    gameMode: gameMode === "all" ? undefined : gameMode,
-    searchOpponent: searchOpponent || undefined,
-  });
+  const { data, isLoading, refetch } =
+    api.user.getEnhancedMatchHistory.useQuery({
+      userId,
+      skip: page * pageSize,
+      take: pageSize,
+      gameMode: gameMode === "all" ? undefined : gameMode,
+      searchOpponent: searchOpponent || undefined,
+    });
 
   const matches = data?.matches ?? [];
   const totalCount = data?.total ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
   const stats = data?.stats;
 
-  const getOpponentName = (match: typeof matches[0]) => {
+  const getOpponentName = (match: (typeof matches)[0]) => {
     if (match.gameMode === "ai") return "AI Opponent";
     if (match.gameMode === "local") return "Local Player";
-    
+
     if (match.player1Id === userId) {
       return match.player2?.name ?? match.player2?.username ?? "Unknown";
     } else {
@@ -68,17 +75,17 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
     }
   };
 
-  const getPlayerColor = (match: typeof matches[0]) => {
+  const getPlayerColor = (match: (typeof matches)[0]) => {
     if (match.gameMode === "ai" || match.gameMode === "local") {
       return "red";
     }
     return match.player1Id === userId ? "red" : "black";
   };
 
-  const getResult = (match: typeof matches[0]) => {
+  const getResult = (match: (typeof matches)[0]) => {
     if (!match.winner) return "in-progress";
     if (match.winner === "draw") return "draw";
-    
+
     const playerColor = getPlayerColor(match);
     return match.winner === playerColor ? "win" : "loss";
   };
@@ -161,7 +168,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">{stats.winRate}%</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {stats.wins}W - {stats.losses}L - {stats.draws}D
               </p>
             </CardContent>
@@ -171,7 +178,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
               <CardTitle className="text-sm font-medium">Best Streak</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold flex items-center gap-1">
+              <p className="flex items-center gap-1 text-2xl font-bold">
                 {stats.bestStreak}
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </p>
@@ -215,7 +222,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-1">
               <Label htmlFor="opponent-search">Search Opponent</Label>
               <Input
@@ -249,7 +256,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              {[...Array(5) as unknown[]].map((_, i) => (
+              {[...(Array(5) as unknown[])].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
@@ -272,37 +279,56 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
                   <TableBody>
                     {matches.map((match) => {
                       const result = getResult(match);
-                      const duration = match.lastSaved && match.gameStartTime
-                        ? Math.round((new Date(match.lastSaved).getTime() - new Date(match.gameStartTime).getTime()) / 1000 / 60)
-                        : 0;
-                      
+                      const duration =
+                        match.lastSaved && match.gameStartTime
+                          ? Math.round(
+                              (new Date(match.lastSaved).getTime() -
+                                new Date(match.gameStartTime).getTime()) /
+                                1000 /
+                                60,
+                            )
+                          : 0;
+
                       return (
-                        <TableRow 
+                        <TableRow
                           key={match.id}
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="hover:bg-muted/50 cursor-pointer"
                           onClick={() => handleViewGame(match.id)}
                         >
                           <TableCell className="font-medium">
                             <div>
                               <p className="text-sm">
-                                {formatDistanceToNow(new Date(match.gameStartTime), { addSuffix: true })}
+                                {formatDistanceToNow(
+                                  new Date(match.gameStartTime),
+                                  { addSuffix: true },
+                                )}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(match.gameStartTime).toLocaleDateString()}
+                              <p className="text-muted-foreground text-xs">
+                                {new Date(
+                                  match.gameStartTime,
+                                ).toLocaleDateString()}
                               </p>
                             </div>
                           </TableCell>
                           <TableCell>{getOpponentName(match)}</TableCell>
-                          <TableCell>{getGameModeBadge(match.gameMode)}</TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={getPlayerColor(match) === "red" ? "destructive" : "default"}
+                            {getGameModeBadge(match.gameMode)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                getPlayerColor(match) === "red"
+                                  ? "destructive"
+                                  : "default"
+                              }
                               className="capitalize"
                             >
                               {getPlayerColor(match)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">{match.moveCount}</TableCell>
+                          <TableCell className="text-center">
+                            {match.moveCount}
+                          </TableCell>
                           <TableCell className="text-center">
                             {duration > 0 ? `${duration} min` : "-"}
                           </TableCell>
@@ -327,43 +353,47 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
                   </TableBody>
                 </Table>
               </div>
-              
+
               {totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalCount)} of {totalCount} games
+                  <p className="text-muted-foreground text-sm">
+                    Showing {page * pageSize + 1} to{" "}
+                    {Math.min((page + 1) * pageSize, totalCount)} of{" "}
+                    {totalCount} games
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.max(0, p - 1))}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
                       disabled={page === 0}
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
                     </Button>
                     <div className="flex items-center gap-2">
-                      {[...Array(Math.min(5, totalPages)) as unknown[]].map((_, i) => {
-                        const pageNum = page - 2 + i;
-                        if (pageNum < 0 || pageNum >= totalPages) return null;
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={pageNum === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setPage(pageNum)}
-                            className="w-10"
-                          >
-                            {pageNum + 1}
-                          </Button>
-                        );
-                      })}
+                      {[...(Array(Math.min(5, totalPages)) as unknown[])].map(
+                        (_, i) => {
+                          const pageNum = page - 2 + i;
+                          if (pageNum < 0 || pageNum >= totalPages) return null;
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={pageNum === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setPage(pageNum)}
+                              className="w-10"
+                            >
+                              {pageNum + 1}
+                            </Button>
+                          );
+                        },
+                      )}
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => p + 1)}
+                      onClick={() => setPage((p) => p + 1)}
                       disabled={page >= totalPages - 1}
                     >
                       Next
@@ -375,11 +405,11 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
             </>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-lg text-muted-foreground">No games found</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {gameMode !== "all" || searchOpponent ? 
-                  "Try adjusting your filters" : 
-                  "Start playing to build your match history"}
+              <p className="text-muted-foreground text-lg">No games found</p>
+              <p className="text-muted-foreground mt-2 text-sm">
+                {gameMode !== "all" || searchOpponent
+                  ? "Try adjusting your filters"
+                  : "Start playing to build your match history"}
               </p>
               {(gameMode !== "all" || searchOpponent) && (
                 <Button

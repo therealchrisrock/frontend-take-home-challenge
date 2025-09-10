@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { type AIDifficulty } from '~/lib/ai-engine';
+import { type AIDifficulty } from "~/lib/ai-engine";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '~/components/ui/select';
-import { Badge } from '~/components/ui/badge';
-import { Brain, Zap, Target, Trophy, Crown } from 'lucide-react';
+} from "~/components/ui/select";
+import { Badge } from "~/components/ui/badge";
+import { Brain, Target, Trophy, Crown } from "lucide-react";
 
 interface AIDifficultySelectorProps {
   difficulty: AIDifficulty;
@@ -17,44 +17,51 @@ interface AIDifficultySelectorProps {
   disabled?: boolean;
 }
 
-const difficultyConfig: Record<AIDifficulty, {
-  label: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  badge?: string;
-}> = {
+const difficultyConfig: Record<
+  AIDifficulty,
+  {
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    badge?: string;
+  }
+> = {
   easy: {
-    label: 'Easy',
-    description: '2-move lookahead',
+    label: "Easy",
+    description: "2-move lookahead",
     icon: Brain,
-    color: 'text-green-600',
-    badge: 'Casual'
+    color: "text-green-600",
+    badge: "Casual",
   },
   medium: {
-    label: 'Medium',
-    description: '4-move lookahead',
+    label: "Medium",
+    description: "4-move lookahead",
     icon: Target,
-    color: 'text-blue-600',
-    badge: 'Standard'
+    color: "text-blue-600",
+    badge: "Standard",
   },
   hard: {
-    label: 'Hard',
-    description: '6-move lookahead',
+    label: "Hard",
+    description: "6-move lookahead",
     icon: Trophy,
-    color: 'text-orange-600',
-    badge: 'Advanced'
+    color: "text-orange-600",
+    badge: "Advanced",
   },
   expert: {
-    label: 'Expert (Chinook)',
-    description: '8+ move lookahead',
+    label: "Expert (Chinook)",
+    description: "8+ move lookahead",
     icon: Crown,
-    color: 'text-purple-600',
-    badge: 'Master'
-  }
+    color: "text-purple-600",
+    badge: "Master",
+  },
 };
 
-export function AIDifficultySelector({ difficulty, onDifficultyChange, disabled }: AIDifficultySelectorProps) {
+export function AIDifficultySelector({
+  difficulty,
+  onDifficultyChange,
+  disabled,
+}: AIDifficultySelectorProps) {
   const config = difficultyConfig[difficulty];
   const Icon = config.icon;
 
@@ -68,11 +75,15 @@ export function AIDifficultySelector({ difficulty, onDifficultyChange, disabled 
           </Badge>
         )}
       </div>
-      <Select value={difficulty} onValueChange={(value) => onDifficultyChange(value as AIDifficulty)} disabled={disabled}>
+      <Select
+        value={difficulty}
+        onValueChange={(value) => onDifficultyChange(value as AIDifficulty)}
+        disabled={disabled}
+      >
         <SelectTrigger className="w-full">
           <SelectValue>
             <div className="flex items-center gap-2">
-              <Icon className={`w-4 h-4 ${config.color}`} />
+              <Icon className={`h-4 w-4 ${config.color}`} />
               <span>{config.label}</span>
             </div>
           </SelectValue>
@@ -83,10 +94,12 @@ export function AIDifficultySelector({ difficulty, onDifficultyChange, disabled 
             return (
               <SelectItem key={key} value={key}>
                 <div className="flex items-center gap-2">
-                  <DiffIcon className={`w-4 h-4 ${conf.color}`} />
+                  <DiffIcon className={`h-4 w-4 ${conf.color}`} />
                   <div className="flex flex-col">
                     <span className="font-medium">{conf.label}</span>
-                    <span className="text-xs text-gray-500">{conf.description}</span>
+                    <span className="text-xs text-gray-500">
+                      {conf.description}
+                    </span>
                   </div>
                 </div>
               </SelectItem>
@@ -95,8 +108,8 @@ export function AIDifficultySelector({ difficulty, onDifficultyChange, disabled 
         </SelectContent>
       </Select>
       <p className="text-xs text-gray-600">
-        {difficulty === 'expert' 
-          ? 'Inspired by Chinook - the world champion checkers AI'
+        {difficulty === "expert"
+          ? "Inspired by Chinook - the world champion checkers AI"
           : config.description}
       </p>
     </div>

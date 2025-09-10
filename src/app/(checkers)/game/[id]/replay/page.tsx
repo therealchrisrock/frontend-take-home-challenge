@@ -7,7 +7,10 @@ interface ReplayPageProps {
   searchParams: Promise<{ analysis?: string }>;
 }
 
-export default async function GameReplayPage({ params, searchParams }: ReplayPageProps) {
+export default async function GameReplayPage({
+  params,
+  searchParams,
+}: ReplayPageProps) {
   const session = await getServerAuthSession();
   const { id } = await params;
   const { analysis } = await searchParams;
@@ -19,9 +22,9 @@ export default async function GameReplayPage({ params, searchParams }: ReplayPag
   const enableAnalysis = analysis === "true";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 lg:px-8">
-      <GameReplayController 
-        gameId={id} 
+    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+      <GameReplayController
+        gameId={id}
         userId={session.user.id}
         analysisMode={enableAnalysis}
       />

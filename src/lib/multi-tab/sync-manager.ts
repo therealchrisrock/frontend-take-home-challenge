@@ -1,15 +1,15 @@
-import type { 
-  TabId, 
-  GameId, 
-  MultiTabState, 
-  SyncEvent, 
-  OptimisticUpdate, 
+import type {
+  TabId,
+  GameId,
+  MultiTabState,
+  SyncEvent,
+  OptimisticUpdate,
   ConnectionStatus,
   InitialStatePayload,
   MoveAppliedPayload,
-  TabStatusUpdatePayload
-} from './types';
-import type { Move } from '~/lib/game-logic';
+  TabStatusUpdatePayload,
+} from "./types";
+import type { Move } from "~/lib/game-logic";
 
 export class MultiTabSyncManager {
   private gameId: GameId;
@@ -40,7 +40,7 @@ export class MultiTabSyncManager {
       totalTabs: 1,
       connectionAttempts: 0,
       lastHeartbeat: null,
-      optimisticUpdates: []
+      optimisticUpdates: [],
     };
 
     this.setupTabVisibilityHandling();
@@ -54,9 +54,12 @@ export class MultiTabSyncManager {
   }
 
   private setupTabVisibilityHandling(): void {
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !this.isManuallyDisconnected) {
-        if (this.eventSource?.readyState === EventSource.CLOSED || !this.state.isConnected) {
+        if (
+          this.eventSource?.readyState === EventSource.CLOSED ||
+          !this.state.isConnected
+        ) {
           this.reconnect();
         }
       }
@@ -64,15 +67,15 @@ export class MultiTabSyncManager {
   }
 
   private setupOnlineStatusHandling(): void {
-    window.addEventListener('online', () => {
-      console.log('Network connection restored');
+    window.addEventListener("online", () => {
+      console.log("Network connection restored");
       if (!this.isManuallyDisconnected) {
         this.reconnect();
       }
     });
 
-    window.addEventListener('offline', () => {
-      console.log('Network connection lost');
+    window.addEventListener("offline", () => {
+      console.log("Network connection lost");
       this.notifyConnectionStatusListeners();
     });
   }
@@ -83,16 +86,20 @@ export class MultiTabSyncManager {
     }
 
     this.connectionCheckInterval = setInterval(() => {
-      if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED && 
-          !this.isManuallyDisconnected && navigator.onLine) {
-        console.log('Connection lost, attempting to reconnect...');
+      if (
+        this.eventSource &&
+        this.eventSource.readyState === EventSource.CLOSED &&
+        !this.isManuallyDisconnected &&
+        navigator.onLine
+      ) {
+        console.log("Connection lost, attempting to reconnect...");
         this.reconnect();
       }
     }, this.CONNECTION_CHECK_INTERVAL);
   }
 
   private setupBeforeUnloadHandling(): void {
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener("beforeunload", () => {
       this.disconnect();
     });
   }
@@ -106,17 +113,17 @@ export class MultiTabSyncManager {
 
     try {
       this.eventSource = new EventSource(
-        `/api/game/${this.gameId}/stream?tabId=${this.tabId}`
+        `/api/game/${this.gameId}/stream?tabId=${this.tabId}`,
       );
 
       this.eventSource.onopen = () => {
-        console.log('SSE connection established');
+        console.log("SSE connection established");
         this.state.isConnected = true;
         this.state.connectionAttempts = 0;
         this.lastSuccessfulConnection = new Date();
         this.startHeartbeat();
         this.notifyConnectionStatusListeners();
-        
+
         // Process any queued offline moves
         this.processOfflineMoveQueue();
       };
@@ -126,29 +133,30 @@ export class MultiTabSyncManager {
           const syncEvent: SyncEvent = JSON.parse(event.data);
           this.handleSyncEvent(syncEvent);
         } catch (error) {
-          console.error('Failed to parse SSE message:', error);
+          console.error("Failed to parse SSE message:", error);
         }
       };
 
       this.eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
+        console.error("SSE connection error:", error);
         this.state.isConnected = false;
         this.notifyConnectionStatusListeners();
-        
-        if (!this.isManuallyDisconnected && 
-            this.state.connectionAttempts < this.MAX_RECONNECT_ATTEMPTS && 
-            navigator.onLine) {
+
+        if (
+          !this.isManuallyDisconnected &&
+          this.state.connectionAttempts < this.MAX_RECONNECT_ATTEMPTS &&
+          navigator.onLine
+        ) {
           this.scheduleReconnect();
         } else if (!navigator.onLine) {
-          console.log('Offline - will retry when connection is restored');
+          console.log("Offline - will retry when connection is restored");
         }
       };
 
       // Register tab with server via tRPC
       await this.registerTab();
-
     } catch (error) {
-      console.error('Failed to establish SSE connection:', error);
+      console.error("Failed to establish SSE connection:", error);
       throw error;
     }
   }
@@ -160,20 +168,20 @@ export class MultiTabSyncManager {
 
   private handleSyncEvent(event: SyncEvent): void {
     switch (event.type) {
-      case 'INITIAL_STATE':
+      case "INITIAL_STATE":
         this.handleInitialState(event.payload as InitialStatePayload);
         break;
-      case 'MOVE_APPLIED':
+      case "MOVE_APPLIED":
         this.handleMoveApplied(event.payload as MoveAppliedPayload);
         break;
-      case 'TAB_STATUS_UPDATE':
+      case "TAB_STATUS_UPDATE":
         this.handleTabStatusUpdate(event.payload as TabStatusUpdatePayload);
         break;
-      case 'ACTIVE_TAB_CHANGED':
+      case "ACTIVE_TAB_CHANGED":
         this.handleActiveTabChanged(event.payload as { activeTabId: TabId });
         break;
       default:
-        console.warn('Unknown sync event type:', event.type);
+        console.warn("Unknown sync event type:", event.type);
     }
 
     this.notifyEventListeners(event.type, event);
@@ -187,7 +195,7 @@ export class MultiTabSyncManager {
     // Remove any matching optimistic update
     if (payload.optimisticMoveId) {
       this.state.optimisticUpdates = this.state.optimisticUpdates.filter(
-        update => update.id !== payload.optimisticMoveId
+        (update) => update.id !== payload.optimisticMoveId,
       );
     }
   }
@@ -216,7 +224,7 @@ export class MultiTabSyncManager {
       // This would be implemented with tRPC call
       this.state.lastHeartbeat = new Date();
     } catch (error) {
-      console.error('Failed to send heartbeat:', error);
+      console.error("Failed to send heartbeat:", error);
     }
   }
 
@@ -227,11 +235,13 @@ export class MultiTabSyncManager {
 
     const delay = Math.min(
       this.RECONNECT_DELAY * Math.pow(1.5, this.state.connectionAttempts),
-      30000 // Max 30 seconds
+      30000, // Max 30 seconds
     );
     this.state.connectionAttempts++;
 
-    console.log(`Scheduling reconnect in ${delay}ms (attempt ${this.state.connectionAttempts})`);
+    console.log(
+      `Scheduling reconnect in ${delay}ms (attempt ${this.state.connectionAttempts})`,
+    );
 
     this.reconnectTimeout = setTimeout(() => {
       if (navigator.onLine && !this.isManuallyDisconnected) {
@@ -245,17 +255,17 @@ export class MultiTabSyncManager {
       return;
     }
 
-    console.log('Attempting to reconnect...');
-    
+    console.log("Attempting to reconnect...");
+
     // Clean up existing connection but preserve the queue
     const preservedQueue = [...this.offlineMoveQueue];
     this.cleanupConnection();
     this.offlineMoveQueue = preservedQueue;
-    
+
     try {
       await this.connect();
     } catch (error) {
-      console.error('Reconnection failed:', error);
+      console.error("Reconnection failed:", error);
     }
   }
 
@@ -279,7 +289,7 @@ export class MultiTabSyncManager {
   disconnect(): void {
     this.isManuallyDisconnected = true;
     this.cleanupConnection();
-    
+
     if (this.connectionCheckInterval) {
       clearInterval(this.connectionCheckInterval);
       this.connectionCheckInterval = null;
@@ -292,7 +302,9 @@ export class MultiTabSyncManager {
   // Offline move queue management
   queueOfflineMove(move: Move): void {
     this.offlineMoveQueue.push(move);
-    console.log(`Move queued for when connection is restored (${this.offlineMoveQueue.length} moves in queue)`);
+    console.log(
+      `Move queued for when connection is restored (${this.offlineMoveQueue.length} moves in queue)`,
+    );
   }
 
   private async processOfflineMoveQueue(): Promise<void> {
@@ -304,38 +316,41 @@ export class MultiTabSyncManager {
 
     try {
       // Send all queued moves to server for syncing
-      const response = await fetch('/api/trpc/game.syncOfflineMoves', {
-        method: 'POST',
+      const response = await fetch("/api/trpc/game.syncOfflineMoves", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           json: {
             gameId: this.gameId,
             moves: moves,
-            tabId: this.tabId
-          }
-        })
+            tabId: this.tabId,
+          },
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync offline moves');
+        throw new Error("Failed to sync offline moves");
       }
 
       const result = await response.json();
-      console.log(`Synced ${result.result.data.json.syncedMoves} moves successfully`);
-      
+      console.log(
+        `Synced ${result.result.data.json.syncedMoves} moves successfully`,
+      );
+
       // Re-queue any failed moves
       if (result.result.data.json.failedMoves > 0) {
-        console.warn(`${result.result.data.json.failedMoves} moves failed to sync`);
+        console.warn(
+          `${result.result.data.json.failedMoves} moves failed to sync`,
+        );
       }
-
     } catch (error) {
-      console.error('Failed to process offline moves:', error);
+      console.error("Failed to process offline moves:", error);
       // Re-queue all moves on failure
       this.offlineMoveQueue = moves;
     }
-    
+
     // Update connection status to reflect queue state
     this.notifyConnectionStatusListeners();
   }
@@ -350,7 +365,7 @@ export class MultiTabSyncManager {
       id: `opt_${Date.now()}_${Math.random().toString(36).substring(2)}`,
       move,
       timestamp: new Date(),
-      applied: false
+      applied: false,
     };
 
     this.state.optimisticUpdates.push(update);
@@ -359,19 +374,25 @@ export class MultiTabSyncManager {
 
   removeOptimisticUpdate(id: string): void {
     this.state.optimisticUpdates = this.state.optimisticUpdates.filter(
-      update => update.id !== id
+      (update) => update.id !== id,
     );
   }
 
   // Event listeners
-  addEventListener(eventType: string, listener: (event: SyncEvent) => void): void {
+  addEventListener(
+    eventType: string,
+    listener: (event: SyncEvent) => void,
+  ): void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
     this.listeners.get(eventType)!.add(listener);
   }
 
-  removeEventListener(eventType: string, listener: (event: SyncEvent) => void): void {
+  removeEventListener(
+    eventType: string,
+    listener: (event: SyncEvent) => void,
+  ): void {
     const eventListeners = this.listeners.get(eventType);
     if (eventListeners) {
       eventListeners.delete(listener);
@@ -381,11 +402,11 @@ export class MultiTabSyncManager {
   private notifyEventListeners(eventType: string, event: SyncEvent): void {
     const eventListeners = this.listeners.get(eventType);
     if (eventListeners) {
-      eventListeners.forEach(listener => {
+      eventListeners.forEach((listener) => {
         try {
           listener(event);
         } catch (error) {
-          console.error('Error in sync event listener:', error);
+          console.error("Error in sync event listener:", error);
         }
       });
     }
@@ -394,21 +415,22 @@ export class MultiTabSyncManager {
   private notifyConnectionStatusListeners(): void {
     const connectionStatus: ConnectionStatus = {
       connected: this.state.isConnected,
-      reconnecting: this.state.connectionAttempts > 0 && !this.state.isConnected,
-      error: !navigator.onLine ? 'No internet connection' : null,
+      reconnecting:
+        this.state.connectionAttempts > 0 && !this.state.isConnected,
+      error: !navigator.onLine ? "No internet connection" : null,
       lastConnected: this.lastSuccessfulConnection,
-      offlineMoveCount: this.offlineMoveQueue.length
+      offlineMoveCount: this.offlineMoveQueue.length,
     };
 
     const event: SyncEvent<ConnectionStatus> = {
-      type: 'CONNECTION_STATUS',
+      type: "CONNECTION_STATUS",
       payload: connectionStatus,
       timestamp: new Date().toISOString(),
       gameId: this.gameId,
-      tabId: this.tabId
+      tabId: this.tabId,
     };
 
-    this.notifyEventListeners('CONNECTION_STATUS', event);
+    this.notifyEventListeners("CONNECTION_STATUS", event);
   }
 
   // Public getters

@@ -15,7 +15,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 
   try {
     const user = await api.user.getProfile({ username });
-    
+
     if (!user) {
       notFound();
     }
@@ -26,7 +26,7 @@ export default async function UserProfilePage({ params }: PageProps) {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">This is your profile!</h1>
+            <h1 className="mb-4 text-2xl font-bold">This is your profile!</h1>
             <a href="/profile" className="text-primary hover:underline">
               View your editable profile →
             </a>
@@ -37,16 +37,16 @@ export default async function UserProfilePage({ params }: PageProps) {
 
     const [stats, matchHistory] = await Promise.all([
       api.user.getGameStats({ userId: user.id }),
-      api.user.getEnhancedMatchHistory({ 
+      api.user.getEnhancedMatchHistory({
         userId: user.id,
-        take: 5 
-      })
+        take: 5,
+      }),
     ]);
 
     const isOwnProfile = session?.user?.id === user.id;
 
     return (
-      <GameProfileView 
+      <GameProfileView
         user={user}
         stats={stats}
         matchHistory={matchHistory}
@@ -61,10 +61,10 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 export async function generateMetadata({ params }: PageProps) {
   const { username } = await params;
-  
+
   try {
     const user = await api.user.getProfile({ username });
-    
+
     return {
       title: `${user.name ?? user.username}'s Game Profile`,
       description: `View ${user.name ?? user.username}'s checkers stats and achievements`,

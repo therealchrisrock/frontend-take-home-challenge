@@ -1,24 +1,36 @@
-'use client';
-import React, { createContext, useContext, useMemo, useReducer, useCallback } from 'react';
-import type { BoardVariant } from '~/lib/variants';
-import { createInitialBoard, makeMove } from '~/lib/game-logic';
-import { GameConfigLoader } from '~/lib/game-engine/config-loader';
-import { gameReducer } from './game-reducer';
-import type { GameState, GameAction, GameMode } from './game-types';
-import { createAIGamePlayers, createLocalGamePlayers } from '~/lib/player-types';
-import type { VariantConfig } from '~/lib/game-engine/rule-schema';
-import type { TimeControl } from '~/lib/time-control-types';
-import type { AIDifficulty } from '~/lib/ai-engine';
-import { useGameSounds } from '~/hooks/useGameSounds';
-import { useSettings } from '~/contexts/settings-context';
-import { createDrawState } from '~/lib/draw-detection';
+"use client";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useReducer,
+  useCallback,
+} from "react";
+import type { BoardVariant } from "~/lib/variants";
+import { createInitialBoard, makeMove } from "~/lib/game-logic";
+import { GameConfigLoader } from "~/lib/game-engine/config-loader";
+import { gameReducer } from "./game-reducer";
+import type { GameState, GameAction, GameMode } from "./game-types";
+import {
+  createAIGamePlayers,
+  createLocalGamePlayers,
+} from "~/lib/player-types";
+import type { VariantConfig } from "~/lib/game-engine/rule-schema";
+import type { TimeControl } from "~/lib/time-control-types";
+import type { AIDifficulty } from "~/lib/ai-engine";
+import { useGameSounds } from "~/hooks/useGameSounds";
+import { useSettings } from "~/contexts/settings-context";
+import { createDrawState } from "~/lib/draw-detection";
 
-const GameContext = createContext<{ state: GameState; dispatch: React.Dispatch<GameAction> } | null>(null);
+const GameContext = createContext<{
+  state: GameState;
+  dispatch: React.Dispatch<GameAction>;
+} | null>(null);
 
 interface GameConfig {
   boardVariant: BoardVariant;
   rules: VariantConfig;
-  playerColor: 'red' | 'black';
+  playerColor: "red" | "black";
   aiDifficulty: AIDifficulty | null;
   timeControl: TimeControl | null;
 }
@@ -51,13 +63,13 @@ export function GameProvider({
     if (initialConfig) {
       const { gameConfig } = initialConfig;
       const gameMode = initialConfig.gameMode as GameMode;
-      const aiDifficulty = gameConfig.aiDifficulty || 'medium';
-      
+      const aiDifficulty = gameConfig.aiDifficulty || "medium";
+
       // Reconstruct board history from moves
       const boardHistory: any[] = [];
       let currentBoard = createInitialBoard(gameConfig.rules);
       boardHistory.push(currentBoard);
-      
+
       // Apply each move to reconstruct the board history
       if (initialConfig.moves && initialConfig.moves.length > 0) {
         for (const move of initialConfig.moves) {
@@ -65,13 +77,13 @@ export function GameProvider({
           boardHistory.push(currentBoard);
         }
       }
-      
+
       return {
         gameId: initialConfig.id,
         rules: gameConfig.rules,
         boardVariant: gameConfig.boardVariant,
         board: initialConfig.board || currentBoard,
-        currentPlayer: initialConfig.currentPlayer as 'red' | 'black',
+        currentPlayer: initialConfig.currentPlayer as "red" | "black",
         playerColor: gameConfig.playerColor,
         selectedPosition: null,
         draggingPosition: null,
@@ -81,7 +93,7 @@ export function GameProvider({
         boardHistory,
         currentMoveIndex: (initialConfig.moves?.length || 0) - 1,
         isViewingHistory: false,
-        winner: initialConfig.winner as 'red' | 'black' | 'draw' | null,
+        winner: initialConfig.winner as "red" | "black" | "draw" | null,
         drawState: createDrawState(),
         drawReason: null,
         showWinnerDialog: false,
@@ -94,7 +106,10 @@ export function GameProvider({
         audioWarningsEnabled: true,
         gameMode,
         aiDifficulty,
-        players: gameMode === 'ai' ? createAIGamePlayers(aiDifficulty) : createLocalGamePlayers(),
+        players:
+          gameMode === "ai"
+            ? createAIGamePlayers(aiDifficulty)
+            : createLocalGamePlayers(),
         isAIThinking: false,
         isReviewMode: false,
         gameAnalysis: null,
@@ -104,16 +119,16 @@ export function GameProvider({
       };
     } else {
       // Default local game
-      const resolved: VariantConfig = GameConfigLoader.loadVariant('american');
+      const resolved: VariantConfig = GameConfigLoader.loadVariant("american");
       const initialBoard = createInitialBoard(resolved);
-      
+
       return {
         gameId,
         rules: resolved,
-        boardVariant: 'american',
+        boardVariant: "american",
         board: initialBoard,
-        currentPlayer: 'red',
-        playerColor: 'red',
+        currentPlayer: "red",
+        playerColor: "red",
         selectedPosition: null,
         draggingPosition: null,
         validMoves: [],
@@ -133,8 +148,8 @@ export function GameProvider({
         drawRequestedBy: null,
         timeControl: null,
         audioWarningsEnabled: true,
-        gameMode: 'local',
-        aiDifficulty: 'medium',
+        gameMode: "local",
+        aiDifficulty: "medium",
         players: createLocalGamePlayers(),
         isAIThinking: false,
         isReviewMode: false,
@@ -149,46 +164,61 @@ export function GameProvider({
   const [state, baseDispatch] = useReducer(gameReducer, initialState);
   const { settings } = useSettings();
 
-  const { playMove, playCapture, playKing, playComplete, playStartGame } = useGameSounds({
-    enabled: settings.soundEffectsEnabled,
-    volume: settings.sfxVolume / 100,
-  });
+  const { playMove, playCapture, playKing, playComplete, playStartGame } =
+    useGameSounds({
+      enabled: settings.soundEffectsEnabled,
+      volume: settings.sfxVolume / 100,
+    });
 
-  const dispatch = useCallback((action: GameAction) => {
-    if (action.type === 'APPLY_MOVE') {
-      const { move, newBoard } = action.payload;
-      const pieceBeforeMove = state.board[move.from.row]?.[move.from.col];
-      const pieceAfterMove = newBoard[move.to.row]?.[move.to.col];
-      const becameKing = pieceBeforeMove && pieceBeforeMove.type === 'regular' && pieceAfterMove?.type === 'king';
+  const dispatch = useCallback(
+    (action: GameAction) => {
+      if (action.type === "APPLY_MOVE") {
+        const { move, newBoard } = action.payload;
+        const pieceBeforeMove = state.board[move.from.row]?.[move.from.col];
+        const pieceAfterMove = newBoard[move.to.row]?.[move.to.col];
+        const becameKing =
+          pieceBeforeMove &&
+          pieceBeforeMove.type === "regular" &&
+          pieceAfterMove?.type === "king";
 
-      if (becameKing) {
-        playKing();
-      } else if (move.captures && move.captures.length > 0) {
-        playCapture();
-      } else {
-        playMove();
+        if (becameKing) {
+          playKing();
+        } else if (move.captures && move.captures.length > 0) {
+          playCapture();
+        } else {
+          playMove();
+        }
       }
-    }
 
-    // Start game SFX on reset, controlled by settings-context in useGameSounds
-    if (action.type === 'RESET') {
-      playStartGame();
-    }
+      // Start game SFX on reset, controlled by settings-context in useGameSounds
+      if (action.type === "RESET") {
+        playStartGame();
+      }
 
-    // Winner/complete SFX triggers
-    if (action.type === 'APPLY_MOVE' && action.payload.winner) {
-      playComplete();
-    } else if (action.type === 'SET_WINNER' && action.payload) {
-      playComplete();
-    } else if (action.type === 'RESIGN') {
-      // Reducer sets winner accordingly; play on resign as well
-      playComplete();
-    } else if (action.type === 'ACCEPT_DRAW') {
-      playComplete();
-    }
+      // Winner/complete SFX triggers
+      if (action.type === "APPLY_MOVE" && action.payload.winner) {
+        playComplete();
+      } else if (action.type === "SET_WINNER" && action.payload) {
+        playComplete();
+      } else if (action.type === "RESIGN") {
+        // Reducer sets winner accordingly; play on resign as well
+        playComplete();
+      } else if (action.type === "ACCEPT_DRAW") {
+        playComplete();
+      }
 
-    baseDispatch(action);
-  }, [baseDispatch, state.board, playMove, playCapture, playKing, playComplete, playStartGame]);
+      baseDispatch(action);
+    },
+    [
+      baseDispatch,
+      state.board,
+      playMove,
+      playCapture,
+      playKing,
+      playComplete,
+      playStartGame,
+    ],
+  );
 
   const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
@@ -196,7 +226,6 @@ export function GameProvider({
 
 export function useGame() {
   const ctx = useContext(GameContext);
-  if (!ctx) throw new Error('useGame must be used within GameProvider');
+  if (!ctx) throw new Error("useGame must be used within GameProvider");
   return ctx;
 }
-

@@ -5,19 +5,27 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 
-const schema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const schema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -45,7 +53,7 @@ function ResetPasswordInner() {
       setError("Invalid reset link");
       return;
     }
-    
+
     resetPasswordMutation.mutate({
       token,
       password: data.password,
@@ -63,7 +71,10 @@ function ResetPasswordInner() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/auth/forgot-password")} className="w-full">
+            <Button
+              onClick={() => router.push("/auth/forgot-password")}
+              className="w-full"
+            >
               Request New Reset Link
             </Button>
           </CardContent>
@@ -77,9 +88,7 @@ function ResetPasswordInner() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-          </CardDescription>
+          <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -117,7 +126,9 @@ function ResetPasswordInner() {
               className="w-full"
               disabled={resetPasswordMutation.isPending}
             >
-              {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+              {resetPasswordMutation.isPending
+                ? "Resetting..."
+                : "Reset Password"}
             </Button>
           </form>
         </CardContent>
@@ -128,7 +139,13 @@ function ResetPasswordInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center px-4">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center px-4">
+          Loading...
+        </div>
+      }
+    >
       <ResetPasswordInner />
     </Suspense>
   );

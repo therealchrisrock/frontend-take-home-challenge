@@ -2,12 +2,30 @@
 
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Trophy, Gamepad2, Target, Sparkles, Swords, Shield, Crown, Star, Zap, Heart, Users, TrendingUp, Award, Medal } from "lucide-react";
+import {
+  Trophy,
+  Gamepad2,
+  Sparkles,
+  Swords,
+  Shield,
+  Crown,
+  Star,
+  Zap,
+  Users,
+  TrendingUp,
+  Award,
+} from "lucide-react";
 import { api } from "~/trpc/react";
 import { toast } from "~/components/ui/use-toast";
 import { m } from "~/lib/motion";
@@ -85,15 +103,15 @@ interface GameProfileViewProps {
   currentUserId?: string;
 }
 
-export default function GameProfileView({ 
-  user, 
-  stats, 
-  matchHistory, 
+export default function GameProfileView({
+  user,
+  stats,
+  matchHistory,
   isOwnProfile,
-  currentUserId 
+  currentUserId,
 }: GameProfileViewProps) {
   const [friendRequestSent, setFriendRequestSent] = useState(false);
-  
+
   const sendFriendRequest = api.user.sendFriendRequest.useMutation({
     onSuccess: () => {
       setFriendRequestSent(true);
@@ -111,9 +129,10 @@ export default function GameProfileView({
     },
   });
 
-  const winRate = stats.totalGames > 0 
-    ? Math.round((stats.wins / stats.totalGames) * 100) 
-    : 0;
+  const winRate =
+    stats.totalGames > 0
+      ? Math.round((stats.wins / stats.totalGames) * 100)
+      : 0;
 
   const playerLevel = Math.floor(stats.totalGames / 10) + 1;
   const xpInCurrentLevel = (stats.totalGames % 10) * 10;
@@ -138,77 +157,78 @@ export default function GameProfileView({
   };
 
   const achievements = [
-    { 
-      id: 1, 
-      name: "First Blood", 
-      description: "Win your first game", 
-      icon: Swords, 
+    {
+      id: 1,
+      name: "First Blood",
+      description: "Win your first game",
+      icon: Swords,
       unlocked: stats.wins >= 1,
-      color: "text-red-500"
+      color: "text-red-500",
     },
-    { 
-      id: 2, 
-      name: "Streak Master", 
-      description: "Win 3 games in a row", 
-      icon: Zap, 
+    {
+      id: 2,
+      name: "Streak Master",
+      description: "Win 3 games in a row",
+      icon: Zap,
       unlocked: (stats.stats?.bestStreak ?? 0) >= 3,
-      color: "text-yellow-500"
+      color: "text-yellow-500",
     },
-    { 
-      id: 3, 
-      name: "Veteran", 
-      description: "Play 50 games", 
-      icon: Shield, 
+    {
+      id: 3,
+      name: "Veteran",
+      description: "Play 50 games",
+      icon: Shield,
       unlocked: stats.totalGames >= 50,
-      color: "text-blue-500"
+      color: "text-blue-500",
     },
-    { 
-      id: 4, 
-      name: "Champion", 
-      description: "Achieve 60% win rate", 
-      icon: Crown, 
+    {
+      id: 4,
+      name: "Champion",
+      description: "Achieve 60% win rate",
+      icon: Crown,
       unlocked: winRate >= 60 && stats.totalGames >= 10,
-      color: "text-purple-500"
+      color: "text-purple-500",
     },
-    { 
-      id: 5, 
-      name: "Social Butterfly", 
-      description: "Play 10 online games", 
-      icon: Users, 
+    {
+      id: 5,
+      name: "Social Butterfly",
+      description: "Play 10 online games",
+      icon: Users,
       unlocked: stats.onlineGames >= 10,
-      color: "text-green-500"
+      color: "text-green-500",
     },
-    { 
-      id: 6, 
-      name: "Perfectionist", 
-      description: "Win 10 games", 
-      icon: Star, 
+    {
+      id: 6,
+      name: "Perfectionist",
+      description: "Win 10 games",
+      icon: Star,
       unlocked: stats.wins >= 10,
-      color: "text-amber-500"
+      color: "text-amber-500",
     },
   ];
 
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20">
-      <div className="container mx-auto px-4 py-8 space-y-4">
+      <div className="container mx-auto space-y-4 px-4 py-8">
         {/* Hero Section with Avatar and Stats */}
-        <div >
-          <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50">
+        <div>
+          <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100 dark:border-purple-800 dark:from-purple-900/50 dark:to-pink-900/50">
             <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="flex flex-col items-center gap-8 md:flex-row md:items-start">
                 {/* Avatar Section */}
                 <div className="relative">
                   <div className="relative">
                     <Avatar className="h-32 w-32 ring-4 ring-purple-300 dark:ring-purple-700">
                       <AvatarImage src={user.image ?? undefined} />
-                      <AvatarFallback className="text-3xl bg-gradient-to-br from-purple-400 to-pink-400 text-white">
-                        {user.name?.charAt(0) ?? user.username.charAt(0).toUpperCase()}
+                      <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-3xl text-white">
+                        {user.name?.charAt(0) ??
+                          user.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     {/* Level Badge */}
-                    <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full px-3 py-1 text-sm font-bold shadow-lg">
+                    <div className="absolute -right-2 -bottom-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 px-3 py-1 text-sm font-bold text-white shadow-lg">
                       Lvl {playerLevel}
                     </div>
                   </div>
@@ -216,56 +236,85 @@ export default function GameProfileView({
 
                 {/* Player Info */}
                 <div className="flex-1 text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <div className="mb-2 flex items-center justify-center gap-3 md:justify-start">
+                    <h1 className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-3xl font-bold text-transparent">
                       {user.name ?? user.username}
                     </h1>
                     <Badge className={`${getRankBadgeColor()} text-white`}>
                       {getPlayerTitle()}
                     </Badge>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">@{user.username}</p>
-                  
+                  <p className="mb-4 text-gray-600 dark:text-gray-400">
+                    @{user.username}
+                  </p>
+
                   {/* XP Progress Bar */}
                   <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 dark:text-gray-400">Level {playerLevel}</span>
-                      <span className="text-gray-600 dark:text-gray-400">{xpInCurrentLevel}/100 XP</span>
+                    <div className="mb-1 flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Level {playerLevel}
+                      </span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {xpInCurrentLevel}/100 XP
+                      </span>
                     </div>
-                    <Progress value={xpInCurrentLevel} className="h-3 bg-gray-200 dark:bg-gray-700">
-                      <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" />
+                    <Progress
+                      value={xpInCurrentLevel}
+                      className="h-3 bg-gray-200 dark:bg-gray-700"
+                    >
+                      <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                     </Progress>
                   </div>
 
                   {/* Quick Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{stats.wins}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Wins</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats.wins}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Wins
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">{stats.losses}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Losses</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        {stats.losses}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Losses
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{winRate}%</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Win Rate</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {winRate}%
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Win Rate
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{stats.totalGames}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Games</div>
+                      <div className="text-2xl font-bold text-purple-600">
+                        {stats.totalGames}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Games
+                      </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   {!isOwnProfile && currentUserId && (
-                    <div className="flex gap-2 justify-center md:justify-start">
-                      <Button 
-                        onClick={() => sendFriendRequest.mutate({ userId: user.id })}
-                        disabled={friendRequestSent || sendFriendRequest.isPending}
+                    <div className="flex justify-center gap-2 md:justify-start">
+                      <Button
+                        onClick={() =>
+                          sendFriendRequest.mutate({ userId: user.id })
+                        }
+                        disabled={
+                          friendRequestSent || sendFriendRequest.isPending
+                        }
                         className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                       >
-                        <Users className=" h-4 w-4" />
+                        <Users className="h-4 w-4" />
                         {friendRequestSent ? "Request Sent" : "Add Friend"}
                       </Button>
                       <Button variant="outline" disabled>
@@ -278,15 +327,18 @@ export default function GameProfileView({
 
                 {/* Trophy Display */}
                 <div className="hidden lg:block">
-                  <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 backdrop-blur">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="rounded-lg bg-white/50 p-4 backdrop-blur dark:bg-gray-800/50">
+                    <div className="mb-2 flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-yellow-500" />
                       <span className="font-semibold">Achievements</span>
                     </div>
-                    <div className="text-3xl font-bold text-center">
+                    <div className="text-center text-3xl font-bold">
                       {unlockedCount}/{achievements.length}
                     </div>
-                    <Progress value={(unlockedCount / achievements.length) * 100} className="mt-2" />
+                    <Progress
+                      value={(unlockedCount / achievements.length) * 100}
+                      className="mt-2"
+                    />
                   </div>
                 </div>
               </div>
@@ -296,11 +348,14 @@ export default function GameProfileView({
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="stats" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px] mx-auto">
+          <TabsList className="mx-auto grid w-full grid-cols-3 lg:w-[400px]">
             <TabsTrigger value="stats" className="flex items-center gap-1">
               Stats
             </TabsTrigger>
-            <TabsTrigger value="achievements" className="flex items-center gap-1">
+            <TabsTrigger
+              value="achievements"
+              className="flex items-center gap-1"
+            >
               Achievements
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-1">
@@ -310,13 +365,13 @@ export default function GameProfileView({
 
           {/* Stats Tab */}
           <TabsContent value="stats">
-            <m.div 
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
             >
               {/* Performance Card */}
-              <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+              <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-900/20 dark:to-emerald-900/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-500" />
@@ -327,22 +382,28 @@ export default function GameProfileView({
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm">Best Streak</span>
-                      <span className="font-bold">{stats.stats?.bestStreak ?? 0} games</span>
+                      <span className="font-bold">
+                        {stats.stats?.bestStreak ?? 0} games
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Avg Moves</span>
-                      <span className="font-bold">{stats.stats?.avgMoves ?? 0}</span>
+                      <span className="font-bold">
+                        {stats.stats?.avgMoves ?? 0}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Total Moves</span>
-                      <span className="font-bold">{stats.stats?.totalMoves ?? 0}</span>
+                      <span className="font-bold">
+                        {stats.stats?.totalMoves ?? 0}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Game Modes Card */}
-              <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 dark:border-blue-800 dark:from-blue-900/20 dark:to-cyan-900/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Gamepad2 className="h-5 w-5 text-blue-500" />
@@ -355,27 +416,48 @@ export default function GameProfileView({
                       <span>vs AI</span>
                       <span className="font-medium">{stats.aiGames}</span>
                     </div>
-                    <Progress value={stats.totalGames > 0 ? (stats.aiGames / stats.totalGames) * 100 : 0} className="h-2" />
+                    <Progress
+                      value={
+                        stats.totalGames > 0
+                          ? (stats.aiGames / stats.totalGames) * 100
+                          : 0
+                      }
+                      className="h-2"
+                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Local</span>
                       <span className="font-medium">{stats.localGames}</span>
                     </div>
-                    <Progress value={stats.totalGames > 0 ? (stats.localGames / stats.totalGames) * 100 : 0} className="h-2" />
+                    <Progress
+                      value={
+                        stats.totalGames > 0
+                          ? (stats.localGames / stats.totalGames) * 100
+                          : 0
+                      }
+                      className="h-2"
+                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Online</span>
                       <span className="font-medium">{stats.onlineGames}</span>
                     </div>
-                    <Progress value={stats.totalGames > 0 ? (stats.onlineGames / stats.totalGames) * 100 : 0} className="h-2" />
+                    <Progress
+                      value={
+                        stats.totalGames > 0
+                          ? (stats.onlineGames / stats.totalGames) * 100
+                          : 0
+                      }
+                      className="h-2"
+                    />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Recent Form Card */}
-              <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+              <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:border-purple-800 dark:from-purple-900/20 dark:to-pink-900/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-purple-500" />
@@ -384,18 +466,20 @@ export default function GameProfileView({
                 </CardHeader>
                 <CardContent>
                   {stats.recentGames && stats.recentGames.length > 0 ? (
-                    <div className="flex gap-1 flex-wrap">
+                    <div className="flex flex-wrap gap-1">
                       {stats.recentGames.slice(0, 10).map((game, index) => (
                         <m.div
                           key={index}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: index * 0.05 }}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs
-                            ${game.result === "win" ? "bg-green-500" : game.result === "loss" ? "bg-red-500" : "bg-gray-500"}
-                          `}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white ${game.result === "win" ? "bg-green-500" : game.result === "loss" ? "bg-red-500" : "bg-gray-500"} `}
                         >
-                          {game.result === "win" ? "W" : game.result === "loss" ? "L" : "D"}
+                          {game.result === "win"
+                            ? "W"
+                            : game.result === "loss"
+                              ? "L"
+                              : "D"}
                         </m.div>
                       ))}
                     </div>
@@ -409,7 +493,7 @@ export default function GameProfileView({
 
           {/* Achievements Tab */}
           <TabsContent value="achievements">
-            <m.div 
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
@@ -421,26 +505,38 @@ export default function GameProfileView({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className={`relative overflow-hidden ${
-                    achievement.unlocked 
-                      ? "border-2 border-yellow-300 dark:border-yellow-700 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20" 
-                      : "opacity-60 grayscale"
-                  }`}>
+                  <Card
+                    className={`relative overflow-hidden ${
+                      achievement.unlocked
+                        ? "border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50 dark:border-yellow-700 dark:from-yellow-900/20 dark:to-amber-900/20"
+                        : "opacity-60 grayscale"
+                    }`}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg ${
-                          achievement.unlocked ? "bg-white/80 dark:bg-gray-800/80" : "bg-gray-200 dark:bg-gray-700"
-                        }`}>
-                          <achievement.icon className={`h-6 w-6 ${achievement.unlocked ? achievement.color : "text-gray-400"}`} />
+                        <div
+                          className={`rounded-lg p-3 ${
+                            achievement.unlocked
+                              ? "bg-white/80 dark:bg-gray-800/80"
+                              : "bg-gray-200 dark:bg-gray-700"
+                          }`}
+                        >
+                          <achievement.icon
+                            className={`h-6 w-6 ${achievement.unlocked ? achievement.color : "text-gray-400"}`}
+                          />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{achievement.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{achievement.description}</p>
+                          <h3 className="mb-1 font-semibold">
+                            {achievement.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {achievement.description}
+                          </p>
                         </div>
                       </div>
                       {achievement.unlocked && (
                         <div className="absolute top-2 right-2">
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                          <Star className="h-5 w-5 fill-yellow-500 text-yellow-500" />
                         </div>
                       )}
                     </CardContent>
@@ -462,12 +558,14 @@ export default function GameProfileView({
                   <div className="space-y-3">
                     {matchHistory.matches.map((match, index) => {
                       if (!match.player1Id || !match.player2Id) return null;
-                      
+
                       const isPlayer1 = match.player1Id === user.id;
-                      const opponent = isPlayer1 ? match.player2 : match.player1;
+                      const opponent = isPlayer1
+                        ? match.player2
+                        : match.player1;
                       const playerColor = isPlayer1 ? "red" : "black";
                       let result: "win" | "loss" | "draw";
-                      
+
                       if (match.winner === "draw") {
                         result = "draw";
                       } else {
@@ -480,33 +578,55 @@ export default function GameProfileView({
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`p-4 rounded-lg border-2 ${
-                            result === "win" ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" :
-                            result === "loss" ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20" :
-                            "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/20"
+                          className={`rounded-lg border-2 p-4 ${
+                            result === "win"
+                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                              : result === "loss"
+                                ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                                : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/20"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-full ${
-                                result === "win" ? "bg-green-500" :
-                                result === "loss" ? "bg-red-500" :
-                                "bg-gray-500"
-                              } text-white`}>
-                                {result === "win" ? <Trophy className="h-4 w-4" /> :
-                                 result === "loss" ? <Shield className="h-4 w-4" /> :
-                                 <Award className="h-4 w-4" />}
+                              <div
+                                className={`rounded-full p-2 ${
+                                  result === "win"
+                                    ? "bg-green-500"
+                                    : result === "loss"
+                                      ? "bg-red-500"
+                                      : "bg-gray-500"
+                                } text-white`}
+                              >
+                                {result === "win" ? (
+                                  <Trophy className="h-4 w-4" />
+                                ) : result === "loss" ? (
+                                  <Shield className="h-4 w-4" />
+                                ) : (
+                                  <Award className="h-4 w-4" />
+                                )}
                               </div>
                               <div>
                                 <div className="font-semibold">
-                                  vs {opponent ? (opponent.name ?? opponent.username) : "AI"}
+                                  vs{" "}
+                                  {opponent
+                                    ? (opponent.name ?? opponent.username)
+                                    : "AI"}
                                 </div>
                                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                                  {match.moveCount} moves • {match.gameMode} mode
+                                  {match.moveCount} moves • {match.gameMode}{" "}
+                                  mode
                                 </div>
                               </div>
                             </div>
-                            <Badge variant={result === "win" ? "default" : result === "loss" ? "destructive" : "secondary"}>
+                            <Badge
+                              variant={
+                                result === "win"
+                                  ? "default"
+                                  : result === "loss"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                            >
                               {result.toUpperCase()}
                             </Badge>
                           </div>
@@ -515,7 +635,9 @@ export default function GameProfileView({
                     })}
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500 py-8">No match history available</p>
+                  <p className="py-8 text-center text-gray-500">
+                    No match history available
+                  </p>
                 )}
               </CardContent>
             </Card>

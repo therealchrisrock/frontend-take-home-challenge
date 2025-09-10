@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const messageRouter = createTRPCRouter({
   sendMessage: protectedProcedure
@@ -12,7 +9,7 @@ export const messageRouter = createTRPCRouter({
       z.object({
         receiverId: z.string(),
         content: z.string().min(1).max(1000),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       if (input.receiverId === ctx.session.user.id) {
@@ -72,7 +69,7 @@ export const messageRouter = createTRPCRouter({
         userId: z.string(),
         cursor: z.string().optional(),
         limit: z.number().min(1).max(50).default(20),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       // Check if blocked
@@ -196,8 +193,8 @@ export const messageRouter = createTRPCRouter({
     ]);
 
     // Group by conversation and filter blocked users
-    const conversationMap = new Map<string, typeof messages[0]>();
-    
+    const conversationMap = new Map<string, (typeof messages)[0]>();
+
     for (const message of messages) {
       const otherUserId =
         message.senderId === ctx.session.user.id
@@ -213,31 +210,34 @@ export const messageRouter = createTRPCRouter({
 
     // Count unread messages for each conversation
     const conversations = await Promise.all(
-      Array.from(conversationMap.entries()).map(async ([userId, lastMessage]) => {
-        const unreadCount = await ctx.db.message.count({
-          where: {
-            senderId: userId,
-            receiverId: ctx.session.user.id,
-            read: false,
-          },
-        });
+      Array.from(conversationMap.entries()).map(
+        async ([userId, lastMessage]) => {
+          const unreadCount = await ctx.db.message.count({
+            where: {
+              senderId: userId,
+              receiverId: ctx.session.user.id,
+              read: false,
+            },
+          });
 
-        const otherUser =
-          lastMessage.senderId === ctx.session.user.id
-            ? lastMessage.receiver
-            : lastMessage.sender;
+          const otherUser =
+            lastMessage.senderId === ctx.session.user.id
+              ? lastMessage.receiver
+              : lastMessage.sender;
 
-        return {
-          userId,
-          user: otherUser,
-          lastMessage,
-          unreadCount,
-        };
-      })
+          return {
+            userId,
+            user: otherUser,
+            lastMessage,
+            unreadCount,
+          };
+        },
+      ),
     );
 
     return conversations.sort(
-      (a, b) => b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime()
+      (a, b) =>
+        b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime(),
     );
   }),
 

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -16,24 +22,20 @@ export default function FriendsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: friends, refetch: refetchFriends } = api.user.getFriends.useQuery(
-    undefined,
-    { enabled: !!session?.user }
-  );
+  const { data: friends, refetch: refetchFriends } =
+    api.user.getFriends.useQuery(undefined, { enabled: !!session?.user });
 
-  const { data: pendingRequests, refetch: refetchRequests } = api.user.getPendingFriendRequests.useQuery(
-    undefined,
-    { enabled: !!session?.user }
-  );
+  const { data: pendingRequests, refetch: refetchRequests } =
+    api.user.getPendingFriendRequests.useQuery(undefined, {
+      enabled: !!session?.user,
+    });
 
-  const { data: blockedUsers, refetch: refetchBlocked } = api.user.getBlockedUsers.useQuery(
-    undefined,
-    { enabled: !!session?.user }
-  );
+  const { data: blockedUsers, refetch: refetchBlocked } =
+    api.user.getBlockedUsers.useQuery(undefined, { enabled: !!session?.user });
 
   const { data: searchResults } = api.user.searchUsers.useQuery(
     { query: searchQuery },
-    { enabled: searchQuery.length > 2 }
+    { enabled: searchQuery.length > 2 },
   );
 
   const sendRequestMutation = api.user.sendFriendRequest.useMutation({
@@ -51,7 +53,6 @@ export default function FriendsPage() {
     onSuccess: () => refetchFriends(),
   });
 
-
   const unblockUserMutation = api.user.unblockUser.useMutation({
     onSuccess: () => refetchBlocked(),
   });
@@ -61,12 +62,14 @@ export default function FriendsPage() {
     return null;
   }
 
-  const isFriend = (userId: string) => friends?.some(f => f.id === userId);
-  const isPending = (userId: string) => pendingRequests?.some(r => r.sender.id === userId);
-  const isBlocked = (userId: string) => blockedUsers?.some(u => u.id === userId);
+  const isFriend = (userId: string) => friends?.some((f) => f.id === userId);
+  const isPending = (userId: string) =>
+    pendingRequests?.some((r) => r.sender.id === userId);
+  const isBlocked = (userId: string) =>
+    blockedUsers?.some((u) => u.id === userId);
 
   return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
+    <div className="container mx-auto max-w-4xl px-4 py-8">
       <Card>
         <CardHeader>
           <CardTitle>Friends</CardTitle>
@@ -79,7 +82,10 @@ export default function FriendsPage() {
                 Friends {friends && friends.length > 0 && `(${friends.length})`}
               </TabsTrigger>
               <TabsTrigger value="requests">
-                Requests {pendingRequests && pendingRequests.length > 0 && `(${pendingRequests.length})`}
+                Requests{" "}
+                {pendingRequests &&
+                  pendingRequests.length > 0 &&
+                  `(${pendingRequests.length})`}
               </TabsTrigger>
               <TabsTrigger value="search">Search</TabsTrigger>
               <TabsTrigger value="blocked">Blocked</TabsTrigger>
@@ -87,12 +93,15 @@ export default function FriendsPage() {
 
             <TabsContent value="friends" className="space-y-2">
               {friends?.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-muted-foreground py-4 text-center text-sm">
                   You haven&apos;t added any friends yet
                 </p>
               )}
               {friends?.map((friend) => (
-                <div key={friend.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent">
+                <div
+                  key={friend.id}
+                  className="hover:bg-accent flex items-center justify-between rounded-lg p-3"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={friend.image ?? undefined} />
@@ -101,22 +110,30 @@ export default function FriendsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{friend.name ?? friend.username}</p>
-                      <p className="text-sm text-muted-foreground">@{friend.username}</p>
+                      <p className="font-medium">
+                        {friend.name ?? friend.username}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        @{friend.username}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => router.push(`/messages?user=${friend.username}`)}
+                      onClick={() =>
+                        router.push(`/messages?user=${friend.username}`)
+                      }
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => removeFriendMutation.mutate({ userId: friend.id })}
+                      onClick={() =>
+                        removeFriendMutation.mutate({ userId: friend.id })
+                      }
                     >
                       <UserMinus className="h-4 w-4" />
                     </Button>
@@ -127,36 +144,55 @@ export default function FriendsPage() {
 
             <TabsContent value="requests" className="space-y-2">
               {pendingRequests?.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-muted-foreground py-4 text-center text-sm">
                   No pending friend requests
                 </p>
               )}
               {pendingRequests?.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent">
+                <div
+                  key={request.id}
+                  className="hover:bg-accent flex items-center justify-between rounded-lg p-3"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={request.sender.image ?? undefined} />
                       <AvatarFallback>
-                        {request.sender.name?.[0] ?? request.sender.username?.[0] ?? "U"}
+                        {request.sender.name?.[0] ??
+                          request.sender.username?.[0] ??
+                          "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{request.sender.name ?? request.sender.username}</p>
-                      <p className="text-sm text-muted-foreground">@{request.sender.username}</p>
+                      <p className="font-medium">
+                        {request.sender.name ?? request.sender.username}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        @{request.sender.username}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => respondRequestMutation.mutate({ friendshipId: request.id, accept: true })}
+                      onClick={() =>
+                        respondRequestMutation.mutate({
+                          friendshipId: request.id,
+                          accept: true,
+                        })
+                      }
                     >
                       <Check className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => respondRequestMutation.mutate({ friendshipId: request.id, accept: false })}
+                      onClick={() =>
+                        respondRequestMutation.mutate({
+                          friendshipId: request.id,
+                          accept: false,
+                        })
+                      }
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -173,7 +209,10 @@ export default function FriendsPage() {
                 className="mb-4"
               />
               {searchResults?.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent">
+                <div
+                  key={user.id}
+                  className="hover:bg-accent flex items-center justify-between rounded-lg p-3"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={user.image ?? undefined} />
@@ -182,8 +221,12 @@ export default function FriendsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{user.name ?? user.username}</p>
-                      <p className="text-sm text-muted-foreground">@{user.username}</p>
+                      <p className="font-medium">
+                        {user.name ?? user.username}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        @{user.username}
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -202,7 +245,9 @@ export default function FriendsPage() {
                     ) : (
                       <Button
                         size="sm"
-                        onClick={() => sendRequestMutation.mutate({ userId: user.id })}
+                        onClick={() =>
+                          sendRequestMutation.mutate({ userId: user.id })
+                        }
                       >
                         <UserPlus className="h-4 w-4" />
                       </Button>
@@ -214,12 +259,15 @@ export default function FriendsPage() {
 
             <TabsContent value="blocked" className="space-y-2">
               {blockedUsers?.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-muted-foreground py-4 text-center text-sm">
                   No blocked users
                 </p>
               )}
               {blockedUsers?.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-accent">
+                <div
+                  key={user.id}
+                  className="hover:bg-accent flex items-center justify-between rounded-lg p-3"
+                >
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={user.image ?? undefined} />
@@ -228,14 +276,20 @@ export default function FriendsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{user.name ?? user.username}</p>
-                      <p className="text-sm text-muted-foreground">@{user.username}</p>
+                      <p className="font-medium">
+                        {user.name ?? user.username}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        @{user.username}
+                      </p>
                     </div>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => unblockUserMutation.mutate({ userId: user.id })}
+                    onClick={() =>
+                      unblockUserMutation.mutate({ userId: user.id })
+                    }
                   >
                     Unblock
                   </Button>

@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import bcrypt from 'bcryptjs';
-import { createMockUser } from '~/test/auth-utils';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import bcrypt from "bcryptjs";
+import { createMockUser } from "~/test/auth-utils";
 
 // Mock the auth configuration directly
-describe('NextAuth Configuration Tests', () => {
+describe("NextAuth Configuration Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Credentials Provider Authorization', () => {
+  describe("Credentials Provider Authorization", () => {
     const createAuthorizeFunction = () => {
       return async (credentials: any) => {
         if (!credentials?.emailOrUsername || !credentials?.password) {
@@ -16,18 +16,19 @@ describe('NextAuth Configuration Tests', () => {
         }
 
         // Mock user lookup
-        const isEmail = credentials.emailOrUsername.includes('@');
-        const mockUser = isEmail && credentials.emailOrUsername === 'test@example.com'
-          ? createMockUser({
-              email: 'test@example.com',
-              password: await bcrypt.hash('password123', 10),
-            })
-          : credentials.emailOrUsername === 'testuser'
-          ? createMockUser({
-              username: 'testuser',
-              password: await bcrypt.hash('password123', 10),
-            })
-          : null;
+        const isEmail = credentials.emailOrUsername.includes("@");
+        const mockUser =
+          isEmail && credentials.emailOrUsername === "test@example.com"
+            ? createMockUser({
+                email: "test@example.com",
+                password: await bcrypt.hash("password123", 10),
+              })
+            : credentials.emailOrUsername === "testuser"
+              ? createMockUser({
+                  username: "testuser",
+                  password: await bcrypt.hash("password123", 10),
+                })
+              : null;
 
         if (!mockUser?.password) {
           return null;
@@ -35,7 +36,7 @@ describe('NextAuth Configuration Tests', () => {
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          mockUser.password
+          mockUser.password,
         );
 
         if (!isPasswordValid) {
@@ -52,71 +53,71 @@ describe('NextAuth Configuration Tests', () => {
       };
     };
 
-    it('should authenticate with valid email and password', async () => {
+    it("should authenticate with valid email and password", async () => {
       const authorize = createAuthorizeFunction();
-      
+
       const result = await authorize({
-        emailOrUsername: 'test@example.com',
-        password: 'password123',
+        emailOrUsername: "test@example.com",
+        password: "password123",
       });
 
       expect(result).toBeTruthy();
-      expect(result?.email).toBe('test@example.com');
+      expect(result?.email).toBe("test@example.com");
     });
 
-    it('should authenticate with valid username and password', async () => {
+    it("should authenticate with valid username and password", async () => {
       const authorize = createAuthorizeFunction();
-      
+
       const result = await authorize({
-        emailOrUsername: 'testuser',
-        password: 'password123',
+        emailOrUsername: "testuser",
+        password: "password123",
       });
 
       expect(result).toBeTruthy();
-      expect(result?.username).toBe('testuser');
+      expect(result?.username).toBe("testuser");
     });
 
-    it('should return null for invalid password', async () => {
+    it("should return null for invalid password", async () => {
       const authorize = createAuthorizeFunction();
-      
+
       const result = await authorize({
-        emailOrUsername: 'test@example.com',
-        password: 'wrongpassword',
+        emailOrUsername: "test@example.com",
+        password: "wrongpassword",
       });
 
       expect(result).toBeNull();
     });
 
-    it('should return null when credentials are missing', async () => {
+    it("should return null when credentials are missing", async () => {
       const authorize = createAuthorizeFunction();
-      
+
       const result = await authorize({});
       expect(result).toBeNull();
 
       const result2 = await authorize({
-        emailOrUsername: 'test@example.com',
+        emailOrUsername: "test@example.com",
       });
       expect(result2).toBeNull();
 
       const result3 = await authorize({
-        password: 'password123',
+        password: "password123",
       });
       expect(result3).toBeNull();
     });
 
-    it('should return null for non-existent user', async () => {
+    it("should return null for non-existent user", async () => {
       const authorize = createAuthorizeFunction();
-      
+
       const result = await authorize({
-        emailOrUsername: 'nonexistent@example.com',
-        password: 'password123',
+        emailOrUsername: "nonexistent@example.com",
+        password: "password123",
       });
 
       expect(result).toBeNull();
     });
   });
 
-  describe('Session Callbacks', () => {
+  describe("Session Callbacks", () => {
     const sessionCallback = ({ session, token }: any) => ({
       ...session,
       user: {
@@ -127,56 +128,62 @@ describe('NextAuth Configuration Tests', () => {
       },
     });
 
-    it('should properly format session with user data from token', () => {
+    it("should properly format session with user data from token", () => {
       const mockSession = {
         user: {
-          email: 'test@example.com',
-          name: 'Test User',
+          email: "test@example.com",
+          name: "Test User",
           image: null,
         },
         expires: new Date().toISOString(),
       };
 
       const mockToken = {
-        userId: 'user-123',
-        username: 'testuser',
+        userId: "user-123",
+        username: "testuser",
         needsUsername: false,
-        email: 'test@example.com',
+        email: "test@example.com",
       };
 
-      const result = sessionCallback({ session: mockSession, token: mockToken });
+      const result = sessionCallback({
+        session: mockSession,
+        token: mockToken,
+      });
 
-      expect(result.user.id).toBe('user-123');
-      expect(result.user.username).toBe('testuser');
+      expect(result.user.id).toBe("user-123");
+      expect(result.user.username).toBe("testuser");
       expect(result.user.needsUsername).toBe(false);
-      expect(result.user.email).toBe('test@example.com');
+      expect(result.user.email).toBe("test@example.com");
     });
 
-    it('should handle missing username in token', () => {
+    it("should handle missing username in token", () => {
       const mockSession = {
         user: {
-          email: 'test@example.com',
-          name: 'Test User',
+          email: "test@example.com",
+          name: "Test User",
           image: null,
         },
         expires: new Date().toISOString(),
       };
 
       const mockToken = {
-        userId: 'user-123',
+        userId: "user-123",
         username: null,
         needsUsername: true,
-        email: 'test@example.com',
+        email: "test@example.com",
       };
 
-      const result = sessionCallback({ session: mockSession, token: mockToken });
+      const result = sessionCallback({
+        session: mockSession,
+        token: mockToken,
+      });
 
       expect(result.user.username).toBeNull();
       expect(result.user.needsUsername).toBe(true);
     });
   });
 
-  describe('JWT Callbacks', () => {
+  describe("JWT Callbacks", () => {
     const jwtCallback = async ({ token, user, trigger, session }: any) => {
       if (user) {
         token.userId = user.id;
@@ -184,7 +191,7 @@ describe('NextAuth Configuration Tests', () => {
         token.needsUsername = !user.username;
       }
 
-      if (trigger === 'update' && session?.username) {
+      if (trigger === "update" && session?.username) {
         token.username = session.username;
         token.needsUsername = false;
       }
@@ -192,20 +199,20 @@ describe('NextAuth Configuration Tests', () => {
       return token;
     };
 
-    it('should set user data on initial sign in', async () => {
+    it("should set user data on initial sign in", async () => {
       const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        name: 'Test User',
-        username: 'testuser',
+        id: "user-123",
+        email: "test@example.com",
+        name: "Test User",
+        username: "testuser",
         image: null,
       };
 
       const mockToken = {
-        email: 'test@example.com',
-        name: 'Test User',
+        email: "test@example.com",
+        name: "Test User",
         picture: null,
-        sub: 'user-123',
+        sub: "user-123",
       };
 
       const result = await jwtCallback({
@@ -215,25 +222,25 @@ describe('NextAuth Configuration Tests', () => {
         session: undefined,
       });
 
-      expect(result.userId).toBe('user-123');
-      expect(result.username).toBe('testuser');
+      expect(result.userId).toBe("user-123");
+      expect(result.username).toBe("testuser");
       expect(result.needsUsername).toBe(false);
     });
 
-    it('should set needsUsername to true when username is null', async () => {
+    it("should set needsUsername to true when username is null", async () => {
       const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        name: 'Test User',
+        id: "user-123",
+        email: "test@example.com",
+        name: "Test User",
         username: null,
         image: null,
       };
 
       const mockToken = {
-        email: 'test@example.com',
-        name: 'Test User',
+        email: "test@example.com",
+        name: "Test User",
         picture: null,
-        sub: 'user-123',
+        sub: "user-123",
       };
 
       const result = await jwtCallback({
@@ -247,34 +254,34 @@ describe('NextAuth Configuration Tests', () => {
       expect(result.needsUsername).toBe(true);
     });
 
-    it('should update username when trigger is update', async () => {
+    it("should update username when trigger is update", async () => {
       const mockToken = {
-        userId: 'user-123',
+        userId: "user-123",
         username: null,
         needsUsername: true,
-        email: 'test@example.com',
-        name: 'Test User',
+        email: "test@example.com",
+        name: "Test User",
         picture: null,
-        sub: 'user-123',
+        sub: "user-123",
       };
 
       const result = await jwtCallback({
         token: mockToken,
         user: undefined,
-        trigger: 'update',
-        session: { username: 'newusername' },
+        trigger: "update",
+        session: { username: "newusername" },
       });
 
-      expect(result.username).toBe('newusername');
+      expect(result.username).toBe("newusername");
       expect(result.needsUsername).toBe(false);
     });
 
-    it('should not modify token when no user and no update trigger', async () => {
+    it("should not modify token when no user and no update trigger", async () => {
       const mockToken = {
-        userId: 'user-123',
-        username: 'existinguser',
+        userId: "user-123",
+        username: "existinguser",
         needsUsername: false,
-        email: 'test@example.com',
+        email: "test@example.com",
       };
 
       const result = await jwtCallback({
@@ -288,37 +295,37 @@ describe('NextAuth Configuration Tests', () => {
     });
   });
 
-  describe('Auth Configuration Structure', () => {
-    it('should have correct page configurations', () => {
+  describe("Auth Configuration Structure", () => {
+    it("should have correct page configurations", () => {
       const pages = {
-        signIn: '/auth/signin',
-        error: '/auth/error',
-        newUser: '/auth/new-user',
+        signIn: "/auth/signin",
+        error: "/auth/error",
+        newUser: "/auth/new-user",
       };
 
-      expect(pages.signIn).toBe('/auth/signin');
-      expect(pages.error).toBe('/auth/error');
-      expect(pages.newUser).toBe('/auth/new-user');
+      expect(pages.signIn).toBe("/auth/signin");
+      expect(pages.error).toBe("/auth/error");
+      expect(pages.newUser).toBe("/auth/new-user");
     });
 
-    it('should use JWT session strategy', () => {
+    it("should use JWT session strategy", () => {
       const sessionConfig = {
-        strategy: 'jwt' as const,
+        strategy: "jwt" as const,
       };
 
-      expect(sessionConfig.strategy).toBe('jwt');
+      expect(sessionConfig.strategy).toBe("jwt");
     });
 
-    it('should have two auth providers configured', () => {
+    it("should have two auth providers configured", () => {
       // Discord and Credentials providers
       const providers = [
-        { id: 'discord', type: 'oauth' },
-        { id: 'credentials', type: 'credentials' },
+        { id: "discord", type: "oauth" },
+        { id: "credentials", type: "credentials" },
       ];
 
       expect(providers).toHaveLength(2);
-      expect(providers[0].id).toBe('discord');
-      expect(providers[1].id).toBe('credentials');
+      expect(providers[0].id).toBe("discord");
+      expect(providers[1].id).toBe("credentials");
     });
   });
 });

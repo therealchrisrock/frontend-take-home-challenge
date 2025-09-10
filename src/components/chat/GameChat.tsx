@@ -45,7 +45,7 @@ export function GameChat({ gameId, opponentName = "Opponent" }: GameChatProps) {
     };
 
     // In a real implementation, this would send the message via tRPC or WebSocket
-    setMessages(prev => [...prev, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setMessage("");
 
     // TODO: Send message to opponent via API
@@ -62,51 +62,53 @@ export function GameChat({ gameId, opponentName = "Opponent" }: GameChatProps) {
   if (!session?.user) return null;
 
   return (
-    <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300 h-full flex flex-col">
+    <Card className="flex h-full flex-col border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
       <CardHeader className="pb-3">
-        <CardTitle className="text-amber-900 text-lg flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg text-amber-900">
           <MessageCircle className="h-5 w-5" />
           Game Chat
         </CardTitle>
         <p className="text-xs text-amber-700">Chat with {opponentName}</p>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden flex flex-col p-4 pt-0">
+      <CardContent className="flex flex-1 flex-col overflow-hidden p-4 pt-0">
         {/* Messages */}
-        <div className="flex-1 overflow-hidden mb-3">
+        <div className="mb-3 flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
-              <div className="text-center py-8 text-amber-600 text-sm">
-                <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <div className="py-8 text-center text-sm text-amber-600">
+                <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>Start a conversation with your opponent</p>
               </div>
             ) : (
               <div className="space-y-2 pr-3">
-                {messages.map(msg => {
+                {messages.map((msg) => {
                   const isCurrentUser = msg.senderId === session.user.id;
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
                     >
                       <div
                         className={`max-w-[75%] rounded-lg px-3 py-2 ${
                           isCurrentUser
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-white/70 text-amber-900'
+                            ? "bg-amber-600 text-white"
+                            : "bg-white/70 text-amber-900"
                         }`}
                       >
                         {!isCurrentUser && (
-                          <p className="text-xs font-semibold mb-1 opacity-75">
+                          <p className="mb-1 text-xs font-semibold opacity-75">
                             {msg.senderName}
                           </p>
                         )}
                         <p className="text-sm break-words">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          isCurrentUser ? 'text-amber-100' : 'text-amber-600'
-                        }`}>
-                          {new Date(msg.timestamp).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
+                        <p
+                          className={`mt-1 text-xs ${
+                            isCurrentUser ? "text-amber-100" : "text-amber-600"
+                          }`}
+                        >
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })}
                         </p>
                       </div>
@@ -117,7 +119,7 @@ export function GameChat({ gameId, opponentName = "Opponent" }: GameChatProps) {
             )}
           </div>
         </div>
-        
+
         {/* Input */}
         <div className="flex gap-2">
           <Input
@@ -125,13 +127,13 @@ export function GameChat({ gameId, opponentName = "Opponent" }: GameChatProps) {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="flex-1 h-9 text-sm bg-white/70 border-amber-300 focus:bg-white"
+            className="h-9 flex-1 border-amber-300 bg-white/70 text-sm focus:bg-white"
           />
-          <Button 
+          <Button
             onClick={handleSendMessage}
             disabled={!message.trim()}
             size="sm"
-            className="h-9 px-3 bg-amber-600 hover:bg-amber-700"
+            className="h-9 bg-amber-600 px-3 hover:bg-amber-700"
           >
             <Send className="h-4 w-4" />
           </Button>

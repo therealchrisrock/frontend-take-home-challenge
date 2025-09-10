@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { m } from '~/lib/motion';
-import { Plus, Minus } from 'lucide-react';
-import { Input } from '~/components/ui/input';
-import { Button } from '~/components/ui/button';
-import { cn } from '~/lib/utils';
+import { useState, useRef, useEffect } from "react";
+import { m } from "~/lib/motion";
+import { Plus, Minus } from "lucide-react";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 
 interface NumberInputProps {
   /** Current value */
@@ -40,7 +40,7 @@ export function NumberInput({
   placeholder,
   className,
   id,
-  decimals = 0
+  decimals = 0,
 }: NumberInputProps) {
   const [inputValue, setInputValue] = useState(value.toString());
   const [isFocused, setIsFocused] = useState(false);
@@ -64,8 +64,9 @@ export function NumberInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    
-    const parsedValue = decimals > 0 ? parseFloat(newValue) : parseInt(newValue, 10);
+
+    const parsedValue =
+      decimals > 0 ? parseFloat(newValue) : parseInt(newValue, 10);
     if (!isNaN(parsedValue)) {
       const clampedValue = clampValue(parsedValue);
       onChange(clampedValue);
@@ -74,7 +75,8 @@ export function NumberInput({
 
   const handleInputBlur = () => {
     setIsFocused(false);
-    const parsedValue = decimals > 0 ? parseFloat(inputValue) : parseInt(inputValue, 10);
+    const parsedValue =
+      decimals > 0 ? parseFloat(inputValue) : parseInt(inputValue, 10);
     if (isNaN(parsedValue)) {
       setInputValue(formatNumber(value, decimals));
     } else {
@@ -110,7 +112,7 @@ export function NumberInput({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 w-9 p-0 rounded-r-none border-r-0 hover:bg-muted"
+          className="hover:bg-muted h-9 w-9 rounded-r-none border-r-0 p-0"
           disabled={disabled || !canDecrement}
           onClick={handleDecrement}
         >
@@ -134,17 +136,17 @@ export function NumberInput({
         onFocus={() => setIsFocused(true)}
         onBlur={handleInputBlur}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowUp') {
+          if (e.key === "ArrowUp") {
             e.preventDefault();
             handleIncrement();
-          } else if (e.key === 'ArrowDown') {
+          } else if (e.key === "ArrowDown") {
             e.preventDefault();
             handleDecrement();
           }
         }}
         placeholder={placeholder}
         disabled={disabled}
-        className="text-center rounded-none border-x-0 focus:z-10 min-w-0 flex-1"
+        className="min-w-0 flex-1 rounded-none border-x-0 text-center focus:z-10"
       />
 
       {/* Increment button */}
@@ -156,7 +158,7 @@ export function NumberInput({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 w-9 p-0 rounded-l-none border-l-0 hover:bg-muted"
+          className="hover:bg-muted h-9 w-9 rounded-l-none border-l-0 p-0"
           disabled={disabled || !canIncrement}
           onClick={handleIncrement}
         >

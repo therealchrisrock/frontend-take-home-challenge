@@ -1,27 +1,27 @@
-import { type NextRequest } from 'next/server';
-import { gameSessionManager } from '~/lib/multi-tab/session-manager';
-import { db } from '~/server/db';
-import type { InitialStatePayload } from '~/lib/multi-tab/types';
+import { type NextRequest } from "next/server";
+import { gameSessionManager } from "~/lib/multi-tab/session-manager";
+import { db } from "~/server/db";
+import type { InitialStatePayload } from "~/lib/multi-tab/types";
 
 export async function GET(
-  request: NextRequest, 
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const resolvedParams = await params;
   const gameId = resolvedParams.id;
-  const tabId = request.nextUrl.searchParams.get('tabId');
-  
+  const tabId = request.nextUrl.searchParams.get("tabId");
+
   if (!gameId || !tabId) {
-    return new Response('Missing required parameters', { status: 400 });
+    return new Response("Missing required parameters", { status: 400 });
   }
 
   // Check if this is a HEAD request (endpoint check)
-  if (request.method === 'HEAD') {
+  if (request.method === "HEAD") {
     return new Response(null, { status: 200 });
   }
 
   const encoder = new TextEncoder();
-  
+
   const customReadable = new ReadableStream({
     async start(controller) {
       try {
@@ -36,27 +36,27 @@ export async function GET(
           where: { id: gameId },
           include: {
             moves: {
-              orderBy: { moveIndex: 'asc' }
-            }
-          }
+              orderBy: { moveIndex: "asc" },
+            },
+          },
         });
 
         if (game) {
           const gameState: InitialStatePayload = {
             board: JSON.parse(game.board) as unknown[][],
-            currentPlayer: game.currentPlayer as 'red' | 'black',
+            currentPlayer: game.currentPlayer as "red" | "black",
             moveCount: game.moveCount,
-            winner: game.winner as 'red' | 'black' | 'draw' | null,
+            winner: game.winner as "red" | "black" | "draw" | null,
             gameStartTime: game.gameStartTime.toISOString(),
-            version: game.version
+            version: game.version,
           };
 
           const initialEvent = JSON.stringify({
-            type: 'INITIAL_STATE',
+            type: "INITIAL_STATE",
             payload: gameState,
             timestamp: new Date().toISOString(),
             gameId,
-            tabId
+            tabId,
           });
 
           controller.enqueue(encoder.encode(`data: ${initialEvent}\n\n`));
@@ -66,52 +66,51 @@ export async function GET(
         const gameSession = gameSessionManager.getSession(gameId);
         if (gameSession) {
           const statusEvent = JSON.stringify({
-            type: 'TAB_STATUS_UPDATE',
+            type: "TAB_STATUS_UPDATE",
             payload: {
               activeTabId: gameSession.activeTabId,
-              totalTabs: gameSession.tabs.size
+              totalTabs: gameSession.tabs.size,
             },
             timestamp: new Date().toISOString(),
             gameId,
-            tabId
+            tabId,
           });
 
           controller.enqueue(encoder.encode(`data: ${statusEvent}\n\n`));
         }
-
       } catch (error) {
-        console.error('Error in SSE stream setup:', error);
-        
+        console.error("Error in SSE stream setup:", error);
+
         const errorEvent = JSON.stringify({
-          type: 'CONNECTION_STATUS',
+          type: "CONNECTION_STATUS",
           payload: {
             connected: false,
             reconnecting: false,
-            error: 'Failed to initialize game stream',
-            lastConnected: null
+            error: "Failed to initialize game stream",
+            lastConnected: null,
           },
           timestamp: new Date().toISOString(),
           gameId,
-          tabId
+          tabId,
         });
 
         controller.enqueue(encoder.encode(`data: ${errorEvent}\n\n`));
         controller.close();
       }
     },
-    
+
     cancel() {
       gameSessionManager.removeTab(gameId, tabId);
-    }
+    },
   });
 
   return new Response(customReadable, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control',
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Cache-Control",
     },
   });
 }

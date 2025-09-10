@@ -61,14 +61,14 @@ export interface Skin {
   id: string;
   name: string;
   description: string;
-  category: 'classic' | 'modern' | 'seasonal' | 'premium' | 'special';
+  category: "classic" | "modern" | "seasonal" | "premium" | "special";
   board: BoardColors;
   pieces: PieceColors;
   ui: UIColors;
   preview: string;
   locked: boolean;
   unlockCondition?: {
-    type: 'wins' | 'games' | 'streak' | 'purchase' | 'achievement' | 'code';
+    type: "wins" | "games" | "streak" | "purchase" | "achievement" | "code";
     value: number | string;
     description: string;
   };

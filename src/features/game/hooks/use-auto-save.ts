@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { api } from '~/trpc/react';
-import { useGame } from '../state/game-context';
-import type { Board, Move, PieceColor } from '~/lib/game-logic';
+import { useEffect, useRef } from "react";
+import { api } from "~/trpc/react";
+import { useGame } from "../state/game-context";
 
 export function useAutoSave() {
   const { state } = useGame();
@@ -16,10 +15,12 @@ export function useAutoSave() {
     // - No actual moves made yet
     // - Move count hasn't changed
     // - We're viewing history (not at the latest move)
-    if (!state.gameId || 
-        state.moveCount === 0 || 
-        state.moveCount === lastSavedMoveCount.current ||
-        state.isViewingHistory) {
+    if (
+      !state.gameId ||
+      state.moveCount === 0 ||
+      state.moveCount === lastSavedMoveCount.current ||
+      state.isViewingHistory
+    ) {
       return;
     }
 
@@ -30,23 +31,26 @@ export function useAutoSave() {
 
     // Debounce the save by 500ms to avoid too many requests
     saveTimeoutRef.current = setTimeout(() => {
-      saveMutation.mutate({
-        id: state.gameId,
-        board: state.board,
-        currentPlayer: state.currentPlayer,
-        moveCount: state.moveCount,
-        gameMode: state.gameMode,
-        winner: state.winner,
-        moves: state.moveHistory
-      }, {
-        onSuccess: () => {
-          lastSavedMoveCount.current = state.moveCount;
-          console.log('Game auto-saved');
+      saveMutation.mutate(
+        {
+          id: state.gameId,
+          board: state.board,
+          currentPlayer: state.currentPlayer,
+          moveCount: state.moveCount,
+          gameMode: state.gameMode,
+          winner: state.winner,
+          moves: state.moveHistory,
         },
-        onError: (error) => {
-          console.error('Failed to auto-save game:', error);
-        }
-      });
+        {
+          onSuccess: () => {
+            lastSavedMoveCount.current = state.moveCount;
+            console.log("Game auto-saved");
+          },
+          onError: (error) => {
+            console.error("Failed to auto-save game:", error);
+          },
+        },
+      );
     }, 500);
 
     return () => {
@@ -63,7 +67,7 @@ export function useAutoSave() {
     state.winner,
     state.moveHistory,
     state.isViewingHistory,
-    saveMutation
+    saveMutation,
   ]);
 
   // Save immediately when game ends
@@ -76,13 +80,13 @@ export function useAutoSave() {
         moveCount: state.moveCount,
         gameMode: state.gameMode,
         winner: state.winner,
-        moves: state.moveHistory
+        moves: state.moveHistory,
       });
     }
   }, [state.winner, state.gameId]);
 
   return {
     isSaving: saveMutation.isPending,
-    saveError: saveMutation.error
+    saveError: saveMutation.error,
   };
 }

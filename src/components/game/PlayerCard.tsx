@@ -1,112 +1,129 @@
-import { Badge } from '~/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Bot, Crown } from 'lucide-react';
-import { type PieceColor } from '~/lib/game-logic';
-import { type PlayerInfo } from '~/lib/player-types';
+import { Badge } from "~/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Bot, Crown } from "lucide-react";
+import { type PieceColor } from "~/lib/game-logic";
+import { type PlayerInfo } from "~/lib/player-types";
 // PlayerCard is strictly the profile display; timers are handled by containers
 
 interface PlayerCardProps {
   player: PlayerInfo;
   color?: PieceColor;
-  position?: 'top' | 'bottom';
+  position?: "top" | "bottom";
   isActive?: boolean;
   className?: string;
-  context?: 'game' | 'profile';
+  context?: "game" | "profile";
 }
 
 const difficultyConfig = {
-  easy: { icon: '🟢', label: 'Easy' },
-  medium: { icon: '🟡', label: 'Medium' },
-  hard: { icon: '🟠', label: 'Hard' },
-  expert: { icon: '🔴', label: 'Expert' }
+  easy: { icon: "🟢", label: "Easy" },
+  medium: { icon: "🟡", label: "Medium" },
+  hard: { icon: "🟠", label: "Hard" },
+  expert: { icon: "🔴", label: "Expert" },
 };
 
-export function PlayerCard({ 
-  player, 
-  color, 
-  position, 
-  isActive = false, 
-  className = '',
-  context
+export function PlayerCard({
+  player,
+  color,
+  position,
+  isActive = false,
+  className = "",
+  context,
 }: PlayerCardProps) {
   // Safely calculate stats with fallbacks
   const wins = Math.max(0, player.stats?.wins ?? 0);
-  const draws = Math.max(0, player.stats?.draws ?? 0);  
+  const draws = Math.max(0, player.stats?.draws ?? 0);
   const losses = Math.max(0, player.stats?.losses ?? 0);
   const totalGames = wins + draws + losses;
   const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-  
+
   // Sanitize player name - use generic fallback when no color context
-  const displayName = player.name?.trim() 
-    ? player.name.trim() 
-    : color ? `${color === 'red' ? 'Red' : 'Black'} Player` : 'Player';
-  
+  const displayName = player.name?.trim()
+    ? player.name.trim()
+    : color
+      ? `${color === "red" ? "Red" : "Black"} Player`
+      : "Player";
+
   const getInitials = (name: string) => {
-    if (!name || typeof name !== 'string') {
-      return color ? (color === 'red' ? 'R' : 'B') : 'U';
+    if (!name || typeof name !== "string") {
+      return color ? (color === "red" ? "R" : "B") : "U";
     }
-    
-    const words = name.trim().split(/\s+/).filter(word => word.length > 0);
+
+    const words = name
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0);
     if (words.length === 0) {
-      return color ? (color === 'red' ? 'R' : 'B') : 'U';
+      return color ? (color === "red" ? "R" : "B") : "U";
     }
-    
+
     return words
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("")
       .slice(0, 2);
   };
 
   const getAccentColor = (color?: PieceColor) => {
-    if (!color) return 'bg-blue-600'; // Default neutral color for non-game contexts
-    return color === 'red' ? 'bg-red-600' : 'bg-gray-800';
+    if (!color) return "bg-blue-600"; // Default neutral color for non-game contexts
+    return color === "red" ? "bg-red-600" : "bg-gray-800";
   };
 
   const accentColor = getAccentColor(color);
-  const activeClasses = isActive 
-    ? '' 
-    : '';
+  const activeClasses = isActive ? "" : "";
 
   return (
-    <div className={`${activeClasses} transition-all duration-200 ${className}`}>
+    <div
+      className={`${activeClasses} transition-all duration-200 ${className}`}
+    >
       <div className="flex items-center gap-2 px-2">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <Avatar className="w-8 h-8 border border-gray-200">
+          <Avatar className="h-8 w-8 border border-gray-200">
             <AvatarImage src={player.avatar} alt={displayName} />
-            <AvatarFallback className={`${accentColor} text-white text-xs font-semibold`}>
-              {player.isAI ? <Bot className="w-3 h-3" /> : getInitials(displayName)}
+            <AvatarFallback
+              className={`${accentColor} text-xs font-semibold text-white`}
+            >
+              {player.isAI ? (
+                <Bot className="h-3 w-3" />
+              ) : (
+                getInitials(displayName)
+              )}
             </AvatarFallback>
           </Avatar>
-          
+
           {/* Color indicator - only show in game context */}
           {color && (
-            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ${accentColor} border border-white shadow-sm`} />
+            <div
+              className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ${accentColor} border border-white shadow-sm`}
+            />
           )}
         </div>
 
         {/* Player Info */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {/* Show appropriate name based on player type */}
-            <h3 className="font-medium text-sm text-gray-900 truncate">
-              {player.isAI ? 'AI Player' : player.isGuest ? 'Guest' : displayName}
+            <h3 className="truncate text-sm font-medium text-gray-900">
+              {player.isAI
+                ? "AI Player"
+                : player.isGuest
+                  ? "Guest"
+                  : displayName}
             </h3>
-            
+
             {player.isAI && player.aiDifficulty ? (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+              <Badge variant="secondary" className="px-1.5 py-0 text-xs">
                 {difficultyConfig[player.aiDifficulty].label}
               </Badge>
             ) : null}
-            
+
             {player.isCurrentUser && !player.isAI && (
-              <Crown className="w-3 h-3 text-yellow-600 flex-shrink-0" />
+              <Crown className="h-3 w-3 flex-shrink-0 text-yellow-600" />
             )}
           </div>
 
           {/* Win/Loss/Draw record for players with stats */}
           {!player.isAI && player.stats && totalGames > 0 && (
-            <div className="text-xs text-gray-500 mt-0.5">
+            <div className="mt-0.5 text-xs text-gray-500">
               {wins} / {losses} / {draws}
             </div>
           )}

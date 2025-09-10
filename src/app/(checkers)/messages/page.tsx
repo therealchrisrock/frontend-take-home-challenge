@@ -3,12 +3,23 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "~/components/ui/sheet";
 import { api } from "~/trpc/react";
 import { formatDistanceToNow } from "date-fns";
 import { Send } from "lucide-react";
@@ -20,15 +31,16 @@ export default function MessagesPage() {
   const [messageInput, setMessageInput] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const { data: conversations, refetch: refetchConversations } = api.message.getConversations.useQuery(
-    undefined,
-    { enabled: !!session?.user }
-  );
+  const { data: conversations, refetch: refetchConversations } =
+    api.message.getConversations.useQuery(undefined, {
+      enabled: !!session?.user,
+    });
 
-  const { data: conversation, refetch: refetchConversation } = api.message.getConversation.useQuery(
-    { userId: selectedUserId ?? "", limit: 50 },
-    { enabled: !!selectedUserId }
-  );
+  const { data: conversation, refetch: refetchConversation } =
+    api.message.getConversation.useQuery(
+      { userId: selectedUserId ?? "", limit: 50 },
+      { enabled: !!selectedUserId },
+    );
 
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {
@@ -52,22 +64,26 @@ export default function MessagesPage() {
     });
   };
 
-  const selectedConversation = conversations?.find(c => c.userId === selectedUserId);
+  const selectedConversation = conversations?.find(
+    (c) => c.userId === selectedUserId,
+  );
 
   return (
-    <div className="container mx-auto max-w-6xl py-8 px-4">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <Card>
         <CardHeader>
           <CardTitle>Messages</CardTitle>
           <CardDescription>Chat with your friends</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Conversations List */}
-            <div className="space-y-2 md:border-r pr-4">
-              <h3 className="font-semibold text-sm mb-2">Conversations</h3>
+            <div className="space-y-2 pr-4 md:border-r">
+              <h3 className="mb-2 text-sm font-semibold">Conversations</h3>
               {conversations?.length === 0 && (
-                <p className="text-sm text-muted-foreground">No conversations yet</p>
+                <p className="text-muted-foreground text-sm">
+                  No conversations yet
+                </p>
               )}
               {conversations?.map((conv) => (
                 <button
@@ -76,7 +92,7 @@ export default function MessagesPage() {
                     setSelectedUserId(conv.userId);
                     setIsSheetOpen(true);
                   }}
-                  className={`w-full text-left p-2 rounded-lg hover:bg-accent transition-colors ${
+                  className={`hover:bg-accent w-full rounded-lg p-2 text-left transition-colors ${
                     selectedUserId === conv.userId ? "bg-accent" : ""
                   }`}
                 >
@@ -87,11 +103,11 @@ export default function MessagesPage() {
                         {conv.user.name?.[0] ?? conv.user.username?.[0] ?? "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
                         {conv.user.name ?? conv.user.username}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-muted-foreground truncate text-xs">
                         {conv.lastMessage.content}
                       </p>
                     </div>
@@ -101,8 +117,10 @@ export default function MessagesPage() {
                           {conv.unreadCount}
                         </Badge>
                       )}
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(conv.lastMessage.createdAt, { addSuffix: true })}
+                      <p className="text-muted-foreground text-xs">
+                        {formatDistanceToNow(conv.lastMessage.createdAt, {
+                          addSuffix: true,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -111,32 +129,37 @@ export default function MessagesPage() {
             </div>
 
             {/* Desktop Message View */}
-            <div className="hidden md:block md:col-span-2">
+            <div className="hidden md:col-span-2 md:block">
               {selectedUserId && conversation ? (
-                <div className="flex flex-col h-[500px]">
-                  <div className="border-b pb-2 mb-2">
+                <div className="flex h-[500px] flex-col">
+                  <div className="mb-2 border-b pb-2">
                     <p className="font-semibold">
-                      {selectedConversation?.user.name ?? selectedConversation?.user.username}
+                      {selectedConversation?.user.name ??
+                        selectedConversation?.user.username}
                     </p>
                   </div>
-                  <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                  <div className="mb-4 flex-1 space-y-2 overflow-y-auto">
                     {conversation.messages.map((msg) => (
                       <div
                         key={msg.id}
                         className={`flex ${
-                          msg.senderId === session.user.id ? "justify-end" : "justify-start"
+                          msg.senderId === session.user.id
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
                         <div
-                          className={`max-w-[70%] p-2 rounded-lg ${
+                          className={`max-w-[70%] rounded-lg p-2 ${
                             msg.senderId === session.user.id
                               ? "bg-primary text-primary-foreground"
                               : "bg-accent"
                           }`}
                         >
                           <p className="text-sm">{msg.content}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
+                          <p className="mt-1 text-xs opacity-70">
+                            {formatDistanceToNow(msg.createdAt, {
+                              addSuffix: true,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -154,13 +177,16 @@ export default function MessagesPage() {
                       }}
                       placeholder="Type a message..."
                     />
-                    <Button onClick={handleSendMessage} disabled={!messageInput.trim()}>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim()}
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[500px] text-muted-foreground">
+                <div className="text-muted-foreground flex h-[500px] items-center justify-center">
                   Select a conversation to start messaging
                 </div>
               )}
@@ -172,29 +198,34 @@ export default function MessagesPage() {
             <SheetContent side="right" className="w-full sm:max-w-md">
               <SheetHeader>
                 <SheetTitle>
-                  {selectedConversation?.user.name ?? selectedConversation?.user.username}
+                  {selectedConversation?.user.name ??
+                    selectedConversation?.user.username}
                 </SheetTitle>
               </SheetHeader>
               {selectedUserId && conversation && (
-                <div className="flex flex-col h-[calc(100vh-120px)] mt-4">
-                  <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                <div className="mt-4 flex h-[calc(100vh-120px)] flex-col">
+                  <div className="mb-4 flex-1 space-y-2 overflow-y-auto">
                     {conversation.messages.map((msg) => (
                       <div
                         key={msg.id}
                         className={`flex ${
-                          msg.senderId === session.user.id ? "justify-end" : "justify-start"
+                          msg.senderId === session.user.id
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
                         <div
-                          className={`max-w-[70%] p-2 rounded-lg ${
+                          className={`max-w-[70%] rounded-lg p-2 ${
                             msg.senderId === session.user.id
                               ? "bg-primary text-primary-foreground"
                               : "bg-accent"
                           }`}
                         >
                           <p className="text-sm">{msg.content}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
+                          <p className="mt-1 text-xs opacity-70">
+                            {formatDistanceToNow(msg.createdAt, {
+                              addSuffix: true,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -212,7 +243,10 @@ export default function MessagesPage() {
                       }}
                       placeholder="Type a message..."
                     />
-                    <Button onClick={handleSendMessage} disabled={!messageInput.trim()}>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim()}
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>

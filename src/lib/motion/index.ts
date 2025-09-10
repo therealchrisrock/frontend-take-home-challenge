@@ -9,4 +9,10 @@ export * from "./dynamic";
 
 // Re-export m component for use with LazyMotion
 // Using 'm' instead of 'motion' reduces bundle size significantly
-export { m, AnimatePresence, LayoutGroup, useAnimation, useInView } from "framer-motion";
+export {
+  m,
+  AnimatePresence,
+  LayoutGroup,
+  useAnimation,
+  useInView,
+} from "framer-motion";

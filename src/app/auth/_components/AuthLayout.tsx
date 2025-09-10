@@ -27,7 +27,12 @@ export default function AuthLayout({
         <div className="flex h-full flex-col gap-4 p-6 md:p-10">
           {/* Brand header */}
           <div className="flex justify-center gap-2 md:justify-start">
-                <Image src="/logo.png" alt={brandName || "brand"} width={200} height={200} />
+            <Image
+              src="/logo.png"
+              alt={brandName || "brand"}
+              width={200}
+              height={200}
+            />
           </div>
           {/* Centered content */}
           <div className="flex flex-1 items-center justify-center">
@@ -36,7 +41,9 @@ export default function AuthLayout({
         </div>
       </div>
       {/* Image column */}
-      <div className={`bg-muted relative hidden lg:block ${reverse ? "order-1 lg:order-1" : "order-2 lg:order-2"}`}>
+      <div
+        className={`bg-muted relative hidden lg:block ${reverse ? "order-1 lg:order-1" : "order-2 lg:order-2"}`}
+      >
         <Image
           src={imageSrc}
           alt={imageAlt}

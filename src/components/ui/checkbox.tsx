@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { m, useMotionValue, useTransform } from "framer-motion"
-import { cn } from "~/lib/utils"
+import * as React from "react";
+import { m, useMotionValue, useTransform } from "framer-motion";
+import { cn } from "~/lib/utils";
 
 export type CheckboxProps = {
-  id?: string
-  checked?: boolean
-  defaultChecked?: boolean
-  onCheckedChange?: (checked: boolean) => void
-  disabled?: boolean
-  className?: string
-  size?: number
-  strokeWidth?: number
-  "aria-label"?: string
-  "aria-labelledby"?: string
-}
+  id?: string;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+  size?: number;
+  strokeWidth?: number;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+};
 
 // Variants adapted from the provided example
 const tickVariants = {
   pressed: (isChecked: boolean) => ({ pathLength: isChecked ? 0.85 : 0.2 }),
   checked: { pathLength: 1 },
   unchecked: { pathLength: 0 },
-}
+};
 
 const boxVariants = {
   hover: { scale: 1.05, strokeWidth: 60 },
@@ -30,7 +30,7 @@ const boxVariants = {
   checked: { stroke: "#FF008C" },
   unchecked: { stroke: "#ddd", strokeWidth: 50 },
   disabled: { opacity: 0.5 },
-}
+};
 
 export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
   (
@@ -45,26 +45,27 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
       strokeWidth = 65, // used by tick paths from the example
       ...rest
     },
-    ref
+    ref,
   ) => {
-    const [uncontrolledChecked, setUncontrolledChecked] = React.useState<boolean>(
-      defaultChecked ?? false
-    )
-    const isControlled = controlledChecked !== undefined
-    const checked = isControlled ? Boolean(controlledChecked) : uncontrolledChecked
+    const [uncontrolledChecked, setUncontrolledChecked] =
+      React.useState<boolean>(defaultChecked ?? false);
+    const isControlled = controlledChecked !== undefined;
+    const checked = isControlled
+      ? Boolean(controlledChecked)
+      : uncontrolledChecked;
 
     const toggle = () => {
-      if (disabled) return
-      if (!isControlled) setUncontrolledChecked((v) => !v)
-      onCheckedChange?.(!checked)
-    }
+      if (disabled) return;
+      if (!isControlled) setUncontrolledChecked((v) => !v);
+      onCheckedChange?.(!checked);
+    };
 
     // Coordinate system from the provided SVG example (kept constant)
-    const viewBoxSize = 440
+    const viewBoxSize = 440;
 
     // Motion values for the tick opacity based on drawn length
-    const pathLength = useMotionValue(0)
-    const opacity = useTransform(pathLength, [0.05, 0.15], [0, 1])
+    const pathLength = useMotionValue(0);
+    const opacity = useTransform(pathLength, [0.05, 0.15], [0, 1]);
 
     return (
       <button
@@ -77,11 +78,11 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
         onClick={toggle}
         disabled={disabled}
         className={cn(
-          "group inline-flex select-none items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed",
-          className
+          "group focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center justify-center outline-none select-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed",
+          className,
         )}
         {...rest}
-     >
+      >
         <m.svg
           initial={false}
           animate={disabled ? "disabled" : checked ? "checked" : "unchecked"}
@@ -125,10 +126,10 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
           />
         </m.svg>
       </button>
-    )
-  }
-)
+    );
+  },
+);
 
-Checkbox.displayName = "Checkbox"
+Checkbox.displayName = "Checkbox";
 
-export default Checkbox
+export default Checkbox;

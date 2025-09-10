@@ -1,10 +1,10 @@
-import type { 
-  TabId, 
-  GameId, 
-  TabSession, 
-  GameSession, 
-  SyncEvent 
-} from './types';
+import type {
+  TabId,
+  GameId,
+  TabSession,
+  GameSession,
+  SyncEvent,
+} from "./types";
 
 export class GameSessionManager {
   private sessions = new Map<GameId, GameSession>();
@@ -20,9 +20,9 @@ export class GameSessionManager {
   }
 
   addTab(
-    gameId: GameId, 
-    tabId: TabId, 
-    session: Pick<TabSession, 'controller' | 'lastSeen'>
+    gameId: GameId,
+    tabId: TabId,
+    session: Pick<TabSession, "controller" | "lastSeen">,
   ): void {
     if (!this.sessions.has(gameId)) {
       this.sessions.set(gameId, {
@@ -30,17 +30,17 @@ export class GameSessionManager {
         tabs: new Map(),
         activeTabId: null,
         lastMove: new Date(),
-        version: 1
+        version: 1,
       });
     }
 
     const gameSession = this.sessions.get(gameId)!;
     const isFirstTab = gameSession.tabs.size === 0;
-    
+
     gameSession.tabs.set(tabId, {
       id: tabId,
       isActive: isFirstTab,
-      ...session
+      ...session,
     });
 
     // Set as active if first tab
@@ -48,17 +48,19 @@ export class GameSessionManager {
       gameSession.activeTabId = tabId;
     }
 
-    console.log(`Tab ${tabId} added to game ${gameId}. Total tabs: ${gameSession.tabs.size}`);
+    console.log(
+      `Tab ${tabId} added to game ${gameId}. Total tabs: ${gameSession.tabs.size}`,
+    );
 
     // Broadcast tab status update to all tabs
     this.broadcastToTabs(gameId, {
-      type: 'TAB_STATUS_UPDATE',
+      type: "TAB_STATUS_UPDATE",
       payload: {
         activeTabId: gameSession.activeTabId,
-        totalTabs: gameSession.tabs.size
+        totalTabs: gameSession.tabs.size,
       },
       timestamp: new Date().toISOString(),
-      gameId
+      gameId,
     });
   }
 
@@ -77,10 +79,10 @@ export class GameSessionManager {
 
         // Broadcast active tab change
         this.broadcastToTabs(gameId, {
-          type: 'ACTIVE_TAB_CHANGED',
+          type: "ACTIVE_TAB_CHANGED",
           payload: { activeTabId: nextTab.id },
           timestamp: new Date().toISOString(),
-          gameId
+          gameId,
         });
       }
     }
@@ -92,17 +94,19 @@ export class GameSessionManager {
     } else {
       // Broadcast updated tab count
       this.broadcastToTabs(gameId, {
-        type: 'TAB_STATUS_UPDATE',
+        type: "TAB_STATUS_UPDATE",
         payload: {
           activeTabId: gameSession.activeTabId,
-          totalTabs: gameSession.tabs.size
+          totalTabs: gameSession.tabs.size,
         },
         timestamp: new Date().toISOString(),
-        gameId
+        gameId,
       });
     }
 
-    console.log(`Tab ${tabId} removed from game ${gameId}. Remaining tabs: ${gameSession.tabs.size}`);
+    console.log(
+      `Tab ${tabId} removed from game ${gameId}. Remaining tabs: ${gameSession.tabs.size}`,
+    );
   }
 
   setActiveTab(gameId: GameId, tabId: TabId): boolean {
@@ -147,7 +151,11 @@ export class GameSessionManager {
     return this.sessions.get(gameId);
   }
 
-  broadcastToTabs(gameId: GameId, event: SyncEvent, excludeTabId?: TabId): void {
+  broadcastToTabs(
+    gameId: GameId,
+    event: SyncEvent,
+    excludeTabId?: TabId,
+  ): void {
     const gameSession = this.sessions.get(gameId);
     if (!gameSession) return;
 
@@ -157,7 +165,7 @@ export class GameSessionManager {
 
     gameSession.tabs.forEach((tab) => {
       if (excludeTabId && tab.id === excludeTabId) return;
-      
+
       try {
         if (tab.controller) {
           tab.controller.enqueue(encodedData);
@@ -172,7 +180,7 @@ export class GameSessionManager {
 
   private cleanupInactiveTabs(): void {
     const now = new Date();
-    
+
     this.sessions.forEach((gameSession, gameId) => {
       const tabsToRemove: TabId[] = [];
 
@@ -183,7 +191,7 @@ export class GameSessionManager {
         }
       });
 
-      tabsToRemove.forEach(tabId => {
+      tabsToRemove.forEach((tabId) => {
         console.log(`Cleaning up inactive tab ${tabId} from game ${gameId}`);
         this.removeTab(gameId, tabId);
       });
@@ -200,16 +208,21 @@ export class GameSessionManager {
       activeTabId: TabId | null;
     }>;
   } {
-    const sessionsDetails = Array.from(this.sessions.entries()).map(([gameId, session]) => ({
-      gameId,
-      tabCount: session.tabs.size,
-      activeTabId: session.activeTabId
-    }));
+    const sessionsDetails = Array.from(this.sessions.entries()).map(
+      ([gameId, session]) => ({
+        gameId,
+        tabCount: session.tabs.size,
+        activeTabId: session.activeTabId,
+      }),
+    );
 
     return {
       totalSessions: this.sessions.size,
-      totalTabs: sessionsDetails.reduce((sum, session) => sum + session.tabCount, 0),
-      sessionsDetails
+      totalTabs: sessionsDetails.reduce(
+        (sum, session) => sum + session.tabCount,
+        0,
+      ),
+      sessionsDetails,
     };
   }
 
@@ -226,16 +239,16 @@ export class GameSessionManager {
 export const gameSessionManager = new GameSessionManager();
 
 // Cleanup on process exit
-process.on('exit', () => {
+process.on("exit", () => {
   gameSessionManager.destroy();
 });
 
-process.on('SIGINT', () => {
+process.on("SIGINT", () => {
   gameSessionManager.destroy();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on("SIGTERM", () => {
   gameSessionManager.destroy();
   process.exit(0);
 });

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Trophy, TrendingUp, User, Crown, Medal, Award } from 'lucide-react';
-import { cn } from '~/lib/utils';
-import { Skeleton } from '~/components/ui/skeleton';
-import { api } from '~/trpc/react';
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Trophy, TrendingUp, User, Crown, Medal, Award } from "lucide-react";
+import { cn } from "~/lib/utils";
+import { Skeleton } from "~/components/ui/skeleton";
+import { api } from "~/trpc/react";
 
 interface LeaderboardProps {
   limit?: number;
@@ -12,33 +12,37 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
-  const { data: players, isLoading } = api.user.getLeaderboard.useQuery({ 
-    limit 
+  const { data: players, isLoading } = api.user.getLeaderboard.useQuery({
+    limit,
   });
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Crown className="w-5 h-5 text-yellow-500" />;
+        return <Crown className="h-5 w-5 text-yellow-500" />;
       case 2:
-        return <Medal className="w-5 h-5 text-gray-400" />;
+        return <Medal className="h-5 w-5 text-gray-400" />;
       case 3:
-        return <Award className="w-5 h-5 text-amber-600" />;
+        return <Award className="h-5 w-5 text-amber-600" />;
       default:
-        return <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-gray-600">{rank}</span>;
+        return (
+          <span className="flex h-5 w-5 items-center justify-center text-sm font-bold text-gray-600">
+            {rank}
+          </span>
+        );
     }
   };
 
   const getRankColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-300';
+        return "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-300";
       case 2:
-        return 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300';
+        return "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300";
       case 3:
-        return 'bg-gradient-to-r from-amber-50 to-amber-100 border-amber-300';
+        return "bg-gradient-to-r from-amber-50 to-amber-100 border-amber-300";
       default:
-        return 'bg-white hover:bg-gray-50';
+        return "bg-white hover:bg-gray-50";
     }
   };
 
@@ -46,7 +50,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
     <Card className={cn("border-amber-200 shadow-lg", className)}>
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-amber-900">
-          <Trophy className="w-5 h-5" />
+          <Trophy className="h-5 w-5" />
           Leaderboard
         </CardTitle>
       </CardHeader>
@@ -65,7 +69,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
                   key={player.id}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 transition-colors",
-                    getRankColor(player.rank)
+                    getRankColor(player.rank),
                   )}
                 >
                   {/* Rank */}
@@ -74,19 +78,19 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
                   </div>
 
                   {/* Player Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium text-gray-900 truncate">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span className="truncate font-medium text-gray-900">
                         {player.username}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
+                    <div className="mt-1 flex items-center gap-4 text-xs text-gray-600">
                       <span>{player.totalGames} games</span>
                       <span>{player.winRate.toFixed(1)}% win rate</span>
                       {player.streak > 0 && (
                         <span className="flex items-center gap-1 text-green-600">
-                          <TrendingUp className="w-3 h-3" />
+                          <TrendingUp className="h-3 w-3" />
                           {player.streak} streak
                         </span>
                       )}
@@ -95,9 +99,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
 
                   {/* Rating */}
                   <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
-                      TBD
-                    </div>
+                    <div className="text-lg font-bold text-gray-900">TBD</div>
                     <div className="text-xs text-gray-500">Rating</div>
                   </div>
                 </div>
@@ -107,7 +109,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
         )}
 
         {!isLoading && (!players || players.length === 0) && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center text-gray-500">
             No players yet. Be the first to join!
           </div>
         )}

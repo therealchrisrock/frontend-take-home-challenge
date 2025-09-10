@@ -6,7 +6,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -43,11 +49,15 @@ export default function ForgotPasswordPage() {
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              If an account exists with that email, we&apos;ve sent password reset instructions.
+              If an account exists with that email, we&apos;ve sent password
+              reset instructions.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/auth/signin")} className="w-full">
+            <Button
+              onClick={() => router.push("/auth/signin")}
+              className="w-full"
+            >
               Return to Sign In
             </Button>
           </CardContent>
@@ -62,7 +72,8 @@ export default function ForgotPasswordPage() {
         <CardHeader>
           <CardTitle>Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email address and we&apos;ll send you a password reset link
+            Enter your email address and we&apos;ll send you a password reset
+            link
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,10 +98,15 @@ export default function ForgotPasswordPage() {
               className="w-full"
               disabled={requestResetMutation.isPending}
             >
-              {requestResetMutation.isPending ? "Sending..." : "Send Reset Link"}
+              {requestResetMutation.isPending
+                ? "Sending..."
+                : "Send Reset Link"}
             </Button>
             <div className="text-center text-sm">
-              <Link href="/auth/signin" className="text-blue-600 hover:underline">
+              <Link
+                href="/auth/signin"
+                className="text-blue-600 hover:underline"
+              >
                 Back to Sign In
               </Link>
             </div>

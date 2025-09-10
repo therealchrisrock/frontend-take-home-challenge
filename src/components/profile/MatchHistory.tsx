@@ -1,7 +1,13 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import {
   Table,
   TableBody,
@@ -40,7 +46,7 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {[...Array(5) as unknown[]].map((_, i) => (
+            {[...(Array(5) as unknown[])].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
@@ -53,10 +59,10 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
   const totalCount = data?.total ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const getOpponentName = (match: typeof matches[0]) => {
+  const getOpponentName = (match: (typeof matches)[0]) => {
     if (match.gameMode === "ai") return "AI Opponent";
     if (match.gameMode === "local") return "Local Player";
-    
+
     // For online games, show the opponent's name
     if (match.player1Id === userId) {
       return match.player2?.name ?? match.player2?.username ?? "Unknown";
@@ -65,17 +71,17 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
     }
   };
 
-  const getPlayerColor = (match: typeof matches[0]) => {
+  const getPlayerColor = (match: (typeof matches)[0]) => {
     if (match.gameMode === "ai" || match.gameMode === "local") {
       return "red"; // Default to red for single player modes
     }
     return match.player1Id === userId ? "red" : "black";
   };
 
-  const getResult = (match: typeof matches[0]) => {
+  const getResult = (match: (typeof matches)[0]) => {
     if (!match.winner) return "in-progress";
     if (match.winner === "draw") return "draw";
-    
+
     const playerColor = getPlayerColor(match);
     return match.winner === playerColor ? "win" : "loss";
   };
@@ -112,16 +118,16 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
     <Card>
       <CardHeader>
         <CardTitle>Match History</CardTitle>
-        <CardDescription>
-          Your recent games and performance
-        </CardDescription>
+        <CardDescription>Your recent games and performance</CardDescription>
       </CardHeader>
       <CardContent>
         {matches.length > 0 ? (
           <>
             <Table>
               <TableCaption>
-                Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalCount)} of {totalCount} matches
+                Showing {page * pageSize + 1} to{" "}
+                {Math.min((page + 1) * pageSize, totalCount)} of {totalCount}{" "}
+                matches
               </TableCaption>
               <TableHeader>
                 <TableRow>
@@ -138,24 +144,40 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
               <TableBody>
                 {matches.map((match) => {
                   const result = getResult(match);
-                  const duration = match.lastSaved && match.gameStartTime
-                    ? Math.round((new Date(match.lastSaved).getTime() - new Date(match.gameStartTime).getTime()) / 1000 / 60)
-                    : 0;
-                  
+                  const duration =
+                    match.lastSaved && match.gameStartTime
+                      ? Math.round(
+                          (new Date(match.lastSaved).getTime() -
+                            new Date(match.gameStartTime).getTime()) /
+                            1000 /
+                            60,
+                        )
+                      : 0;
+
                   return (
                     <TableRow key={match.id}>
                       <TableCell className="font-medium">
-                        {formatDistanceToNow(new Date(match.gameStartTime), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(match.gameStartTime), {
+                          addSuffix: true,
+                        })}
                       </TableCell>
                       <TableCell>{getOpponentName(match)}</TableCell>
                       <TableCell>{getGameModeBadge(match.gameMode)}</TableCell>
                       <TableCell>
-                        <Badge variant={getPlayerColor(match) === "red" ? "destructive" : "default"}>
+                        <Badge
+                          variant={
+                            getPlayerColor(match) === "red"
+                              ? "destructive"
+                              : "default"
+                          }
+                        >
                           {getPlayerColor(match)}
                         </Badge>
                       </TableCell>
                       <TableCell>{match.moveCount}</TableCell>
-                      <TableCell>{duration > 0 ? `${duration} min` : "-"}</TableCell>
+                      <TableCell>
+                        {duration > 0 ? `${duration} min` : "-"}
+                      </TableCell>
                       <TableCell>{getResultBadge(result)}</TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -174,17 +196,17 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
                 })}
               </TableBody>
             </Table>
-            
+
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Page {page + 1} of {totalPages}
                 </p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
                   >
                     Previous
@@ -192,7 +214,7 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => p + 1)}
+                    onClick={() => setPage((p) => p + 1)}
                     disabled={page >= totalPages - 1}
                   >
                     Next
@@ -207,7 +229,7 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => window.location.href = "/game"}
+              onClick={() => (window.location.href = "/game")}
             >
               Start Playing
             </Button>

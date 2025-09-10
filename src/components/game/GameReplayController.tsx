@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Slider } from "~/components/ui/slider";
@@ -10,12 +16,17 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Separator } from "~/components/ui/separator";
 import { Board } from "./Board";
-import type { Board as BoardType, Move, Position, PieceColor } from "~/lib/game-logic";
-import { 
-  createInitialBoard, 
-  getValidMoves, 
+import type {
+  Board as BoardType,
+  Move,
+  Position,
+  PieceColor,
+} from "~/lib/game-logic";
+import {
+  createInitialBoard,
+  getValidMoves,
   makeMove as applyMove,
-  getMustCapturePositions 
+  getMustCapturePositions,
 } from "~/lib/game-logic";
 import {
   Play,
@@ -28,7 +39,7 @@ import {
   AlertCircle,
   Zap,
   Target,
-  Trophy
+  Trophy,
 } from "lucide-react";
 
 interface GameReplayControllerProps {
@@ -46,20 +57,26 @@ interface GameAnalysis {
   critical?: boolean;
 }
 
-export default function GameReplayController({ 
-  gameId, 
-  userId, 
-  analysisMode = false 
+export default function GameReplayController({
+  gameId,
+  userId,
+  analysisMode = false,
 }: GameReplayControllerProps) {
-  const { data: gameData, isLoading, error } = api.game.getGameWithMoves.useQuery({ gameId });
-  
+  const {
+    data: gameData,
+    isLoading,
+    error,
+  } = api.game.getGameWithMoves.useQuery({ gameId });
+
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [board, setBoard] = useState<BoardType>(() => createInitialBoard());
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>("red");
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000); // ms between moves
   const [analysis, setAnalysis] = useState<GameAnalysis | null>(null);
-  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(
+    null,
+  );
   const [validMoves, setValidMoves] = useState<Move[]>([]);
 
   // Reconstruct board state up to current move
@@ -76,9 +93,11 @@ export default function GameReplayController({
         const gameMove: Move = {
           from: { row: move.fromRow, col: move.fromCol },
           to: { row: move.toRow, col: move.toCol },
-          captures: move.captures ? JSON.parse(move.captures) as Position[] : []
+          captures: move.captures
+            ? (JSON.parse(move.captures) as Position[])
+            : [],
         };
-        
+
         reconstructedBoard = applyMove(reconstructedBoard, gameMove);
         player = player === "red" ? "black" : "red";
       }
@@ -99,7 +118,7 @@ export default function GameReplayController({
 
     const timer = setTimeout(() => {
       if (currentMoveIndex < gameData.moves.length) {
-        setCurrentMoveIndex(prev => prev + 1);
+        setCurrentMoveIndex((prev) => prev + 1);
       } else {
         setIsPlaying(false);
       }
@@ -133,7 +152,7 @@ export default function GameReplayController({
 
     // Simple material evaluation
     evaluation = (redPieces - blackPieces) * 10 + (redKings - blackKings) * 5;
-    
+
     // Get valid moves for analysis - get all moves for all pieces of current player
     const allMoves: Move[] = [];
     for (let row = 0; row < 8; row++) {
@@ -153,19 +172,19 @@ export default function GameReplayController({
       blunder: false, // Would need move comparison to determine
       missed: false,
       brilliant: false,
-      critical: Math.abs(evaluation) > 50
+      critical: Math.abs(evaluation) > 50,
     });
   };
 
   const handleNextMove = () => {
     if (gameData?.moves && currentMoveIndex < gameData.moves.length) {
-      setCurrentMoveIndex(prev => prev + 1);
+      setCurrentMoveIndex((prev) => prev + 1);
     }
   };
 
   const handlePreviousMove = () => {
     if (currentMoveIndex > 0) {
-      setCurrentMoveIndex(prev => prev - 1);
+      setCurrentMoveIndex((prev) => prev - 1);
     }
   };
 
@@ -181,7 +200,7 @@ export default function GameReplayController({
 
   const handleSquareClick = (position: Position) => {
     const piece = board[position.row]?.[position.col];
-    
+
     if (piece && analysisMode) {
       setSelectedPosition(position);
       const moves = getValidMoves(board, position, currentPlayer);
@@ -236,9 +255,9 @@ export default function GameReplayController({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Game Replay</h1>
-          <p className="mt-1 text-muted-foreground">
-            {getPlayerName("red")} vs {getPlayerName("black")} • 
-            {" "}{new Date(gameData.gameStartTime).toLocaleDateString()}
+          <p className="text-muted-foreground mt-1">
+            {getPlayerName("red")} vs {getPlayerName("black")} •{" "}
+            {new Date(gameData.gameStartTime).toLocaleDateString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -249,9 +268,16 @@ export default function GameReplayController({
             </Badge>
           )}
           {gameData.winner && (
-            <Badge variant={gameData.winner === playerColor ? "default" : "destructive"}>
-              {gameData.winner === "draw" ? "Draw" : 
-               gameData.winner === playerColor ? "You Won!" : "You Lost"}
+            <Badge
+              variant={
+                gameData.winner === playerColor ? "default" : "destructive"
+              }
+            >
+              {gameData.winner === "draw"
+                ? "Draw"
+                : gameData.winner === playerColor
+                  ? "You Won!"
+                  : "You Lost"}
             </Badge>
           )}
         </div>
@@ -263,16 +289,22 @@ export default function GameReplayController({
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-center">
-                <div className="relative aspect-square w-full board-fit-max lg:max-w-[855px] min-h-0">
+                <div className="board-fit-max relative aspect-square min-h-0 w-full lg:max-w-[855px]">
                   <Board
                     board={board}
                     currentPlayer={currentPlayer}
                     onSquareClick={analysisMode ? handleSquareClick : () => {}}
                     selectedPosition={analysisMode ? selectedPosition : null}
                     validMoves={analysisMode ? validMoves : []}
-                    onDragStart={() => { /* No-op in replay mode */ }}
-                    onDragEnd={() => { /* No-op in replay mode */ }}
-                    onDrop={() => { /* No-op in replay mode */ }}
+                    onDragStart={() => {
+                      /* No-op in replay mode */
+                    }}
+                    onDragEnd={() => {
+                      /* No-op in replay mode */
+                    }}
+                    onDrop={() => {
+                      /* No-op in replay mode */
+                    }}
                     draggingPosition={null}
                     mustCapturePositions={[]}
                     replayMode={true}
@@ -281,22 +313,28 @@ export default function GameReplayController({
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Playback Controls */}
           <Card className="mt-4">
             <CardContent className="p-4">
               <div className="space-y-4">
                 {/* Progress Bar */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Move {currentMoveIndex} of {moves.length}</span>
-                    <span>{currentPlayer === "red" ? "Red" : "Black"} to move</span>
+                  <div className="text-muted-foreground flex justify-between text-sm">
+                    <span>
+                      Move {currentMoveIndex} of {moves.length}
+                    </span>
+                    <span>
+                      {currentPlayer === "red" ? "Red" : "Black"} to move
+                    </span>
                   </div>
                   <Slider
                     value={[currentMoveIndex]}
                     max={moves.length}
                     step={1}
-                    onValueChange={(value) => setCurrentMoveIndex(value[0] ?? 0)}
+                    onValueChange={(value) =>
+                      setCurrentMoveIndex(value[0] ?? 0)
+                    }
                     className="w-full"
                   />
                 </div>
@@ -325,7 +363,11 @@ export default function GameReplayController({
                     onClick={() => setIsPlaying(!isPlaying)}
                     disabled={currentMoveIndex >= moves.length}
                   >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {isPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -347,12 +389,14 @@ export default function GameReplayController({
 
                 {/* Playback Speed */}
                 <div className="flex items-center justify-center gap-4">
-                  <span className="text-sm text-muted-foreground">Speed:</span>
+                  <span className="text-muted-foreground text-sm">Speed:</span>
                   <div className="flex gap-1">
-                    {[0.5, 1, 2, 3].map(speed => (
+                    {[0.5, 1, 2, 3].map((speed) => (
                       <Button
                         key={speed}
-                        variant={playbackSpeed === 1000 / speed ? "default" : "outline"}
+                        variant={
+                          playbackSpeed === 1000 / speed ? "default" : "outline"
+                        }
                         size="sm"
                         onClick={() => setPlaybackSpeed(1000 / speed)}
                       >
@@ -385,13 +429,14 @@ export default function GameReplayController({
                     <span>Red</span>
                   </div>
                   <div className="relative h-4 overflow-hidden rounded-full bg-black">
-                    <div 
+                    <div
                       className="absolute h-full bg-red-600 transition-all duration-300"
                       style={{ width: `${50 + analysis.evaluation / 2}%` }}
                     />
                   </div>
-                  <p className="text-center text-sm text-muted-foreground">
-                    {analysis.evaluation > 0 ? "+" : ""}{analysis.evaluation / 10}
+                  <p className="text-muted-foreground text-center text-sm">
+                    {analysis.evaluation > 0 ? "+" : ""}
+                    {analysis.evaluation / 10}
                   </p>
                 </div>
 
@@ -423,9 +468,11 @@ export default function GameReplayController({
                 {analysis.bestMove && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Engine Suggestion</p>
-                    <p className="text-sm text-muted-foreground">
-                      {String.fromCharCode(97 + analysis.bestMove.from.col)}{8 - analysis.bestMove.from.row} → 
-                      {" "}{String.fromCharCode(97 + analysis.bestMove.to.col)}{8 - analysis.bestMove.to.row}
+                    <p className="text-muted-foreground text-sm">
+                      {String.fromCharCode(97 + analysis.bestMove.from.col)}
+                      {8 - analysis.bestMove.from.row} →{" "}
+                      {String.fromCharCode(97 + analysis.bestMove.to.col)}
+                      {8 - analysis.bestMove.to.row}
                     </p>
                   </div>
                 )}
@@ -434,7 +481,8 @@ export default function GameReplayController({
                   <Alert>
                     <Target className="h-4 w-4" />
                     <AlertDescription>
-                      Critical position! The game outcome may depend on the next moves.
+                      Critical position! The game outcome may depend on the next
+                      moves.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -453,17 +501,19 @@ export default function GameReplayController({
             <CardContent>
               <div className="max-h-96 space-y-1 overflow-y-auto">
                 {moves.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No moves yet</p>
+                  <p className="text-muted-foreground text-sm">No moves yet</p>
                 ) : (
                   moves.map((move, index) => {
-                    const moveNotation = move ? 
-                      `${String.fromCharCode(97 + move.fromCol)}${8 - move.fromRow} → ${String.fromCharCode(97 + move.toCol)}${8 - move.toRow}` :
-                      "Invalid move";
-                    
+                    const moveNotation = move
+                      ? `${String.fromCharCode(97 + move.fromCol)}${8 - move.fromRow} → ${String.fromCharCode(97 + move.toCol)}${8 - move.toRow}`
+                      : "Invalid move";
+
                     return (
                       <Button
                         key={index}
-                        variant={currentMoveIndex === index + 1 ? "default" : "ghost"}
+                        variant={
+                          currentMoveIndex === index + 1 ? "default" : "ghost"
+                        }
                         size="sm"
                         className="w-full justify-start font-mono text-xs"
                         onClick={() => handleMoveClick(index)}
@@ -477,11 +527,14 @@ export default function GameReplayController({
                           <span>Black: </span>
                         )}
                         {moveNotation}
-                        {move?.captures && (JSON.parse(move.captures) as Position[]).length > 0 && (
-                          <Badge variant="outline" className="ml-auto">
-                            x{(JSON.parse(move.captures) as Position[]).length}
-                          </Badge>
-                        )}
+                        {move?.captures &&
+                          (JSON.parse(move.captures) as Position[]).length >
+                            0 && (
+                            <Badge variant="outline" className="ml-auto">
+                              x
+                              {(JSON.parse(move.captures) as Position[]).length}
+                            </Badge>
+                          )}
                       </Button>
                     );
                   })
@@ -509,9 +562,13 @@ export default function GameReplayController({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Result:</span>
                 <span className="font-medium">
-                  {gameData.winner === "draw" ? "Draw" : 
-                   gameData.winner === "red" ? "Red wins" : 
-                   gameData.winner === "black" ? "Black wins" : "In progress"}
+                  {gameData.winner === "draw"
+                    ? "Draw"
+                    : gameData.winner === "red"
+                      ? "Red wins"
+                      : gameData.winner === "black"
+                        ? "Black wins"
+                        : "In progress"}
                 </span>
               </div>
               {gameData.winner && gameData.winner !== "draw" && (

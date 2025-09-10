@@ -8,12 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "~/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Users, MessageCircle, X, Minus, Maximize2 } from "lucide-react";
@@ -29,15 +24,15 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Get unread message count for badge
-  const { data: unreadCount } = api.message.getUnreadCount.useQuery(
-    undefined,
-    { enabled: !!session?.user, refetchInterval: 30000 }
-  );
+  const { data: unreadCount } = api.message.getUnreadCount.useQuery(undefined, {
+    enabled: !!session?.user,
+    refetchInterval: 30000,
+  });
 
   // Get pending friend requests count
   const { data: pendingRequests } = api.user.getPendingFriendRequests.useQuery(
     undefined,
-    { enabled: !!session?.user }
+    { enabled: !!session?.user },
   );
 
   // Handle keyboard shortcuts
@@ -67,20 +62,16 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        className={`
-          ${isMaximized 
-            ? "max-w-[95vw] w-full h-[95vh]" 
-            : "max-w-4xl w-full max-h-[80vh]"
-          }
-          ${isMinimized ? "h-16" : ""}
-          transition-all duration-200 ease-in-out
-          overflow-hidden
-        `}
+      <DialogContent
+        className={` ${
+          isMaximized
+            ? "h-[95vh] w-full max-w-[95vw]"
+            : "max-h-[80vh] w-full max-w-4xl"
+        } ${isMinimized ? "h-16" : ""} overflow-hidden transition-all duration-200 ease-in-out`}
         showCloseButton={false}
       >
         {/* Custom Header with Controls */}
-        <DialogHeader className="flex-row items-center justify-between space-y-0 pb-4 border-b">
+        <DialogHeader className="flex-row items-center justify-between space-y-0 border-b pb-4">
           <DialogTitle className="text-xl font-semibold">
             Social Center
           </DialogTitle>
@@ -114,14 +105,17 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
 
         {!isMinimized && (
           <div className="flex-1 overflow-hidden">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SocialTab)}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as SocialTab)}
+            >
+              <TabsList className="mb-4 grid w-full grid-cols-2">
                 <TabsTrigger value="friends" className="relative">
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="mr-2 h-4 w-4" />
                   Friends
                   {pendingCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
                     >
                       {pendingCount}
@@ -129,11 +123,11 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="messages" className="relative">
-                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <MessageCircle className="mr-2 h-4 w-4" />
                   Messages
                   {messageCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
                     >
                       {messageCount}
@@ -154,9 +148,9 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
         )}
 
         {/* Keyboard Shortcuts Help */}
-        <div className="text-xs text-muted-foreground mt-4 pt-2 border-t">
+        <div className="text-muted-foreground mt-4 border-t pt-2 text-xs">
           <span>Shortcuts: </span>
-          <span className="font-mono">Esc</span> to close, 
+          <span className="font-mono">Esc</span> to close,
           <span className="font-mono"> Ctrl+1/2</span> to switch tabs
         </div>
       </DialogContent>

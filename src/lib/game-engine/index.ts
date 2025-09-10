@@ -4,10 +4,10 @@
  */
 
 // Core engine
-export { GameRules } from './game-rules';
+export { GameRules } from "./game-rules";
 
 // Configuration system
-export { GameConfigLoader } from './config-loader';
+export { GameConfigLoader } from "./config-loader";
 export type {
   VariantConfig,
   VariantCollection,
@@ -19,28 +19,28 @@ export type {
   DrawRules,
   TournamentRules,
   Direction,
-  PieceSetup
-} from './rule-schema';
-export { validateConfig, validateConfigWithErrors } from './rule-schema';
+  PieceSetup,
+} from "./rule-schema";
+export { validateConfig, validateConfigWithErrors } from "./rule-schema";
 
 // Import for local use in utility functions
-import { GameRules } from './game-rules';
-import { GameConfigLoader } from './config-loader';
-import { validateConfigWithErrors } from './rule-schema';
-import type { VariantConfig } from './rule-schema';
+import { GameRules } from "./game-rules";
+import { GameConfigLoader } from "./config-loader";
+import { validateConfigWithErrors } from "./rule-schema";
+import type { VariantConfig } from "./rule-schema";
 
 // Remove backward compatibility exports since we're removing the old system
 
 // Convenience constants
 export const GAME_VARIANTS = {
-  AMERICAN: 'american' as const,
-  BRAZILIAN: 'brazilian' as const,
-  INTERNATIONAL: 'international' as const
+  AMERICAN: "american" as const,
+  BRAZILIAN: "brazilian" as const,
+  INTERNATIONAL: "international" as const,
 } as const;
 
 export const PLAY_MODES = {
-  CASUAL: 'casual' as const,
-  TOURNAMENT: 'tournament' as const
+  CASUAL: "casual" as const,
+  TOURNAMENT: "tournament" as const,
 } as const;
 
 /**
@@ -98,7 +98,11 @@ export const registerCustomVariant = (name: string, config: VariantConfig) => {
 /**
  * Create a variant template based on existing variant
  */
-export const createVariantTemplate = (name: string, displayName: string, basedOn = 'american') => {
+export const createVariantTemplate = (
+  name: string,
+  displayName: string,
+  basedOn = "american",
+) => {
   return GameConfigLoader.createVariantTemplate(name, displayName, basedOn);
 };
 
@@ -110,34 +114,36 @@ export const ENGINE_UTILS = {
    * Clear all configuration caches
    */
   clearCache: () => GameConfigLoader.clearCache(),
-  
+
   /**
    * Check if a variant is loaded in cache
    */
   isCached: (variant: string) => GameConfigLoader.hasVariant(variant),
-  
+
   /**
    * Get cache statistics
    */
   getCacheStats: () => ({
     availableVariants: GameConfigLoader.getAvailableVariants(),
-    builtInVariants: GameConfigLoader.getBuiltInVariants()
+    builtInVariants: GameConfigLoader.getBuiltInVariants(),
   }),
-  
+
   /**
    * Export variant configuration as JSON
    */
   exportVariant: (variant: string) => GameConfigLoader.exportVariant(variant),
-  
+
   /**
    * Import variant from JSON string
    */
-  importVariant: (name: string, jsonConfig: string) => GameConfigLoader.importVariant(name, jsonConfig),
-  
+  importVariant: (name: string, jsonConfig: string) =>
+    GameConfigLoader.importVariant(name, jsonConfig),
+
   /**
    * Validate variant compatibility
    */
-  validateCompatibility: (config: unknown) => GameConfigLoader.validateVariant(config)
+  validateCompatibility: (config: unknown) =>
+    GameConfigLoader.validateVariant(config),
 };
 
 // Migration helpers removed - old system no longer exists
@@ -145,20 +151,33 @@ export const ENGINE_UTILS = {
 /**
  * Re-export original game logic for backward compatibility
  */
-export type { Board, PieceColor, PieceType, Position, Move, Piece } from '../game-logic';
-export { createInitialBoard, makeMove, checkWinner, getRandomAIMove, isValidSquare } from '../game-logic';
+export type {
+  Board,
+  PieceColor,
+  PieceType,
+  Position,
+  Move,
+  Piece,
+} from "../game-logic";
+export {
+  createInitialBoard,
+  makeMove,
+  checkWinner,
+  getRandomAIMove,
+  isValidSquare,
+} from "../game-logic";
 
 /**
  * Type exports for TypeScript users
  */
-export type GameVariant = 'american' | 'brazilian' | 'international';
-export type PlayMode = 'casual' | 'tournament';
+export type GameVariant = "american" | "brazilian" | "international";
+export type PlayMode = "casual" | "tournament";
 
 /**
  * Version information
  */
-export const ENGINE_VERSION = '2.0.0';
-export const SCHEMA_VERSION = '1.0.0';
+export const ENGINE_VERSION = "2.0.0";
+export const SCHEMA_VERSION = "1.0.0";
 
 /**
  * Feature flags
@@ -167,5 +186,5 @@ export const FEATURES = {
   CUSTOM_VARIANTS: true,
   TOURNAMENT_COMPLIANCE: true,
   PERFORMANCE_OPTIMIZATION: true,
-  RULE_VALIDATION: true
+  RULE_VALIDATION: true,
 } as const;

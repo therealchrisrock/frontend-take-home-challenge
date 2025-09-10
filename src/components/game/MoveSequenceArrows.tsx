@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { type Position } from '~/lib/game-logic';
-import { MoveArrow } from './MoveArrow';
+import { type Position } from "~/lib/game-logic";
+import { MoveArrow } from "./MoveArrow";
 
 // Feature flag to enable/disable moving arrows globally
 const ARROWS_ENABLED = true;
@@ -12,7 +12,11 @@ interface MoveSequenceArrowsProps {
   boardSize?: number;
 }
 
-export function MoveSequenceArrows({ sequence, show, boardSize = 8 }: MoveSequenceArrowsProps) {
+export function MoveSequenceArrows({
+  sequence,
+  show,
+  boardSize = 8,
+}: MoveSequenceArrowsProps) {
   if (!ARROWS_ENABLED || !show || sequence.length < 1) {
     return null;
   }
@@ -26,7 +30,7 @@ export function MoveSequenceArrows({ sequence, show, boardSize = 8 }: MoveSequen
         from={sequence[i]!}
         to={sequence[i + 1]!}
         boardSize={boardSize}
-      />
+      />,
     );
   }
 

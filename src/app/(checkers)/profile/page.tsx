@@ -7,7 +7,8 @@ import MatchHistory from "~/components/profile/MatchHistory";
 
 export const metadata: Metadata = {
   title: "Your Profile",
-  description: "View your checkers statistics, match history, and manage your profile settings.",
+  description:
+    "View your checkers statistics, match history, and manage your profile settings.",
   robots: {
     index: false,
     follow: false,

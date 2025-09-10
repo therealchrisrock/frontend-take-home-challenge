@@ -6,7 +6,13 @@ import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -17,7 +23,10 @@ const usernameSchema = z.object({
     .string()
     .min(3, "Username must be at least 3 characters")
     .max(20, "Username must be at most 20 characters")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Username can only contain letters, numbers, underscores, and hyphens",
+    ),
 });
 
 type UsernameData = z.infer<typeof usernameSchema>;
@@ -48,7 +57,7 @@ export default function NewUserPage() {
     {
       enabled: !!form.watch("username") && form.watch("username").length >= 3,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   const onSubmit = async (data: UsernameData) => {
@@ -71,7 +80,9 @@ export default function NewUserPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome, {session.user.name ?? session.user.email}!</CardTitle>
+          <CardTitle>
+            Welcome, {session.user.name ?? session.user.email}!
+          </CardTitle>
           <CardDescription>
             Choose a username to complete your profile
           </CardDescription>
@@ -93,7 +104,9 @@ export default function NewUserPage() {
                 </p>
               )}
               {checkUsername.data && !checkUsername.data.available && (
-                <p className="text-sm text-red-500">Username is already taken</p>
+                <p className="text-sm text-red-500">
+                  Username is already taken
+                </p>
               )}
               {checkUsername.data?.available && (
                 <p className="text-sm text-green-500">Username is available</p>

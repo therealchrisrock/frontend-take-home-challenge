@@ -1,20 +1,21 @@
 /**
  * Canadian Checkers rule configuration (12x12, 30 pieces per player)
  */
-import type { VariantConfig } from '../rule-schema';
+import type { VariantConfig } from "../rule-schema";
 
 export const CanadianConfig = {
   metadata: {
-    name: 'canadian',
-    displayName: 'Canadian Checkers',
-    description: '12×12 board with 30 pieces per player; flying kings and backward captures allowed.',
-    origin: 'Canada',
-    aliases: ['Canadian Draughts'],
-    popularity: 'regional' as const,
+    name: "canadian",
+    displayName: "Canadian Checkers",
+    description:
+      "12×12 board with 30 pieces per player; flying kings and backward captures allowed.",
+    origin: "Canada",
+    aliases: ["Canadian Draughts"],
+    popularity: "regional" as const,
     officialRules: {
-      organization: 'Regional Federations',
-      lastUpdated: '2023-01-01',
-      version: '2023.1',
+      organization: "Regional Federations",
+      lastUpdated: "2023-01-01",
+      version: "2023.1",
     },
   },
   board: {
@@ -32,8 +33,8 @@ export const CanadianConfig = {
   movement: {
     regularPieces: {
       directions: {
-        red: 'forward' as const,
-        black: 'forward' as const,
+        red: "forward" as const,
+        black: "forward" as const,
       },
       canCaptureBackward: true,
       canMoveBackward: false,
@@ -49,8 +50,8 @@ export const CanadianConfig = {
     kingPriority: true,
     chainCaptures: true,
     captureDirection: {
-      regular: 'all' as const,
-      king: 'all' as const,
+      regular: "all" as const,
+      king: "all" as const,
     },
     promotion: {
       duringCapture: false,
@@ -78,7 +79,7 @@ export const CanadianConfig = {
     },
     notation: {
       required: true,
-      format: 'numeric' as const,
+      format: "numeric" as const,
     },
     openingRestrictions: {
       threeMove: false,
@@ -88,6 +89,5 @@ export const CanadianConfig = {
       fmjd: false,
     },
   },
-  schemaVersion: '1.0.0' as const,
+  schemaVersion: "1.0.0" as const,
 } as const satisfies VariantConfig;
-

@@ -1,14 +1,14 @@
-import { PlayerCard } from './PlayerCard';
-import { PlayerCardSkeleton } from './PlayerCardSkeleton';
-import { type PieceColor } from '~/lib/game-logic';
-import { type PlayerInfo } from '~/lib/player-types';
-import { api } from '~/trpc/server';
-import { GameVariantEnum, PlayModeEnum } from '@prisma/client';
+import { PlayerCard } from "./PlayerCard";
+import { PlayerCardSkeleton } from "./PlayerCardSkeleton";
+import { type PieceColor } from "~/lib/game-logic";
+import { type PlayerInfo } from "~/lib/player-types";
+import { api } from "~/trpc/server";
+import { GameVariantEnum, PlayModeEnum } from "@prisma/client";
 
 interface PlayerCardServerProps {
   player: PlayerInfo;
   color: PieceColor;
-  position: 'top' | 'bottom';
+  position: "top" | "bottom";
   isActive?: boolean;
   className?: string;
   /** Variant for rating lookup */
@@ -22,9 +22,9 @@ export async function PlayerCardServer({
   color,
   position,
   isActive = false,
-  className = '',
-  variant = 'AMERICAN',
-  playMode = 'CASUAL',
+  className = "",
+  variant = "AMERICAN",
+  playMode = "CASUAL",
 }: PlayerCardServerProps) {
   try {
     // Only fetch server data for non-AI players with IDs
@@ -49,7 +49,7 @@ export async function PlayerCardServer({
     try {
       profileData = await api.user.getPlayerProfile({ userId: player.id });
     } catch (error) {
-      console.warn('Failed to fetch player profile:', error);
+      console.warn("Failed to fetch player profile:", error);
     }
 
     // Fetch player stats
@@ -60,7 +60,7 @@ export async function PlayerCardServer({
         playMode: PlayModeEnum[playMode],
       });
     } catch (error) {
-      console.warn('Failed to fetch player stats:', error);
+      console.warn("Failed to fetch player stats:", error);
     }
 
     // Merge server data with client data
@@ -90,8 +90,8 @@ export async function PlayerCardServer({
       />
     );
   } catch (error) {
-    console.error('Error in PlayerCardServer:', error);
-    
+    console.error("Error in PlayerCardServer:", error);
+
     // Fallback to skeleton on error
     return (
       <PlayerCardSkeleton

@@ -1,25 +1,20 @@
-'use client';
+"use client";
 
-import { useSkin } from '~/lib/skins/skin-context';
-import { cn } from '~/lib/utils';
-import { Button } from '~/components/ui/button';
+import { useSkin } from "~/lib/skins/skin-context";
+import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '~/components/ui/tooltip';
-import { Lock, Check, Palette } from 'lucide-react';
+} from "~/components/ui/tooltip";
+import { Lock, Check } from "lucide-react";
 
-export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const { 
-    currentSkin, 
-    availableSkins, 
-    unlockedSkins, 
-    selectSkin, 
-  } = useSkin();
+export function SkinSelector({ size = "md" }: { size?: "sm" | "md" }) {
+  const { currentSkin, availableSkins, unlockedSkins, selectSkin } = useSkin();
 
-  const tileSize = size === 'sm' ? 36 : 50;
+  const tileSize = size === "sm" ? 36 : 50;
 
   const handleSelectSkin = (skinId: string) => {
     if (unlockedSkins.has(skinId)) {
@@ -27,25 +22,25 @@ export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
     }
   };
 
-  const renderMiniCheckerboard = (skin: typeof availableSkins[0]) => {
+  const renderMiniCheckerboard = (skin: (typeof availableSkins)[0]) => {
     const squares = [];
-    
+
     // Create a compact 2x2 grid preview
     for (let row = 0; row < 2; row++) {
       for (let col = 0; col < 2; col++) {
         const isDark = (row + col) % 2 === 1;
-        const background = isDark 
+        const background = isDark
           ? `linear-gradient(to bottom right, ${skin.board.darkSquare.from}, ${skin.board.darkSquare.to})`
           : `linear-gradient(to bottom right, ${skin.board.lightSquare.from}, ${skin.board.lightSquare.to})`;
-        
+
         // Only place pieces on dark squares to match a real checkerboard
         const hasPiece = isDark;
         const pieceColor = row === 0 ? skin.pieces.black : skin.pieces.red;
-        
+
         squares.push(
           <div
             key={`${row}-${col}`}
-            className="aspect-square relative"
+            className="relative aspect-square"
             style={{ background }}
           >
             {hasPiece && (
@@ -57,13 +52,13 @@ export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
                 }}
               />
             )}
-          </div>
+          </div>,
         );
       }
     }
-    
+
     return (
-      <div className="grid grid-cols-2 gap-0 rounded-md overflow-hidden w-full h-full">
+      <div className="grid h-full w-full grid-cols-2 gap-0 overflow-hidden rounded-md">
         {squares}
       </div>
     );
@@ -72,20 +67,20 @@ export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
   return (
     <div className="space-y-2">
       <TooltipProvider>
-        <div className="flex flex-wrap gap-3 justify-start items-start">
+        <div className="flex flex-wrap items-start justify-start gap-3">
           {availableSkins.map((skin) => {
             const isUnlocked = unlockedSkins.has(skin.id);
             const isSelected = currentSkin.id === skin.id;
-            
+
             return (
               <Tooltip key={skin.id}>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'relative p-0 overflow-hidden',
-                      isSelected && 'ring-2 ring-primary ring-offset-2',
-                      !isUnlocked && 'opacity-50 cursor-not-allowed'
+                      "relative overflow-hidden p-0",
+                      isSelected && "ring-primary ring-2 ring-offset-2",
+                      !isUnlocked && "cursor-not-allowed opacity-50",
                     )}
                     style={{ width: tileSize, height: tileSize }}
                     onClick={() => handleSelectSkin(skin.id)}
@@ -93,18 +88,18 @@ export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
                   >
                     {/* Selected Check */}
                     {isSelected && (
-                      <div className="absolute top-1 right-1 z-20 bg-primary text-primary-foreground rounded-full p-1">
-                        <Check className="w-3 h-3" />
+                      <div className="bg-primary text-primary-foreground absolute top-1 right-1 z-20 rounded-full p-1">
+                        <Check className="h-3 w-3" />
                       </div>
                     )}
-                    
+
                     {/* Lock Icon for locked skins */}
                     {!isUnlocked && (
-                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                        <Lock className="w-5 h-5 text-muted-foreground" />
+                      <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center">
+                        <Lock className="text-muted-foreground h-5 w-5" />
                       </div>
                     )}
-                    
+
                     {/* Mini Checkerboard Preview */}
                     {renderMiniCheckerboard(skin)}
                   </Button>
@@ -113,7 +108,7 @@ export function SkinSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
                   <div className="space-y-1">
                     <p className="font-medium">{skin.name}</p>
                     {!isUnlocked && skin.unlockCondition && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {skin.unlockCondition.description}
                       </p>
                     )}

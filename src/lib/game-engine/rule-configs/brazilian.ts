@@ -1,89 +1,89 @@
 /**
  * Brazilian Draughts rule configuration
  */
-import type { VariantConfig } from '../rule-schema';
+import type { VariantConfig } from "../rule-schema";
 
 export const BrazilianConfig = {
-  "metadata": {
-    "name": "brazilian",
-    "displayName": "Brazilian Draughts",
-    "description": "8×8 draughts with backward captures for all pieces and maximum capture rule. Also known as Damas Brasileiras.",
-    "origin": "Brazil",
-    "aliases": ["Damas Brasileiras", "Brazilian Checkers"],
-    "popularity": "regional" as const,
-    "officialRules": {
-      "organization": "Confederação Brasileira de Damas (CBD)",
-      "lastUpdated": "2022-06-15",
-      "version": "2022.2"
-    }
-  },
-  "board": {
-    "size": 8,
-    "pieceCount": 12,
-    "startingRows": {
-      "black": [0, 1, 2],
-      "red": [5, 6, 7]
+  metadata: {
+    name: "brazilian",
+    displayName: "Brazilian Draughts",
+    description:
+      "8×8 draughts with backward captures for all pieces and maximum capture rule. Also known as Damas Brasileiras.",
+    origin: "Brazil",
+    aliases: ["Damas Brasileiras", "Brazilian Checkers"],
+    popularity: "regional" as const,
+    officialRules: {
+      organization: "Confederação Brasileira de Damas (CBD)",
+      lastUpdated: "2022-06-15",
+      version: "2022.2",
     },
-    
   },
-  "movement": {
-    "regularPieces": {
-      "directions": {
-        "red": "forward" as const,
-        "black": "forward" as const
+  board: {
+    size: 8,
+    pieceCount: 12,
+    startingRows: {
+      black: [0, 1, 2],
+      red: [5, 6, 7],
+    },
+  },
+  movement: {
+    regularPieces: {
+      directions: {
+        red: "forward" as const,
+        black: "forward" as const,
       },
-      "canCaptureBackward": true,
-      "canMoveBackward": false
+      canCaptureBackward: true,
+      canMoveBackward: false,
     },
-    "kings": {
-      "canFly": true,
-      "canCaptureBackward": true
-    }
-  },
-  "capture": {
-    "mandatory": true,
-    "requireMaximum": true,
-    "kingPriority": true,
-    "chainCaptures": true,
-    "captureDirection": {
-      "regular": "all" as const,
-      "king": "all" as const
+    kings: {
+      canFly: true,
+      canCaptureBackward: true,
     },
-    "promotion": {
-      "duringCapture": false,
-      "stopsCaptureChain": true
-    }
   },
-  "promotion": {
-    "toOppositeEnd": true,
-    "immediateEffect": true
-  },
-  "draws": {
-    "fortyMoveRule": true,
-    "twentyFiveMoveRule": false,
-    "repetitionLimit": 3,
-    "insufficientMaterial": true,
-    "staleMate": true
-  },
-  "tournament": {
-    "touchMove": true,
-    "timeControls": {
-      "enabled": true,
-      "blitz": { "baseTime": 5, "increment": 3 },
-      "rapid": { "baseTime": 20, "increment": 5 },
-      "classical": { "baseTime": 90, "increment": 0 }
+  capture: {
+    mandatory: true,
+    requireMaximum: true,
+    kingPriority: true,
+    chainCaptures: true,
+    captureDirection: {
+      regular: "all" as const,
+      king: "all" as const,
     },
-    "notation": {
-      "required": true,
-      "format": "algebraic" as const
+    promotion: {
+      duringCapture: false,
+      stopsCaptureChain: true,
     },
-    "openingRestrictions": {
-      "threeMove": false
-    },
-    "officialCompliance": {
-      "wcdf": false,
-      "fmjd": false
-    }
   },
-  "schemaVersion": "1.0.0"
+  promotion: {
+    toOppositeEnd: true,
+    immediateEffect: true,
+  },
+  draws: {
+    fortyMoveRule: true,
+    twentyFiveMoveRule: false,
+    repetitionLimit: 3,
+    insufficientMaterial: true,
+    staleMate: true,
+  },
+  tournament: {
+    touchMove: true,
+    timeControls: {
+      enabled: true,
+      blitz: { baseTime: 5, increment: 3 },
+      rapid: { baseTime: 20, increment: 5 },
+      classical: { baseTime: 90, increment: 0 },
+    },
+    notation: {
+      required: true,
+      format: "algebraic" as const,
+    },
+    openingRestrictions: {
+      threeMove: false,
+    },
+    officialCompliance: {
+      wcdf: false,
+      fmjd: false,
+    },
+  },
+  schemaVersion: "1.0.0",
 } as const satisfies VariantConfig;

@@ -6,18 +6,29 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import { FriendshipStatus, GameVariantEnum, PlayModeEnum } from "@prisma/client";
-import { generatePresignedUploadUrl, deleteObject, generateAvatarKey, getPublicUrl } from "~/lib/s3";
+import {
+  FriendshipStatus,
+  GameVariantEnum,
+  PlayModeEnum,
+} from "@prisma/client";
+import {
+  generatePresignedUploadUrl,
+  deleteObject,
+  generateAvatarKey,
+  getPublicUrl,
+} from "~/lib/s3";
 
 export const userRouter = createTRPCRouter({
   getProfile: publicProcedure
-    .input(z.object({ 
-      username: z.string().optional(),
-      userId: z.string().optional()
-    }))
+    .input(
+      z.object({
+        username: z.string().optional(),
+        userId: z.string().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const user = await ctx.db.user.findUnique({
-        where: input.userId 
+        where: input.userId
           ? { id: input.userId }
           : { username: input.username },
         select: {
@@ -179,7 +190,7 @@ export const userRouter = createTRPCRouter({
       z.object({
         friendshipId: z.string(),
         accept: z.boolean(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const friendship = await ctx.db.friendship.findUnique({
@@ -283,7 +294,7 @@ export const userRouter = createTRPCRouter({
     });
 
     return friendships.map((f) =>
-      f.senderId === ctx.session.user.id ? f.receiver : f.sender
+      f.senderId === ctx.session.user.id ? f.receiver : f.sender,
     );
   }),
 
@@ -433,7 +444,10 @@ export const userRouter = createTRPCRouter({
       where: {
         OR: [
           { senderId: ctx.session.user.id, status: FriendshipStatus.ACCEPTED },
-          { receiverId: ctx.session.user.id, status: FriendshipStatus.ACCEPTED },
+          {
+            receiverId: ctx.session.user.id,
+            status: FriendshipStatus.ACCEPTED,
+          },
         ],
       },
       include: {
@@ -447,12 +461,11 @@ export const userRouter = createTRPCRouter({
     });
 
     const friends = friendships.map((f) =>
-      f.senderId === ctx.session.user.id ? f.receiver : f.sender
+      f.senderId === ctx.session.user.id ? f.receiver : f.sender,
     );
 
-    if (friends.length === 0) return [] as Array<
-      typeof friends[number] & { online: boolean }
-    >;
+    if (friends.length === 0)
+      return [] as Array<(typeof friends)[number] & { online: boolean }>;
 
     const friendIds = friends.map((f) => f.id);
 
@@ -497,9 +510,11 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string().optional(), // If not provided, use current user
-        variant: z.nativeEnum(GameVariantEnum).default(GameVariantEnum.AMERICAN),
+        variant: z
+          .nativeEnum(GameVariantEnum)
+          .default(GameVariantEnum.AMERICAN),
         playMode: z.nativeEnum(PlayModeEnum).default(PlayModeEnum.CASUAL),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const userId = input.userId || ctx.session.user.id;
@@ -656,12 +671,14 @@ export const userRouter = createTRPCRouter({
     }),
 
   updateProfile: protectedProcedure
-    .input(z.object({
-      userId: z.string(),
-      name: z.string().optional(),
-      username: z.string().optional(),
-      email: z.string().email().optional(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        name: z.string().optional(),
+        username: z.string().optional(),
+        email: z.string().email().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       if (input.userId !== ctx.session.user.id) {
         throw new TRPCError({
@@ -675,10 +692,10 @@ export const userRouter = createTRPCRouter({
         const existing = await ctx.db.user.findFirst({
           where: {
             username: input.username,
-            NOT: { id: input.userId }
-          }
+            NOT: { id: input.userId },
+          },
         });
-        
+
         if (existing) {
           throw new TRPCError({
             code: "CONFLICT",
@@ -692,10 +709,10 @@ export const userRouter = createTRPCRouter({
         const existing = await ctx.db.user.findFirst({
           where: {
             email: input.email,
-            NOT: { id: input.userId }
-          }
+            NOT: { id: input.userId },
+          },
         });
-        
+
         if (existing) {
           throw new TRPCError({
             code: "CONFLICT",
@@ -722,10 +739,7 @@ export const userRouter = createTRPCRouter({
       // Get all games for the user
       const games = await ctx.db.game.findMany({
         where: {
-          OR: [
-            { player1Id: input.userId },
-            { player2Id: input.userId },
-          ],
+          OR: [{ player1Id: input.userId }, { player2Id: input.userId }],
         },
         select: {
           id: true,
@@ -765,7 +779,7 @@ export const userRouter = createTRPCRouter({
             // Determine if user was playing as red or black
             const isPlayer1 = game.player1Id === input.userId;
             const playerColor = isPlayer1 ? "red" : "black";
-            
+
             if (game.winner === playerColor) {
               wins++;
             } else {
@@ -784,7 +798,7 @@ export const userRouter = createTRPCRouter({
             const playerColor = isPlayer1 ? "red" : "black";
             result = game.winner === playerColor ? "win" : "loss";
           }
-          
+
           recentGames.push({
             id: game.id,
             result,
@@ -808,17 +822,16 @@ export const userRouter = createTRPCRouter({
     }),
 
   getMatchHistory: protectedProcedure
-    .input(z.object({
-      userId: z.string(),
-      skip: z.number().default(0),
-      take: z.number().default(10),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        skip: z.number().default(0),
+        take: z.number().default(10),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const where = {
-        OR: [
-          { player1Id: input.userId },
-          { player2Id: input.userId },
-        ],
+        OR: [{ player1Id: input.userId }, { player2Id: input.userId }],
       };
 
       const [matches, total] = await Promise.all([
@@ -864,20 +877,19 @@ export const userRouter = createTRPCRouter({
     }),
 
   getEnhancedMatchHistory: protectedProcedure
-    .input(z.object({
-      userId: z.string(),
-      skip: z.number().default(0),
-      take: z.number().default(15),
-      gameMode: z.enum(["ai", "local", "online"]).optional(),
-      searchOpponent: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        skip: z.number().default(0),
+        take: z.number().default(15),
+        gameMode: z.enum(["ai", "local", "online"]).optional(),
+        searchOpponent: z.string().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       // Build where clause
       const whereConditions: any = {
-        OR: [
-          { player1Id: input.userId },
-          { player2Id: input.userId },
-        ],
+        OR: [{ player1Id: input.userId }, { player2Id: input.userId }],
       };
 
       if (input.gameMode) {
@@ -888,10 +900,7 @@ export const userRouter = createTRPCRouter({
       if (input.searchOpponent) {
         whereConditions.AND = [
           {
-            OR: [
-              { player1Id: input.userId },
-              { player2Id: input.userId },
-            ],
+            OR: [{ player1Id: input.userId }, { player2Id: input.userId }],
           },
           {
             OR: [
@@ -955,10 +964,7 @@ export const userRouter = createTRPCRouter({
       // Calculate stats
       const allGames = await ctx.db.game.findMany({
         where: {
-          OR: [
-            { player1Id: input.userId },
-            { player2Id: input.userId },
-          ],
+          OR: [{ player1Id: input.userId }, { player2Id: input.userId }],
           winner: { not: null },
         },
         select: {
@@ -983,7 +989,7 @@ export const userRouter = createTRPCRouter({
         } else {
           const isPlayer1 = game.player1Id === input.userId;
           const playerColor = isPlayer1 ? "red" : "black";
-          
+
           if (game.winner === playerColor) {
             wins++;
             currentStreak++;
@@ -997,7 +1003,8 @@ export const userRouter = createTRPCRouter({
       }
 
       const totalGames = wins + losses + draws;
-      const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+      const winRate =
+        totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
       const avgMoves = totalGames > 0 ? Math.round(totalMoves / totalGames) : 0;
 
       return {
@@ -1016,14 +1023,19 @@ export const userRouter = createTRPCRouter({
     }),
 
   getAvatarUploadUrl: protectedProcedure
-    .input(z.object({
-      filename: z.string(),
-      contentType: z.string(),
-    }))
+    .input(
+      z.object({
+        filename: z.string(),
+        contentType: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const key = generateAvatarKey(ctx.session.user.id, input.filename);
-      const uploadUrl = await generatePresignedUploadUrl(key, input.contentType);
-      
+      const uploadUrl = await generatePresignedUploadUrl(
+        key,
+        input.contentType,
+      );
+
       return {
         uploadUrl,
         key,
@@ -1032,10 +1044,12 @@ export const userRouter = createTRPCRouter({
     }),
 
   updateAvatar: protectedProcedure
-    .input(z.object({
-      image: z.string().url(),
-      avatarKey: z.string(),
-    }))
+    .input(
+      z.object({
+        image: z.string().url(),
+        avatarKey: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Delete old avatar if exists
       const user = await ctx.db.user.findUnique({
@@ -1069,48 +1083,49 @@ export const userRouter = createTRPCRouter({
       return updated;
     }),
 
-  deleteAvatar: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      const user = await ctx.db.user.findUnique({
-        where: { id: ctx.session.user.id },
-        select: { avatarKey: true },
-      });
+  deleteAvatar: protectedProcedure.mutation(async ({ ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: { id: ctx.session.user.id },
+      select: { avatarKey: true },
+    });
 
-      if (user?.avatarKey) {
-        try {
-          await deleteObject(user.avatarKey);
-        } catch (error) {
-          console.error("Failed to delete avatar:", error);
-        }
+    if (user?.avatarKey) {
+      try {
+        await deleteObject(user.avatarKey);
+      } catch (error) {
+        console.error("Failed to delete avatar:", error);
       }
+    }
 
-      const updated = await ctx.db.user.update({
-        where: { id: ctx.session.user.id },
-        data: {
-          image: null,
-          avatarKey: null,
-        },
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          image: true,
-        },
-      });
-
-      return updated;
-    }),
-
-  getFriendRequestNotificationCount: protectedProcedure.query(async ({ ctx }) => {
-    const count = await ctx.db.friendship.count({
-      where: {
-        receiverId: ctx.session.user.id,
-        status: FriendshipStatus.PENDING,
+    const updated = await ctx.db.user.update({
+      where: { id: ctx.session.user.id },
+      data: {
+        image: null,
+        avatarKey: null,
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        image: true,
       },
     });
 
-    return { count };
+    return updated;
   }),
+
+  getFriendRequestNotificationCount: protectedProcedure.query(
+    async ({ ctx }) => {
+      const count = await ctx.db.friendship.count({
+        where: {
+          receiverId: ctx.session.user.id,
+          status: FriendshipStatus.PENDING,
+        },
+      });
+
+      return { count };
+    },
+  ),
 
   getFriendRequestNotifications: protectedProcedure.query(async ({ ctx }) => {
     const notifications = await ctx.db.friendship.findMany({
@@ -1128,12 +1143,12 @@ export const userRouter = createTRPCRouter({
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
-    return notifications.map(notification => ({
+    return notifications.map((notification) => ({
       id: notification.id,
-      type: 'FRIEND_REQUEST_RECEIVED' as const,
+      type: "FRIEND_REQUEST_RECEIVED" as const,
       sender: notification.sender,
       createdAt: notification.createdAt,
       read: false, // For now, we'll consider all friend requests as unread until acted upon
@@ -1144,9 +1159,11 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         limit: z.number().min(1).max(50).default(10),
-        variant: z.nativeEnum(GameVariantEnum).default(GameVariantEnum.AMERICAN),
+        variant: z
+          .nativeEnum(GameVariantEnum)
+          .default(GameVariantEnum.AMERICAN),
         playMode: z.nativeEnum(PlayModeEnum).default(PlayModeEnum.CASUAL),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const playerRatings = await ctx.db.playerRating.findMany({
@@ -1178,9 +1195,12 @@ export const userRouter = createTRPCRouter({
         losses: playerRating.losses,
         draws: playerRating.draws,
         totalGames: playerRating.gamesPlayed,
-        winRate: playerRating.gamesPlayed > 0 
-          ? Math.round((playerRating.wins / playerRating.gamesPlayed) * 100 * 10) / 10
-          : 0,
+        winRate:
+          playerRating.gamesPlayed > 0
+            ? Math.round(
+                (playerRating.wins / playerRating.gamesPlayed) * 100 * 10,
+              ) / 10
+            : 0,
         streak: 0, // We'd need to calculate this from recent games
       }));
 

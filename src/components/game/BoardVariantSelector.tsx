@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Label } from '~/components/ui/label';
-import { type BoardVariant, getBoardVariants } from '~/lib/variants';
-import { GameConfigLoader } from '~/lib/game-engine/config-loader';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Label } from "~/components/ui/label";
+import { type BoardVariant, getBoardVariants } from "~/lib/variants";
+import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 
 interface BoardVariantSelectorProps {
   value: BoardVariant;
@@ -11,17 +17,17 @@ interface BoardVariantSelectorProps {
   disabled?: boolean;
 }
 
-export function BoardVariantSelector({ value, onValueChange, disabled = false }: BoardVariantSelectorProps) {
+export function BoardVariantSelector({
+  value,
+  onValueChange,
+  disabled = false,
+}: BoardVariantSelectorProps) {
   const variants = getBoardVariants();
 
   return (
     <div className="space-y-2">
       <Label htmlFor="board-variant">Board Variant</Label>
-      <Select 
-        value={value} 
-        onValueChange={onValueChange}
-        disabled={disabled}
-      >
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger id="board-variant" className="w-full">
           <SelectValue placeholder="Select board variant" />
         </SelectTrigger>
@@ -29,8 +35,14 @@ export function BoardVariantSelector({ value, onValueChange, disabled = false }:
           {variants.map((variant) => (
             <SelectItem key={variant} value={variant}>
               <div className="flex flex-col">
-                <span className="font-medium">{GameConfigLoader.getVariantMetadata(variant)?.displayName ?? variant}</span>
-                <span className="text-sm text-muted-foreground">{GameConfigLoader.getVariantMetadata(variant)?.description ?? ''}</span>
+                <span className="font-medium">
+                  {GameConfigLoader.getVariantMetadata(variant)?.displayName ??
+                    variant}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  {GameConfigLoader.getVariantMetadata(variant)?.description ??
+                    ""}
+                </span>
               </div>
             </SelectItem>
           ))}

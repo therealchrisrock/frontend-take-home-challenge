@@ -12,7 +12,10 @@ interface AvatarUploadProps {
   onUploadComplete?: (image: string) => void;
 }
 
-export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploadProps) {
+export function AvatarUpload({
+  currentAvatarUrl,
+  onUploadComplete,
+}: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -116,10 +119,10 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
         title: "Avatar removed",
         description: "Your profile picture has been removed",
       });
-      
+
       // Update the session to remove the image
       await update({ image: null });
-      
+
       onUploadComplete?.("");
     } catch (error) {
       console.error("Delete error:", error);
@@ -140,7 +143,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
       <div className="flex items-start gap-4">
         <div className="relative">
           {/* Avatar Container */}
-          <div className="relative h-24 w-24 overflow-hidden rounded-full bg-muted">
+          <div className="bg-muted relative h-24 w-24 overflow-hidden rounded-full">
             {displayUrl ? (
               <Image
                 src={displayUrl}
@@ -151,7 +154,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <User className="h-12 w-12 text-muted-foreground" />
+                <User className="text-muted-foreground h-12 w-12" />
               </div>
             )}
             {uploading && (
@@ -166,7 +169,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="absolute -right-1 -top-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+            className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-transform hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
             aria-label="Edit avatar"
           >
             <Camera className="h-4 w-4" />
@@ -185,7 +188,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
 
         <div className="flex-1">
           <p className="text-sm font-medium">Profile Picture</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Click the edit icon to upload a new photo
           </p>
           {currentAvatarUrl && (
@@ -193,7 +196,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
               type="button"
               onClick={handleDelete}
               disabled={uploading}
-              className="mt-2 text-xs text-destructive hover:underline disabled:opacity-50"
+              className="text-destructive mt-2 text-xs hover:underline disabled:opacity-50"
             >
               Remove current photo
             </button>

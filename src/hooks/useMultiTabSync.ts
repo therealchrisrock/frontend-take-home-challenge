@@ -1,15 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { MultiTabSyncManager } from '~/lib/multi-tab/sync-manager';
-import { OptimisticUpdateManager } from '~/lib/optimistic-updates';
-import { api } from '~/trpc/react';
-import type { 
-  SyncEvent, 
-  InitialStatePayload, 
-  MoveAppliedPayload, 
+import { useEffect, useState, useCallback, useRef } from "react";
+import { MultiTabSyncManager } from "~/lib/multi-tab/sync-manager";
+import { OptimisticUpdateManager } from "~/lib/optimistic-updates";
+import { api } from "~/trpc/react";
+import type {
+  SyncEvent,
+  InitialStatePayload,
+  MoveAppliedPayload,
   TabStatusUpdatePayload,
-  ConnectionStatus
-} from '~/lib/multi-tab/types';
-import type { Move, Board, PieceColor } from '~/lib/game-logic';
+  ConnectionStatus,
+} from "~/lib/multi-tab/types";
+import type { Move, Board, PieceColor } from "~/lib/game-logic";
 
 export interface MultiTabSyncState {
   isConnected: boolean;
@@ -26,7 +26,12 @@ export interface MultiTabSyncState {
 export interface MultiTabSyncActions {
   connect: () => Promise<void>;
   disconnect: () => void;
-  makeOptimisticMove: (move: Move, currentBoard?: Board, currentPlayer?: PieceColor, moveCount?: number) => Promise<boolean>;
+  makeOptimisticMove: (
+    move: Move,
+    currentBoard?: Board,
+    currentPlayer?: PieceColor,
+    moveCount?: number,
+  ) => Promise<boolean>;
   requestTabActivation: () => Promise<boolean>;
   sendHeartbeat: () => Promise<void>;
   queueOfflineMove: (move: Move) => void;
@@ -42,7 +47,7 @@ export interface UseMultiTabSyncOptions {
 }
 
 export function useMultiTabSync(
-  options: UseMultiTabSyncOptions
+  options: UseMultiTabSyncOptions,
 ): [MultiTabSyncState, MultiTabSyncActions] {
   const {
     gameId,
@@ -50,7 +55,7 @@ export function useMultiTabSync(
     onMoveApplied,
     onTabStatusUpdate,
     onConnectionStatusChange,
-    onConflictDetected
+    onConflictDetected,
   } = options;
 
   const [state, setState] = useState<MultiTabSyncState>({
@@ -62,7 +67,7 @@ export function useMultiTabSync(
     hasPendingUpdates: false,
     syncManager: null,
     offlineMoveCount: 0,
-    lastConnected: null
+    lastConnected: null,
   });
 
   const syncManagerRef = useRef<MultiTabSyncManager | null>(null);
@@ -79,14 +84,16 @@ export function useMultiTabSync(
 
     if (!optimisticManagerRef.current) {
       optimisticManagerRef.current = new OptimisticUpdateManager();
-      
+
       // Subscribe to optimistic update state changes
-      const unsubscribe = optimisticManagerRef.current.subscribe((optimisticState) => {
-        setState(prev => ({
-          ...prev,
-          hasPendingUpdates: optimisticState.pendingCount > 0
-        }));
-      });
+      const unsubscribe = optimisticManagerRef.current.subscribe(
+        (optimisticState) => {
+          setState((prev) => ({
+            ...prev,
+            hasPendingUpdates: optimisticState.pendingCount > 0,
+          }));
+        },
+      );
 
       return () => {
         unsubscribe();
@@ -107,72 +114,81 @@ export function useMultiTabSync(
 
     const handleMoveApplied = (event: SyncEvent) => {
       const payload = event.payload as MoveAppliedPayload;
-      
+
       // Remove matching optimistic update
       if (payload.optimisticMoveId && optimisticManagerRef.current) {
         optimisticManagerRef.current.confirmUpdate(payload.optimisticMoveId);
       }
-      
+
       onMoveApplied?.(payload);
     };
 
     const handleTabStatusUpdate = (event: SyncEvent) => {
       const payload = event.payload as TabStatusUpdatePayload;
-      
-      setState(prev => ({
+
+      setState((prev) => ({
         ...prev,
         isActiveTab: payload.activeTabId === syncManager.getTabId,
-        totalTabs: payload.totalTabs
+        totalTabs: payload.totalTabs,
       }));
-      
+
       onTabStatusUpdate?.(payload);
     };
 
     const handleActiveTabChanged = (event: SyncEvent) => {
       const payload = event.payload as { activeTabId: string };
-      
-      setState(prev => ({
+
+      setState((prev) => ({
         ...prev,
-        isActiveTab: payload.activeTabId === syncManager.getTabId
+        isActiveTab: payload.activeTabId === syncManager.getTabId,
       }));
     };
 
     const handleConnectionStatus = (event: SyncEvent) => {
       const payload = event.payload as ConnectionStatus;
-      
-      setState(prev => ({
+
+      setState((prev) => ({
         ...prev,
         isConnected: payload.connected,
         isReconnecting: payload.reconnecting,
         connectionError: payload.error,
         offlineMoveCount: payload.offlineMoveCount || 0,
-        lastConnected: payload.lastConnected
+        lastConnected: payload.lastConnected,
       }));
-      
+
       onConnectionStatusChange?.(payload);
     };
 
     // Add event listeners
-    syncManager.addEventListener('INITIAL_STATE', handleInitialState);
-    syncManager.addEventListener('MOVE_APPLIED', handleMoveApplied);
-    syncManager.addEventListener('TAB_STATUS_UPDATE', handleTabStatusUpdate);
-    syncManager.addEventListener('ACTIVE_TAB_CHANGED', handleActiveTabChanged);
-    syncManager.addEventListener('CONNECTION_STATUS', handleConnectionStatus);
+    syncManager.addEventListener("INITIAL_STATE", handleInitialState);
+    syncManager.addEventListener("MOVE_APPLIED", handleMoveApplied);
+    syncManager.addEventListener("TAB_STATUS_UPDATE", handleTabStatusUpdate);
+    syncManager.addEventListener("ACTIVE_TAB_CHANGED", handleActiveTabChanged);
+    syncManager.addEventListener("CONNECTION_STATUS", handleConnectionStatus);
 
     return () => {
       // Remove event listeners
-      syncManager.removeEventListener('INITIAL_STATE', handleInitialState);
-      syncManager.removeEventListener('MOVE_APPLIED', handleMoveApplied);
-      syncManager.removeEventListener('TAB_STATUS_UPDATE', handleTabStatusUpdate);
-      syncManager.removeEventListener('ACTIVE_TAB_CHANGED', handleActiveTabChanged);
-      syncManager.removeEventListener('CONNECTION_STATUS', handleConnectionStatus);
+      syncManager.removeEventListener("INITIAL_STATE", handleInitialState);
+      syncManager.removeEventListener("MOVE_APPLIED", handleMoveApplied);
+      syncManager.removeEventListener(
+        "TAB_STATUS_UPDATE",
+        handleTabStatusUpdate,
+      );
+      syncManager.removeEventListener(
+        "ACTIVE_TAB_CHANGED",
+        handleActiveTabChanged,
+      );
+      syncManager.removeEventListener(
+        "CONNECTION_STATUS",
+        handleConnectionStatus,
+      );
     };
   }, [
     syncManagerRef.current,
     onGameStateUpdate,
     onMoveApplied,
     onTabStatusUpdate,
-    onConnectionStatusChange
+    onConnectionStatusChange,
   ]);
 
   const connect = useCallback(async () => {
@@ -182,27 +198,27 @@ export function useMultiTabSync(
       const syncManager = new MultiTabSyncManager(gameId);
       syncManagerRef.current = syncManager;
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         syncManager,
-        connectionError: null
+        connectionError: null,
       }));
 
       await syncManager.connect();
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isConnected: true,
         isActiveTab: syncManager.isActiveTab,
         totalTabs: syncManager.totalTabs,
-        lastConnected: new Date()
+        lastConnected: new Date(),
       }));
-
     } catch (error) {
-      console.error('Failed to connect to multi-tab sync:', error);
-      setState(prev => ({
+      console.error("Failed to connect to multi-tab sync:", error);
+      setState((prev) => ({
         ...prev,
-        connectionError: error instanceof Error ? error.message : 'Connection failed'
+        connectionError:
+          error instanceof Error ? error.message : "Connection failed",
       }));
     }
   }, [gameId]);
@@ -213,72 +229,84 @@ export function useMultiTabSync(
       syncManagerRef.current = null;
     }
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       isConnected: false,
       syncManager: null,
-      lastConnected: prev.isConnected ? new Date() : prev.lastConnected
+      lastConnected: prev.isConnected ? new Date() : prev.lastConnected,
     }));
   }, []);
 
-  const makeOptimisticMove = useCallback(async (
-    move: Move,
-    currentBoard?: Board,
-    currentPlayer?: PieceColor,
-    moveCount?: number
-  ): Promise<boolean> => {
-    if (!gameId || !syncManagerRef.current) return false;
+  const makeOptimisticMove = useCallback(
+    async (
+      move: Move,
+      currentBoard?: Board,
+      currentPlayer?: PieceColor,
+      moveCount?: number,
+    ): Promise<boolean> => {
+      if (!gameId || !syncManagerRef.current) return false;
 
-    const syncManager = syncManagerRef.current;
-    const optimisticManager = optimisticManagerRef.current;
+      const syncManager = syncManagerRef.current;
+      const optimisticManager = optimisticManagerRef.current;
 
-    // If offline, queue the move
-    if (!syncManager.isConnected) {
-      syncManager.queueOfflineMove(move);
-      console.log('Move queued for offline sync');
-      // Still return true to allow local state updates
-      return true;
-    }
-
-    if (!syncManager.isActiveTab) {
-      throw new Error('Only the active tab can make moves');
-    }
-
-    try {
-      // Create optimistic update
-      let optimisticUpdate: any = null;
-      if (optimisticManager && currentBoard && currentPlayer !== undefined && moveCount !== undefined) {
-        optimisticUpdate = optimisticManager.createUpdate(move, currentBoard, currentPlayer, moveCount);
-      }
-
-      // Make the move via tRPC
-      const result = await makeMoveApi.mutateAsync({
-        gameId,
-        move,
-        tabId: syncManager.getTabId,
-        optimisticMoveId: optimisticUpdate?.id
-      });
-
-      return result.success;
-
-    } catch (error) {
-      console.error('Failed to make optimistic move:', error);
-      
-      // If network error, queue for offline sync
-      if (error instanceof Error && error.message.includes('fetch')) {
+      // If offline, queue the move
+      if (!syncManager.isConnected) {
         syncManager.queueOfflineMove(move);
-        console.log('Network error - move queued for offline sync');
-        return true; // Allow local state update
+        console.log("Move queued for offline sync");
+        // Still return true to allow local state updates
+        return true;
       }
-      
-      // Rollback optimistic update if it exists
-      if (optimisticManagerRef.current && currentBoard) {
-        // Handle rollback logic here
+
+      if (!syncManager.isActiveTab) {
+        throw new Error("Only the active tab can make moves");
       }
-      
-      throw error;
-    }
-  }, [gameId, makeMoveApi]);
+
+      try {
+        // Create optimistic update
+        let optimisticUpdate: any = null;
+        if (
+          optimisticManager &&
+          currentBoard &&
+          currentPlayer !== undefined &&
+          moveCount !== undefined
+        ) {
+          optimisticUpdate = optimisticManager.createUpdate(
+            move,
+            currentBoard,
+            currentPlayer,
+            moveCount,
+          );
+        }
+
+        // Make the move via tRPC
+        const result = await makeMoveApi.mutateAsync({
+          gameId,
+          move,
+          tabId: syncManager.getTabId,
+          optimisticMoveId: optimisticUpdate?.id,
+        });
+
+        return result.success;
+      } catch (error) {
+        console.error("Failed to make optimistic move:", error);
+
+        // If network error, queue for offline sync
+        if (error instanceof Error && error.message.includes("fetch")) {
+          syncManager.queueOfflineMove(move);
+          console.log("Network error - move queued for offline sync");
+          return true; // Allow local state update
+        }
+
+        // Rollback optimistic update if it exists
+        if (optimisticManagerRef.current && currentBoard) {
+          // Handle rollback logic here
+        }
+
+        throw error;
+      }
+    },
+    [gameId, makeMoveApi],
+  );
 
   const requestTabActivation = useCallback(async (): Promise<boolean> => {
     if (!gameId || !syncManagerRef.current) return false;
@@ -286,12 +314,12 @@ export function useMultiTabSync(
     try {
       const result = await requestTabActivationApi.mutateAsync({
         gameId,
-        tabId: syncManagerRef.current.getTabId
+        tabId: syncManagerRef.current.getTabId,
       });
 
       return result.success;
     } catch (error) {
-      console.error('Failed to request tab activation:', error);
+      console.error("Failed to request tab activation:", error);
       return false;
     }
   }, [gameId, requestTabActivationApi]);
@@ -302,10 +330,10 @@ export function useMultiTabSync(
     try {
       await heartbeatApi.mutateAsync({
         gameId,
-        tabId: syncManagerRef.current.getTabId
+        tabId: syncManagerRef.current.getTabId,
       });
     } catch (error) {
-      console.error('Failed to send heartbeat:', error);
+      console.error("Failed to send heartbeat:", error);
     }
   }, [gameId, heartbeatApi]);
 
@@ -319,9 +347,9 @@ export function useMultiTabSync(
   const queueOfflineMove = useCallback((move: Move) => {
     if (syncManagerRef.current) {
       syncManagerRef.current.queueOfflineMove(move);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        offlineMoveCount: syncManagerRef.current?.getOfflineMoveCount() || 0
+        offlineMoveCount: syncManagerRef.current?.getOfflineMoveCount() || 0,
       }));
     }
   }, []);
@@ -332,7 +360,7 @@ export function useMultiTabSync(
     makeOptimisticMove,
     requestTabActivation,
     sendHeartbeat,
-    queueOfflineMove
+    queueOfflineMove,
   };
 
   return [state, actions];

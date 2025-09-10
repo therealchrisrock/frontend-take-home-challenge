@@ -1,14 +1,12 @@
-import { type api } from '~/trpc/react';
-import type { api as serverApi } from '~/trpc/server';
+import { type api } from "~/trpc/react";
+import type { api as serverApi } from "~/trpc/server";
 import {
   type GameStorageAdapter,
   type PersistedGameState,
   type GameSummary,
   type StorageResult,
   type StorageConfig,
-  STORAGE_VERSION
-} from './types';
-import { type Board, type Move } from '~/lib/game-logic';
+} from "./types";
 
 type ApiClient = typeof api | typeof serverApi;
 
@@ -20,7 +18,7 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
 
   constructor(apiClient: ApiClient, config: StorageConfig = {}) {
     this.apiClient = apiClient;
-    this.isServer = typeof window === 'undefined';
+    this.isServer = typeof window === "undefined";
     this.config = {
       autoSaveInterval: config.autoSaveInterval ?? 10000, // Slower for network
       maxSavedGames: config.maxSavedGames ?? 50,
@@ -33,7 +31,7 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
     try {
       // Check if game exists
       const existingGame = await this.loadGame(gameState.id);
-      
+
       if (existingGame.success && existingGame.data) {
         // Update existing game
         await (this.apiClient as any).game.save.mutate({
@@ -43,7 +41,7 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
           moveCount: gameState.moveCount,
           gameMode: gameState.gameMode,
           winner: gameState.winner,
-          moves: gameState.moveHistory
+          moves: gameState.moveHistory,
         });
       } else {
         // Create new game
@@ -51,10 +49,10 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
           mode: gameState.gameMode,
           playerName: undefined,
         });
-        
+
         // Update the gameState with the new ID
         gameState.id = result.id;
-        
+
         // Save with moves
         if (gameState.moveHistory.length > 0) {
           await (this.apiClient as any).game.save.mutate({
@@ -64,52 +62,58 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
             moveCount: gameState.moveCount,
             gameMode: gameState.gameMode,
             winner: gameState.winner,
-            moves: gameState.moveHistory
+            moves: gameState.moveHistory,
           });
         }
       }
-      
+
       return { success: true, data: undefined };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to save game to database',
-          originalError: error
-        }
+          code: "NETWORK_ERROR",
+          message: "Failed to save game to database",
+          originalError: error,
+        },
       };
     }
   }
 
-  async loadGame(gameId?: string): Promise<StorageResult<PersistedGameState | null>> {
+  async loadGame(
+    gameId?: string,
+  ): Promise<StorageResult<PersistedGameState | null>> {
     try {
       if (!gameId) {
         // Load the most recent game
-        const games = await (this.apiClient as any).game.list.query({ limit: 1 });
-        
+        const games = await (this.apiClient as any).game.list.query({
+          limit: 1,
+        });
+
         if (!games || games.length === 0) {
           return { success: true, data: null };
         }
-        
+
         gameId = games[0].id;
       }
-      
-      const game = await (this.apiClient as any).game.load.query({ id: gameId });
-      
+
+      const game = await (this.apiClient as any).game.load.query({
+        id: gameId,
+      });
+
       if (!game) {
         return { success: true, data: null };
       }
-      
+
       return { success: true, data: game };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to load game from database',
-          originalError: error
-        }
+          code: "NETWORK_ERROR",
+          message: "Failed to load game from database",
+          originalError: error,
+        },
       };
     }
   }
@@ -118,45 +122,47 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
     try {
       if (!gameId) {
         // Delete the most recent game
-        const games = await (this.apiClient as any).game.list.query({ limit: 1 });
-        
+        const games = await (this.apiClient as any).game.list.query({
+          limit: 1,
+        });
+
         if (!games || games.length === 0) {
           return { success: true, data: undefined };
         }
-        
+
         gameId = games[0].id;
       }
-      
+
       await (this.apiClient as any).game.delete.mutate({ id: gameId });
-      
+
       return { success: true, data: undefined };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to delete game from database',
-          originalError: error
-        }
+          code: "NETWORK_ERROR",
+          message: "Failed to delete game from database",
+          originalError: error,
+        },
       };
     }
   }
 
   async listGames(): Promise<StorageResult<GameSummary[]>> {
     try {
-      const games = await (this.apiClient as any).game.list.query({ 
-        limit: this.config.maxSavedGames 
+      const games = await (this.apiClient as any).game.list.query({
+        limit: this.config.maxSavedGames,
       });
-      
+
       return { success: true, data: games || [] };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to list games from database',
-          originalError: error
-        }
+          code: "NETWORK_ERROR",
+          message: "Failed to list games from database",
+          originalError: error,
+        },
       };
     }
   }
@@ -166,12 +172,12 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
     if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
-    
+
     // Set new timer
     this.autoSaveTimer = setTimeout(async () => {
       await this.saveGame({
         ...gameState,
-        lastSaved: new Date().toISOString()
+        lastSaved: new Date().toISOString(),
       });
     }, this.config.autoSaveInterval);
   }
@@ -179,16 +185,16 @@ export class DatabaseStorageAdapter implements GameStorageAdapter {
   async clearAll(): Promise<StorageResult<void>> {
     try {
       await (this.apiClient as any).game.deleteAll.mutate();
-      
+
       return { success: true, data: undefined };
     } catch (error) {
       return {
         success: false,
         error: {
-          code: 'NETWORK_ERROR',
-          message: 'Failed to clear all games from database',
-          originalError: error
-        }
+          code: "NETWORK_ERROR",
+          message: "Failed to clear all games from database",
+          originalError: error,
+        },
       };
     }
   }

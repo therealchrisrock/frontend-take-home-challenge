@@ -1,6 +1,6 @@
-import { useSession } from 'next-auth/react';
-import { api } from '~/trpc/react';
-import { type PlayerInfo } from '~/lib/player-types';
+import { useSession } from "next-auth/react";
+import { api } from "~/trpc/react";
+import { type PlayerInfo } from "~/lib/player-types";
 
 interface UsePlayerCardParams {
   player: PlayerInfo;
@@ -12,31 +12,37 @@ interface UsePlayerCardResult {
   isLoading: boolean;
 }
 
-export function usePlayerCard({ player, enableServerData = false }: UsePlayerCardParams): UsePlayerCardResult {
+export function usePlayerCard({
+  player,
+  enableServerData = false,
+}: UsePlayerCardParams): UsePlayerCardResult {
   const { data: session } = useSession();
 
-  const isCurrentUser = !player.id || (session?.user?.id === player.id);
+  const isCurrentUser = !player.id || session?.user?.id === player.id;
   const isGuest = isCurrentUser && !session;
 
-  const shouldFetch = enableServerData && !!player.id && !player.isAI && !isGuest;
+  const shouldFetch =
+    enableServerData && !!player.id && !player.isAI && !isGuest;
 
-  const { data: profileData, isLoading: profileLoading } = api.user.getPlayerProfile.useQuery(
-    { userId: player.id! },
-    {
-      enabled: shouldFetch,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-    }
-  );
+  const { data: profileData, isLoading: profileLoading } =
+    api.user.getPlayerProfile.useQuery(
+      { userId: player.id! },
+      {
+        enabled: shouldFetch,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+      },
+    );
 
-  const { data: statsData, isLoading: statsLoading } = api.user.getPlayerStats.useQuery(
-    { userId: player.id },
-    {
-      enabled: shouldFetch,
-      staleTime: 2 * 60 * 1000,
-      gcTime: 5 * 60 * 1000,
-    }
-  );
+  const { data: statsData, isLoading: statsLoading } =
+    api.user.getPlayerStats.useQuery(
+      { userId: player.id },
+      {
+        enabled: shouldFetch,
+        staleTime: 2 * 60 * 1000,
+        gcTime: 5 * 60 * 1000,
+      },
+    );
 
   const isLoading = shouldFetch && (profileLoading || statsLoading);
 
@@ -44,15 +50,20 @@ export function usePlayerCard({ player, enableServerData = false }: UsePlayerCar
     ...player,
     isGuest,
     isCurrentUser,
-    ...(isCurrentUser && session && {
-      id: session.user.id,
-      name: session.user.name ?? (session.user as { username?: string }).username ?? player.name,
-      avatar: session.user.image ?? player.avatar ?? undefined,
-    }),
-    ...(profileData && !isCurrentUser && {
-      name: profileData.name ?? player.name,
-      avatar: profileData.image ?? player.avatar ?? undefined,
-    }),
+    ...(isCurrentUser &&
+      session && {
+        id: session.user.id,
+        name:
+          session.user.name ??
+          (session.user as { username?: string }).username ??
+          player.name,
+        avatar: session.user.image ?? player.avatar ?? undefined,
+      }),
+    ...(profileData &&
+      !isCurrentUser && {
+        name: profileData.name ?? player.name,
+        avatar: profileData.image ?? player.avatar ?? undefined,
+      }),
     ...(statsData && {
       stats: {
         wins: statsData.wins,
@@ -65,4 +76,3 @@ export function usePlayerCard({ player, enableServerData = false }: UsePlayerCar
 
   return { player: enhancedPlayer, isLoading };
 }
-

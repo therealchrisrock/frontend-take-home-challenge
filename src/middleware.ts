@@ -16,7 +16,8 @@ export default withAuth(
     // If user is authenticated, prevent access to sign-in and sign-up
     if (
       req.nextauth.token &&
-      (req.nextUrl.pathname.startsWith("/auth/signin") || req.nextUrl.pathname.startsWith("/auth/signup"))
+      (req.nextUrl.pathname.startsWith("/auth/signin") ||
+        req.nextUrl.pathname.startsWith("/auth/signup"))
     ) {
       return NextResponse.redirect(new URL("/profile", req.url));
     }
@@ -30,14 +31,17 @@ export default withAuth(
           return true;
         }
         // Allow access to public pages
-        if (req.nextUrl.pathname === "/" || req.nextUrl.pathname.startsWith("/api")) {
+        if (
+          req.nextUrl.pathname === "/" ||
+          req.nextUrl.pathname.startsWith("/api")
+        ) {
           return true;
         }
         // Require authentication for other pages
         return !!token;
       },
     },
-  }
+  },
 );
 
 export const config = {

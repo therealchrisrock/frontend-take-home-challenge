@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   AlertDialog,
@@ -8,56 +8,56 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '~/components/ui/alert-dialog';
-import { Trophy, Handshake } from 'lucide-react';
-import { Button } from '~/components/ui/button';
-import { m } from 'framer-motion';
-import type { PieceColor } from '~/lib/game-logic';
-import type { DrawResult } from '~/lib/draw-detection';
-import { api } from '~/trpc/react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+} from "~/components/ui/alert-dialog";
+import { Trophy, Handshake } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { m } from "framer-motion";
+import type { PieceColor } from "~/lib/game-logic";
+import type { DrawResult } from "~/lib/draw-detection";
+import { api } from "~/trpc/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface WinnerDialogProps {
-  winner: PieceColor | 'draw' | null;
+  winner: PieceColor | "draw" | null;
   drawReason?: DrawResult | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPlayAgain: () => void;
   onStartAnalysis?: () => void;
-  gameMode: 'ai' | 'local' | 'online';
+  gameMode: "ai" | "local" | "online";
   playerColor?: PieceColor;
-  boardVariant?: 'american' | 'brazilian' | 'international' | 'canadian';
-  aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert';
+  boardVariant?: "american" | "brazilian" | "international" | "canadian";
+  aiDifficulty?: "easy" | "medium" | "hard" | "expert";
   timeControl?: {
-    format: 'X|Y' | 'X+Y';
+    format: "X|Y" | "X+Y";
     initialMinutes: number;
     incrementSeconds: number;
-    preset?: 'bullet' | 'blitz' | 'rapid' | 'classical' | 'custom';
+    preset?: "bullet" | "blitz" | "rapid" | "classical" | "custom";
   } | null;
 }
 
 // Confetti particle component
 function Confetti() {
-  const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#98FB98'];
-  
+  const colors = ["#FFD700", "#FFA500", "#FF69B4", "#00CED1", "#98FB98"];
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: 50 }).map((_, i) => (
         <m.div
           key={i}
-          className="absolute w-2 h-2 rounded-full"
+          className="absolute h-2 w-2 rounded-full"
           style={{
             background: colors[i % colors.length],
             left: `${Math.random() * 100}%`,
           }}
-          initial={{ 
+          initial={{
             y: -20,
             opacity: 0,
             scale: 0,
             rotate: 0,
           }}
-          animate={{ 
+          animate={{
             y: 300,
             opacity: [0, 1, 1, 0],
             scale: [0, 1, 1, 0.5],
@@ -82,93 +82,106 @@ export function WinnerDialog({
   onPlayAgain,
   onStartAnalysis,
   gameMode,
-  playerColor = 'red',
-  boardVariant = 'american',
-  aiDifficulty = 'medium',
-  timeControl = null
+  playerColor = "red",
+  boardVariant = "american",
+  aiDifficulty = "medium",
+  timeControl = null,
 }: WinnerDialogProps) {
   const router = useRouter();
   const [isCreatingGame, setIsCreatingGame] = useState(false);
-  
+
   const createGameMutation = api.game.create.useMutation({
     onSuccess: (data) => {
       router.push(`/game/${data.id}`);
     },
     onError: () => {
       setIsCreatingGame(false);
-    }
+    },
   });
-  
+
   const handlePlayAgain = () => {
     setIsCreatingGame(true);
     createGameMutation.mutate({
       mode: gameMode,
       boardVariant,
       playerColor,
-      aiDifficulty: gameMode === 'ai' ? aiDifficulty : undefined,
-      timeControl
+      aiDifficulty: gameMode === "ai" ? aiDifficulty : undefined,
+      timeControl,
     });
   };
-  
+
   if (!winner) return null;
 
   const getWinnerText = () => {
-    if (winner === 'draw') {
+    if (winner === "draw") {
       // Use the draw reason explanation if available
-      const description = drawReason?.explanation || 'The game has ended in a draw.';
-      
+      const description =
+        drawReason?.explanation || "The game has ended in a draw.";
+
       // Create a more specific title based on the draw reason
-      let title = 'Game Drawn!';
-      if (drawReason?.reason === 'threefold-repetition') {
-        title = 'Draw by Repetition!';
-      } else if (drawReason?.reason === 'forty-move-rule') {
-        title = 'Draw by Forty-Move Rule!';
-      } else if (drawReason?.reason === 'twenty-five-move-rule') {
-        title = 'Draw by Twenty-Five-Move Rule!';
-      } else if (drawReason?.reason === 'insufficient-material') {
-        title = 'Draw by Insufficient Material!';
-      } else if (drawReason?.reason === 'stalemate') {
-        title = 'Draw by Agreement!';
+      let title = "Game Drawn!";
+      if (drawReason?.reason === "threefold-repetition") {
+        title = "Draw by Repetition!";
+      } else if (drawReason?.reason === "forty-move-rule") {
+        title = "Draw by Forty-Move Rule!";
+      } else if (drawReason?.reason === "twenty-five-move-rule") {
+        title = "Draw by Twenty-Five-Move Rule!";
+      } else if (drawReason?.reason === "insufficient-material") {
+        title = "Draw by Insufficient Material!";
+      } else if (drawReason?.reason === "stalemate") {
+        title = "Draw by Agreement!";
       }
-      
+
       return {
         title,
         description,
-        icon: <Handshake className="w-12 h-12 text-blue-500" />,
+        icon: <Handshake className="h-12 w-12 text-blue-500" />,
         isVictory: false,
       };
     }
 
-    if (gameMode === 'ai') {
+    if (gameMode === "ai") {
       const playerWon = winner === playerColor;
       return {
-        title: playerWon ? 'You Win!' : 'AI Wins!',
-        description: playerWon 
-          ? 'Congratulations! You have defeated the AI opponent.'
-          : 'The AI has won this game. Better luck next time!',
-        icon: <Trophy className={`w-12 h-12 ${playerWon ? 'text-yellow-500' : 'text-gray-500'}`} />,
+        title: playerWon ? "You Win!" : "AI Wins!",
+        description: playerWon
+          ? "Congratulations! You have defeated the AI opponent."
+          : "The AI has won this game. Better luck next time!",
+        icon: (
+          <Trophy
+            className={`h-12 w-12 ${playerWon ? "text-yellow-500" : "text-gray-500"}`}
+          />
+        ),
         isVictory: playerWon,
       };
     }
 
-    if (gameMode === 'online') {
+    if (gameMode === "online") {
       const playerWon = winner === playerColor;
       return {
-        title: playerWon ? 'You Win!' : 'You Lose!',
-        description: playerWon 
-          ? 'Congratulations! You have defeated your opponent.'
-          : 'Your opponent has won this game. Better luck next time!',
-        icon: <Trophy className={`w-12 h-12 ${playerWon ? 'text-yellow-500' : 'text-gray-500'}`} />,
+        title: playerWon ? "You Win!" : "You Lose!",
+        description: playerWon
+          ? "Congratulations! You have defeated your opponent."
+          : "Your opponent has won this game. Better luck next time!",
+        icon: (
+          <Trophy
+            className={`h-12 w-12 ${playerWon ? "text-yellow-500" : "text-gray-500"}`}
+          />
+        ),
         isVictory: playerWon,
       };
     }
 
     // Local game
-    const winnerName = winner === 'red' ? 'Red' : 'Black';
+    const winnerName = winner === "red" ? "Red" : "Black";
     return {
       title: `${winnerName} Wins!`,
       description: `${winnerName} player has won the game!`,
-      icon: <Trophy className={`w-12 h-12 ${winner === 'red' ? 'text-red-500' : 'text-gray-700'}`} />,
+      icon: (
+        <Trophy
+          className={`h-12 w-12 ${winner === "red" ? "text-red-500" : "text-gray-700"}`}
+        />
+      ),
       isVictory: true, // Both players see celebration in local mode
     };
   };
@@ -181,13 +194,13 @@ export function WinnerDialog({
         <AlertDialogHeader>
           <div className="relative flex flex-col items-center gap-4 py-4">
             {/* Confetti for victories */}
-            {isVictory && winner !== 'draw' && <Confetti />}
-            
+            {isVictory && winner !== "draw" && <Confetti />}
+
             {/* Animated icon */}
             <m.div
               initial={{ scale: 0, rotate: -180 }}
               animate={
-                isVictory && winner !== 'draw'
+                isVictory && winner !== "draw"
                   ? {
                       scale: [0, 1.2, 1],
                       rotate: [180, 360, 360],
@@ -205,13 +218,14 @@ export function WinnerDialog({
               }}
             >
               {/* Glow effect for victory */}
-              {isVictory && winner !== 'draw' && (
+              {isVictory && winner !== "draw" && (
                 <m.div
                   className="absolute inset-0 rounded-full blur-xl"
                   style={{
-                    background: winner === 'red' 
-                      ? 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)'
-                      : 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)',
+                    background:
+                      winner === "red"
+                        ? "radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)"
+                        : "radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)",
                   }}
                   animate={{
                     scale: [1, 1.5, 1],
@@ -224,9 +238,9 @@ export function WinnerDialog({
                   }}
                 />
               )}
-              
+
               {/* Trophy bounce animation for victory */}
-              {isVictory && winner !== 'draw' ? (
+              {isVictory && winner !== "draw" ? (
                 <m.div
                   animate={{
                     y: [0, -10, 0],
@@ -243,17 +257,19 @@ export function WinnerDialog({
                 icon
               )}
             </m.div>
-            
-            <AlertDialogTitle className="text-2xl relative z-10">{title}</AlertDialogTitle>
-            <AlertDialogDescription className="text-center relative z-10">
+
+            <AlertDialogTitle className="relative z-10 text-2xl">
+              {title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="relative z-10 text-center">
               {description}
             </AlertDialogDescription>
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <div className="flex gap-2 w-full">
+          <div className="flex w-full gap-2">
             {onStartAnalysis && (
-              <Button 
+              <Button
                 onClick={onStartAnalysis}
                 variant="outline"
                 className="flex-1"
@@ -261,12 +277,12 @@ export function WinnerDialog({
                 Analyze Game
               </Button>
             )}
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handlePlayAgain}
               className="flex-1"
               disabled={isCreatingGame}
             >
-              {isCreatingGame ? 'Creating...' : 'Play Again'}
+              {isCreatingGame ? "Creating..." : "Play Again"}
             </AlertDialogAction>
           </div>
         </AlertDialogFooter>

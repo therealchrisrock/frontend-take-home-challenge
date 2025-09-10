@@ -1,4 +1,4 @@
-import type { Move } from '~/lib/game-logic';
+import type { Move } from "~/lib/game-logic";
 
 export type TabId = string;
 export type GameId = string;
@@ -18,14 +18,14 @@ export interface GameSession {
   version: number;
 }
 
-export type SyncEventType = 
-  | 'INITIAL_STATE'
-  | 'MOVE_APPLIED'
-  | 'TAB_STATUS_UPDATE'
-  | 'ACTIVE_TAB_CHANGED'
-  | 'CONFLICT_RESOLVED'
-  | 'HEARTBEAT'
-  | 'CONNECTION_STATUS';
+export type SyncEventType =
+  | "INITIAL_STATE"
+  | "MOVE_APPLIED"
+  | "TAB_STATUS_UPDATE"
+  | "ACTIVE_TAB_CHANGED"
+  | "CONFLICT_RESOLVED"
+  | "HEARTBEAT"
+  | "CONNECTION_STATUS";
 
 export interface SyncEvent<T = unknown> {
   type: SyncEventType;
@@ -37,9 +37,9 @@ export interface SyncEvent<T = unknown> {
 
 export interface InitialStatePayload {
   board: unknown[][];
-  currentPlayer: 'red' | 'black';
+  currentPlayer: "red" | "black";
   moveCount: number;
-  winner: 'red' | 'black' | 'draw' | null;
+  winner: "red" | "black" | "draw" | null;
   gameStartTime: string;
   version: number;
 }
@@ -58,7 +58,7 @@ export interface TabStatusUpdatePayload {
 export interface ConflictResolvedPayload {
   winningMove: Move;
   rejectedMoves: Move[];
-  resolutionStrategy: 'first-write-wins' | 'last-write-wins';
+  resolutionStrategy: "first-write-wins" | "last-write-wins";
 }
 
 export type OptimisticUpdate = {

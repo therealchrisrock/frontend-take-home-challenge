@@ -1,13 +1,13 @@
-import type { Move, Board } from '~/lib/game-logic';
-import { makeMove, checkWinner } from '~/lib/game-logic';
-import type { OptimisticUpdate } from './optimistic-updates';
+import type { Move, Board } from "~/lib/game-logic";
+import { makeMove, checkWinner } from "~/lib/game-logic";
+import type { OptimisticUpdate } from "./optimistic-updates";
 
-export type ConflictResolutionStrategy = 
-  | 'first-write-wins' 
-  | 'last-write-wins' 
-  | 'merge' 
-  | 'reject'
-  | 'user-choice';
+export type ConflictResolutionStrategy =
+  | "first-write-wins"
+  | "last-write-wins"
+  | "merge"
+  | "reject"
+  | "user-choice";
 
 export interface ConflictingMove {
   move: Move;
@@ -27,7 +27,7 @@ export interface ConflictResolution {
 export interface ConflictContext {
   gameId: string;
   currentBoard: Board;
-  currentPlayer: 'red' | 'black';
+  currentPlayer: "red" | "black";
   moveCount: number;
   gameVersion: number;
 }
@@ -35,7 +35,7 @@ export interface ConflictContext {
 export class ConflictResolver {
   private readonly strategy: ConflictResolutionStrategy;
 
-  constructor(strategy: ConflictResolutionStrategy = 'first-write-wins') {
+  constructor(strategy: ConflictResolutionStrategy = "first-write-wins") {
     this.strategy = strategy;
   }
 
@@ -44,10 +44,10 @@ export class ConflictResolver {
    */
   async resolveMovesConflict(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution> {
     if (conflictingMoves.length === 0) {
-      throw new Error('No conflicting moves provided');
+      throw new Error("No conflicting moves provided");
     }
 
     if (conflictingMoves.length === 1) {
@@ -55,72 +55,74 @@ export class ConflictResolver {
         strategy: this.strategy,
         winningMove: conflictingMoves[0]!.move,
         rejectedMoves: [],
-        resolutionReason: 'No conflict - single move'
+        resolutionReason: "No conflict - single move",
       };
     }
 
     switch (this.strategy) {
-      case 'first-write-wins':
+      case "first-write-wins":
         return this.resolveFirstWriteWins(conflictingMoves, context);
-      
-      case 'last-write-wins':
+
+      case "last-write-wins":
         return this.resolveLastWriteWins(conflictingMoves, context);
-      
-      case 'merge':
+
+      case "merge":
         return this.resolveMerge(conflictingMoves, context);
-      
-      case 'reject':
+
+      case "reject":
         return this.resolveRejectAll(conflictingMoves, context);
-      
-      case 'user-choice':
+
+      case "user-choice":
         return this.resolveUserChoice(conflictingMoves, context);
-      
+
       default:
-        throw new Error(`Unsupported resolution strategy: ${String(this.strategy)}`);
+        throw new Error(
+          `Unsupported resolution strategy: ${String(this.strategy)}`,
+        );
     }
   }
 
   private resolveFirstWriteWins(
     conflictingMoves: ConflictingMove[],
-    _context: ConflictContext
+    _context: ConflictContext,
   ): ConflictResolution {
     // Sort by timestamp - earliest wins
-    const sortedMoves = conflictingMoves.sort((a, b) => 
-      a.timestamp.getTime() - b.timestamp.getTime()
+    const sortedMoves = conflictingMoves.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
     );
 
     const [winningMove, ...rejectedMoves] = sortedMoves;
 
     return {
-      strategy: 'first-write-wins',
+      strategy: "first-write-wins",
       winningMove: winningMove!.move,
-      rejectedMoves: rejectedMoves.map(m => m.move),
-      resolutionReason: `First move wins (${winningMove!.timestamp.toISOString()})`
+      rejectedMoves: rejectedMoves.map((m) => m.move),
+      resolutionReason: `First move wins (${winningMove!.timestamp.toISOString()})`,
     };
   }
 
   private resolveLastWriteWins(
     conflictingMoves: ConflictingMove[],
-    _context: ConflictContext
+    _context: ConflictContext,
   ): ConflictResolution {
     // Sort by timestamp - latest wins
-    const sortedMoves = conflictingMoves.sort((a, b) => 
-      b.timestamp.getTime() - a.timestamp.getTime()
+    const sortedMoves = conflictingMoves.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
     );
 
     const [winningMove, ...rejectedMoves] = sortedMoves;
 
     return {
-      strategy: 'last-write-wins',
+      strategy: "last-write-wins",
       winningMove: winningMove!.move,
-      rejectedMoves: rejectedMoves.map(m => m.move),
-      resolutionReason: `Last move wins (${winningMove!.timestamp.toISOString()})`
+      rejectedMoves: rejectedMoves.map((m) => m.move),
+      resolutionReason: `Last move wins (${winningMove!.timestamp.toISOString()})`,
     };
   }
 
   private async resolveMerge(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    context: ConflictContext,
   ): Promise<ConflictResolution> {
     // Attempt to merge moves if they don't interfere with each other
     const validMoves: Move[] = [];
@@ -128,17 +130,23 @@ export class ConflictResolver {
     let currentBoard = structuredClone(context.currentBoard);
 
     // Sort moves by timestamp for deterministic order
-    const sortedMoves = conflictingMoves.sort((a, b) => 
-      a.timestamp.getTime() - b.timestamp.getTime()
+    const sortedMoves = conflictingMoves.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
     );
 
     for (const conflictingMove of sortedMoves) {
       try {
         // Check if move is still valid on the current board state
-        if (this.isMoveStillValid(conflictingMove.move, currentBoard, context.currentPlayer)) {
+        if (
+          this.isMoveStillValid(
+            conflictingMove.move,
+            currentBoard,
+            context.currentPlayer,
+          )
+        ) {
           // Apply move to test board
           const testBoard = makeMove(currentBoard, conflictingMove.move);
-          
+
           // Check for game-ending conditions
           const winner = checkWinner(testBoard);
           if (winner && validMoves.length > 0) {
@@ -152,25 +160,26 @@ export class ConflictResolver {
           rejectedMoves.push(conflictingMove.move);
         }
       } catch (error) {
-        console.error('Error validating move for merge:', error);
+        console.error("Error validating move for merge:", error);
         rejectedMoves.push(conflictingMove.move);
       }
     }
 
     if (validMoves.length === 0) {
       return {
-        strategy: 'merge',
-        rejectedMoves: conflictingMoves.map(m => m.move),
-        resolutionReason: 'No moves could be merged - all invalid'
+        strategy: "merge",
+        rejectedMoves: conflictingMoves.map((m) => m.move),
+        resolutionReason: "No moves could be merged - all invalid",
       };
     }
 
     if (validMoves.length === 1) {
       return {
-        strategy: 'merge',
+        strategy: "merge",
         winningMove: validMoves[0],
         rejectedMoves,
-        resolutionReason: 'Only one move could be applied after merge validation'
+        resolutionReason:
+          "Only one move could be applied after merge validation",
       };
     }
 
@@ -181,28 +190,33 @@ export class ConflictResolver {
 
   private resolveRejectAll(
     conflictingMoves: ConflictingMove[],
-    _context: ConflictContext
+    _context: ConflictContext,
   ): ConflictResolution {
     return {
-      strategy: 'reject',
-      rejectedMoves: conflictingMoves.map(m => m.move),
-      resolutionReason: 'All conflicting moves rejected - manual resolution required'
+      strategy: "reject",
+      rejectedMoves: conflictingMoves.map((m) => m.move),
+      resolutionReason:
+        "All conflicting moves rejected - manual resolution required",
     };
   }
 
   private resolveUserChoice(
     conflictingMoves: ConflictingMove[],
-    _context: ConflictContext
+    _context: ConflictContext,
   ): ConflictResolution {
     return {
-      strategy: 'user-choice',
-      rejectedMoves: conflictingMoves.map(m => m.move),
-      resolutionReason: 'User choice required for conflict resolution',
-      requiresUserAction: true
+      strategy: "user-choice",
+      rejectedMoves: conflictingMoves.map((m) => m.move),
+      resolutionReason: "User choice required for conflict resolution",
+      requiresUserAction: true,
     };
   }
 
-  private isMoveStillValid(move: Move, board: Board, currentPlayer: 'red' | 'black'): boolean {
+  private isMoveStillValid(
+    move: Move,
+    board: Board,
+    currentPlayer: "red" | "black",
+  ): boolean {
     try {
       // Basic validation - check if piece still exists and move is structurally valid
       const piece = board[move.from.row]?.[move.from.col];
@@ -229,7 +243,7 @@ export class ConflictResolver {
     optimisticUpdates: OptimisticUpdate[],
     serverBoard: Board,
     serverMoveCount: number,
-    _serverVersion: number
+    _serverVersion: number,
   ): {
     conflicts: string[];
     validUpdates: string[];
@@ -251,9 +265,9 @@ export class ConflictResolver {
         // Same move count - check if board states match
         const boardsMatch = this.compareBoardStates(
           update.rollbackState.board,
-          serverBoard
+          serverBoard,
         );
-        
+
         if (!boardsMatch) {
           conflicts.push(update.id);
         } else {
@@ -268,7 +282,7 @@ export class ConflictResolver {
     return {
       conflicts,
       validUpdates,
-      resolutionNeeded: conflicts.length > 0
+      resolutionNeeded: conflicts.length > 0,
     };
   }
 
@@ -278,7 +292,7 @@ export class ConflictResolver {
     for (let i = 0; i < board1.length; i++) {
       const row1 = board1[i];
       const row2 = board2[i];
-      
+
       if (!row1 || !row2 || row1.length !== row2.length) return false;
 
       for (let j = 0; j < row1.length; j++) {
@@ -287,7 +301,7 @@ export class ConflictResolver {
 
         if (piece1 === null && piece2 === null) continue;
         if (piece1 === null || piece2 === null) return false;
-        
+
         if (piece1?.color !== piece2?.color || piece1?.type !== piece2?.type) {
           return false;
         }
@@ -303,7 +317,7 @@ export class ConflictResolver {
   createResolutionReport(
     resolution: ConflictResolution,
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    context: ConflictContext,
   ): {
     gameId: string;
     conflictCount: number;
@@ -320,19 +334,19 @@ export class ConflictResolver {
       winningMove: resolution.winningMove,
       rejectedCount: resolution.rejectedMoves.length,
       timestamp: new Date(),
-      context
+      context,
     };
   }
 }
 
 // Default resolver instance
-export const defaultConflictResolver = new ConflictResolver('first-write-wins');
+export const defaultConflictResolver = new ConflictResolver("first-write-wins");
 
 // Utility function for quick conflict resolution
 export async function resolveMovesConflict(
   conflictingMoves: ConflictingMove[],
   context: ConflictContext,
-  strategy: ConflictResolutionStrategy = 'first-write-wins'
+  strategy: ConflictResolutionStrategy = "first-write-wins",
 ): Promise<ConflictResolution> {
   const resolver = new ConflictResolver(strategy);
   return resolver.resolveMovesConflict(conflictingMoves, context);

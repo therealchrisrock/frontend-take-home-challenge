@@ -1,30 +1,38 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
-import { NumberInput } from '~/components/ui/number-input';
-import { Label } from '~/components/ui/label';
-import { Badge } from '~/components/ui/badge';
-import { Separator } from '~/components/ui/separator';
-import { Switch } from '~/components/ui/switch';
-import { 
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { NumberInput } from "~/components/ui/number-input";
+import { Label } from "~/components/ui/label";
+import { Badge } from "~/components/ui/badge";
+import { Separator } from "~/components/ui/separator";
+import { Switch } from "~/components/ui/switch";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter
-} from '~/components/ui/dialog';
-import { Clock, Zap, Timer, Trophy, Settings, Volume2, VolumeX } from 'lucide-react';
-import { cn } from '~/lib/utils';
+  DialogFooter,
+} from "~/components/ui/dialog";
+import {
+  Clock,
+  Zap,
+  Timer,
+  Trophy,
+  Settings,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { cn } from "~/lib/utils";
 import {
   type TimeControl,
   TIME_CONTROL_PRESETS,
   validateTimeControl,
   timeControlToString,
-  getTimeControlPreset
-} from '~/lib/time-control-types';
+  getTimeControlPreset,
+} from "~/lib/time-control-types";
 
 interface TimeControlSelectorProps {
   /** Current time control */
@@ -50,52 +58,54 @@ export function TimeControlSelector({
   onTimeControlChange,
   gameActive = false,
   audioEnabled = true,
-  onAudioEnabledChange
+  onAudioEnabledChange,
 }: TimeControlSelectorProps) {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(
-    timeControl?.preset && timeControl.preset !== 'custom' ? timeControl.preset : null
+    timeControl?.preset && timeControl.preset !== "custom"
+      ? timeControl.preset
+      : null,
   );
   const [customMinutes, setCustomMinutes] = useState(
-    timeControl?.preset === 'custom' ? timeControl.initialMinutes : 10
+    timeControl?.preset === "custom" ? timeControl.initialMinutes : 10,
   );
   const [customIncrement, setCustomIncrement] = useState(
-    timeControl?.preset === 'custom' ? timeControl.incrementSeconds : 5
+    timeControl?.preset === "custom" ? timeControl.incrementSeconds : 5,
   );
-  const [customFormat, setCustomFormat] = useState<'X|Y' | 'X+Y'>(
-    timeControl?.preset === 'custom' ? timeControl.format : 'X|Y'
+  const [customFormat, setCustomFormat] = useState<"X|Y" | "X+Y">(
+    timeControl?.preset === "custom" ? timeControl.format : "X|Y",
   );
   const [customError, setCustomError] = useState<string | null>(null);
 
   // Preset configurations
   const presets = [
     {
-      key: 'bullet',
-      name: 'Bullet',
-      description: 'Fast-paced games',
+      key: "bullet",
+      name: "Bullet",
+      description: "Fast-paced games",
       icon: Zap,
-      color: 'text-yellow-600 border-yellow-600'
+      color: "text-yellow-600 border-yellow-600",
     },
     {
-      key: 'blitz',
-      name: 'Blitz',
-      description: 'Quick tactical games',
+      key: "blitz",
+      name: "Blitz",
+      description: "Quick tactical games",
       icon: Timer,
-      color: 'text-orange-600 border-orange-600'
+      color: "text-orange-600 border-orange-600",
     },
     {
-      key: 'rapid',
-      name: 'Rapid',
-      description: 'Balanced gameplay',
+      key: "rapid",
+      name: "Rapid",
+      description: "Balanced gameplay",
       icon: Clock,
-      color: 'text-blue-600 border-blue-600'
+      color: "text-blue-600 border-blue-600",
     },
     {
-      key: 'classical',
-      name: 'Classical',
-      description: 'Deep strategic games',
+      key: "classical",
+      name: "Classical",
+      description: "Deep strategic games",
       icon: Trophy,
-      color: 'text-green-600 border-green-600'
-    }
+      color: "text-green-600 border-green-600",
+    },
   ];
 
   const handlePresetSelect = (presetKey: string) => {
@@ -105,14 +115,14 @@ export function TimeControlSelector({
 
   const handleCustomChange = () => {
     setSelectedPreset(null);
-    
+
     const customTimeControl: TimeControl = {
       format: customFormat,
       initialMinutes: customMinutes,
       incrementSeconds: customIncrement,
-      preset: 'custom'
+      preset: "custom",
     };
-    
+
     const validation = validateTimeControl(customTimeControl);
     setCustomError(validation);
   };
@@ -136,9 +146,9 @@ export function TimeControlSelector({
         format: customFormat,
         initialMinutes: customMinutes,
         incrementSeconds: customIncrement,
-        preset: 'custom'
+        preset: "custom",
       };
-      
+
       if (!validateTimeControl(customTimeControl)) {
         onTimeControlChange(customTimeControl);
         onOpenChange(false);
@@ -162,12 +172,12 @@ export function TimeControlSelector({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <Settings className="h-5 w-5" />
             Time Control Settings
           </DialogTitle>
           <DialogDescription>
-            Choose a time control preset or create a custom configuration.
-            Time controls add strategic depth to your games.
+            Choose a time control preset or create a custom configuration. Time
+            controls add strategic depth to your games.
           </DialogDescription>
         </DialogHeader>
 
@@ -182,7 +192,11 @@ export function TimeControlSelector({
                     {timeControlToString(timeControl)}
                   </Badge>
                   <span className="text-muted-foreground ml-2">
-                    ({timeControl.preset === 'custom' ? 'Custom' : timeControl.preset})
+                    (
+                    {timeControl.preset === "custom"
+                      ? "Custom"
+                      : timeControl.preset}
+                    )
                   </span>
                 </div>
               </CardContent>
@@ -192,25 +206,25 @@ export function TimeControlSelector({
           {/* Preset buttons */}
           <div>
             <Label className="text-sm font-medium">Presets</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="mt-2 grid grid-cols-2 gap-2">
               {presets.map((preset) => {
                 const config = TIME_CONTROL_PRESETS[preset.key]!;
                 const isSelected = selectedPreset === preset.key;
                 const Icon = preset.icon;
-                
+
                 return (
                   <Button
                     key={preset.key}
                     variant={isSelected ? "default" : "outline"}
                     className={cn(
-                      "h-auto p-3 flex flex-col items-center gap-1",
-                      !isSelected && preset.color
+                      "flex h-auto flex-col items-center gap-1 p-3",
+                      !isSelected && preset.color,
                     )}
                     onClick={() => handlePresetSelect(preset.key)}
                     disabled={gameActive}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="font-medium text-xs">{preset.name}</span>
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs font-medium">{preset.name}</span>
                     <span className="font-mono text-xs">
                       {timeControlToString(config)}
                     </span>
@@ -224,18 +238,16 @@ export function TimeControlSelector({
 
           {/* Custom time control */}
           <div className="space-y-4">
-            <Label className="text-sm font-medium">
-              Custom Time Control
-            </Label>
-            
+            <Label className="text-sm font-medium">Custom Time Control</Label>
+
             {/* Format selector */}
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant={customFormat === 'X|Y' ? 'default' : 'outline'}
+                variant={customFormat === "X|Y" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
-                  setCustomFormat('X|Y');
+                  setCustomFormat("X|Y");
                   handleCustomChange();
                 }}
                 disabled={gameActive}
@@ -245,10 +257,10 @@ export function TimeControlSelector({
               </Button>
               <Button
                 type="button"
-                variant={customFormat === 'X+Y' ? 'default' : 'outline'}
+                variant={customFormat === "X+Y" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
-                  setCustomFormat('X+Y');
+                  setCustomFormat("X+Y");
                   handleCustomChange();
                 }}
                 disabled={gameActive}
@@ -257,11 +269,14 @@ export function TimeControlSelector({
                 Minutes + Increment
               </Button>
             </div>
-            
+
             {/* Number inputs */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="custom-minutes" className="text-xs font-medium text-muted-foreground">
+                <Label
+                  htmlFor="custom-minutes"
+                  className="text-muted-foreground text-xs font-medium"
+                >
                   Minutes
                 </Label>
                 <NumberInput
@@ -279,9 +294,12 @@ export function TimeControlSelector({
                   className="w-full"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="custom-increment" className="text-xs font-medium text-muted-foreground">
+                <Label
+                  htmlFor="custom-increment"
+                  className="text-muted-foreground text-xs font-medium"
+                >
                   Increment (seconds)
                 </Label>
                 <NumberInput
@@ -299,14 +317,17 @@ export function TimeControlSelector({
                 />
               </div>
             </div>
-            
+
             {customError && (
               <p className="text-xs text-red-600">{customError}</p>
             )}
-            
-            <div className="text-xs text-muted-foreground">
-              Preview: <code className="font-mono bg-muted px-1 py-0.5 rounded">
-                {customMinutes}{customFormat === 'X|Y' ? '|' : '+'}{customIncrement}
+
+            <div className="text-muted-foreground text-xs">
+              Preview:{" "}
+              <code className="bg-muted rounded px-1 py-0.5 font-mono">
+                {customMinutes}
+                {customFormat === "X|Y" ? "|" : "+"}
+                {customIncrement}
               </code>
             </div>
           </div>
@@ -319,9 +340,9 @@ export function TimeControlSelector({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {audioEnabled ? (
-                  <Volume2 className="w-4 h-4 text-blue-600" />
+                  <Volume2 className="h-4 w-4 text-blue-600" />
                 ) : (
-                  <VolumeX className="w-4 h-4 text-gray-400" />
+                  <VolumeX className="h-4 w-4 text-gray-400" />
                 )}
                 <span className="text-sm">Warning sounds</span>
               </div>
@@ -331,7 +352,7 @@ export function TimeControlSelector({
                 disabled={gameActive}
               />
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-muted-foreground text-xs">
               Play audio alerts when time is running low (10s, 5s, 3s, 2s, 1s)
             </div>
           </div>
@@ -345,7 +366,7 @@ export function TimeControlSelector({
                 setSelectedPreset(null);
                 setCustomMinutes(10);
                 setCustomIncrement(5);
-                setCustomFormat('X|Y');
+                setCustomFormat("X|Y");
                 setCustomError(null);
               }}
               disabled={gameActive}
@@ -370,10 +391,7 @@ export function TimeControlSelector({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleApply}
-            disabled={!canApply || gameActive}
-          >
+          <Button onClick={handleApply} disabled={!canApply || gameActive}>
             Apply
           </Button>
         </DialogFooter>

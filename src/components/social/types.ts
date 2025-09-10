@@ -50,12 +50,12 @@ export interface SocialPopupProps {
   onClose: () => void;
 }
 
-export type SocialTab = 'friends' | 'messages';
+export type SocialTab = "friends" | "messages";
 
-export type NotificationType = 
-  | 'FRIEND_REQUEST_RECEIVED'
-  | 'FRIEND_REQUEST_ACCEPTED'
-  | 'FRIEND_REQUEST_DECLINED';
+export type NotificationType =
+  | "FRIEND_REQUEST_RECEIVED"
+  | "FRIEND_REQUEST_ACCEPTED"
+  | "FRIEND_REQUEST_DECLINED";
 
 export interface FriendRequestNotification {
   id: string;

@@ -8,6 +8,6 @@ interface GamePageProps {
 
 export default async function GamePage({ params }: GamePageProps) {
   const { id } = await params;
-  
+
   return <GameController gameId={id} />;
 }

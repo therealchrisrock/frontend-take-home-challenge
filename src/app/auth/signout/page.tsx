@@ -2,7 +2,13 @@
 
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 
 export default function SignOutPage() {
@@ -17,8 +23,13 @@ export default function SignOutPage() {
         <CardDescription>We hope to see you again soon</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button className="w-full" onClick={handleSignOut}>Sign Out</Button>
-        <Link href="/" className="text-center text-sm text-blue-600 hover:underline block">
+        <Button className="w-full" onClick={handleSignOut}>
+          Sign Out
+        </Button>
+        <Link
+          href="/"
+          className="block text-center text-sm text-blue-600 hover:underline"
+        >
           Go back home
         </Link>
       </CardContent>

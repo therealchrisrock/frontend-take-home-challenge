@@ -1,5 +1,5 @@
-import type { Move, Board } from '~/lib/game-logic';
-import { makeMove } from '~/lib/game-logic';
+import type { Move, Board } from "~/lib/game-logic";
+import { makeMove } from "~/lib/game-logic";
 
 export type OptimisticUpdateId = string;
 
@@ -10,7 +10,7 @@ export interface OptimisticUpdate {
   applied: boolean;
   rollbackState?: {
     board: Board;
-    currentPlayer: 'red' | 'black';
+    currentPlayer: "red" | "black";
     moveCount: number;
   };
 }
@@ -25,17 +25,17 @@ export class OptimisticUpdateManager {
   private state: OptimisticUpdateState = {
     updates: new Map(),
     pendingCount: 0,
-    lastUpdateTime: null
+    lastUpdateTime: null,
   };
 
   private listeners = new Set<(state: OptimisticUpdateState) => void>();
 
   // Create a new optimistic update
   createUpdate(
-    move: Move, 
-    currentBoard: Board, 
-    currentPlayer: 'red' | 'black',
-    moveCount: number
+    move: Move,
+    currentBoard: Board,
+    currentPlayer: "red" | "black",
+    moveCount: number,
   ): OptimisticUpdate {
     const id = this.generateUpdateId();
     const update: OptimisticUpdate = {
@@ -46,8 +46,8 @@ export class OptimisticUpdateManager {
       rollbackState: {
         board: structuredClone(currentBoard),
         currentPlayer,
-        moveCount
-      }
+        moveCount,
+      },
     };
 
     this.state.updates.set(id, update);
@@ -69,7 +69,7 @@ export class OptimisticUpdateManager {
       this.notifyListeners();
       return newBoard;
     } catch (error) {
-      console.error('Failed to apply optimistic update:', error);
+      console.error("Failed to apply optimistic update:", error);
       this.removeUpdate(updateId);
       return null;
     }
@@ -90,7 +90,7 @@ export class OptimisticUpdateManager {
   // Rollback an optimistic update
   rollbackUpdate(updateId: OptimisticUpdateId): {
     board: Board;
-    currentPlayer: 'red' | 'black';
+    currentPlayer: "red" | "black";
     moveCount: number;
   } | null {
     const update = this.state.updates.get(updateId);
@@ -120,7 +120,7 @@ export class OptimisticUpdateManager {
   // Get all pending updates
   getPendingUpdates(): OptimisticUpdate[] {
     return Array.from(this.state.updates.values())
-      .filter(update => !update.applied)
+      .filter((update) => !update.applied)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 
@@ -139,11 +139,12 @@ export class OptimisticUpdateManager {
   // Rollback all pending updates and return the original state
   rollbackAll(): {
     board: Board;
-    currentPlayer: 'red' | 'black';
+    currentPlayer: "red" | "black";
     moveCount: number;
   } | null {
-    const updates = Array.from(this.state.updates.values())
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const updates = Array.from(this.state.updates.values()).sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
 
     if (updates.length === 0) return null;
 
@@ -165,14 +166,14 @@ export class OptimisticUpdateManager {
     return {
       updates: new Map(this.state.updates),
       pendingCount: this.state.pendingCount,
-      lastUpdateTime: this.state.lastUpdateTime
+      lastUpdateTime: this.state.lastUpdateTime,
     };
   }
 
   // Subscribe to state changes
   subscribe(listener: (state: OptimisticUpdateState) => void): () => void {
     this.listeners.add(listener);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
@@ -185,11 +186,11 @@ export class OptimisticUpdateManager {
 
   private notifyListeners(): void {
     const state = this.getState();
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(state);
       } catch (error) {
-        console.error('Error in optimistic update listener:', error);
+        console.error("Error in optimistic update listener:", error);
       }
     });
   }
@@ -211,18 +212,21 @@ export class OptimisticUpdateManager {
   }
 
   // Check for conflicts between optimistic updates and server state
-  detectConflicts(serverBoard: Board, serverMoveCount: number): OptimisticUpdateId[] {
+  detectConflicts(
+    serverBoard: Board,
+    serverMoveCount: number,
+  ): OptimisticUpdateId[] {
     const conflicts: OptimisticUpdateId[] = [];
-    
+
     for (const [updateId, update] of this.state.updates) {
       if (!update.rollbackState) continue;
-      
+
       // Simple conflict detection: if server move count has advanced beyond our rollback point
       if (serverMoveCount > update.rollbackState.moveCount) {
         conflicts.push(updateId);
       }
     }
-    
+
     return conflicts;
   }
 }

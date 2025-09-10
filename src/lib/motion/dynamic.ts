@@ -8,40 +8,44 @@ import type { ComponentType } from "react";
 
 // AnimatePresence - needed for exit animations
 export const DynamicAnimatePresence = dynamic(
-  () => import("framer-motion").then(mod => ({ 
-    default: mod.AnimatePresence 
-  })),
-  { 
+  () =>
+    import("framer-motion").then((mod) => ({
+      default: mod.AnimatePresence,
+    })),
+  {
     ssr: false,
-    loading: () => null
-  }
+    loading: () => null,
+  },
 );
 
 // LayoutGroup - needed for shared layout animations
 export const DynamicLayoutGroup = dynamic(
-  () => import("framer-motion").then(mod => ({ 
-    default: mod.LayoutGroup 
-  })),
-  { 
+  () =>
+    import("framer-motion").then((mod) => ({
+      default: mod.LayoutGroup,
+    })),
+  {
     ssr: false,
-    loading: () => null
-  }
+    loading: () => null,
+  },
 );
 
 // Reorder components for drag-to-reorder functionality
 export const DynamicReorder = {
   Group: dynamic(
-    () => import("framer-motion").then(mod => ({ 
-      default: mod.Reorder.Group 
-    })),
-    { ssr: false }
+    () =>
+      import("framer-motion").then((mod) => ({
+        default: mod.Reorder.Group,
+      })),
+    { ssr: false },
   ),
   Item: dynamic(
-    () => import("framer-motion").then(mod => ({ 
-      default: mod.Reorder.Item 
-    })),
-    { ssr: false }
-  )
+    () =>
+      import("framer-motion").then((mod) => ({
+        default: mod.Reorder.Item,
+      })),
+    { ssr: false },
+  ),
 };
 
 /**
@@ -49,16 +53,17 @@ export const DynamicReorder = {
  * Usage: const MotionDiv = createDynamicMotion('div');
  */
 export function createDynamicMotion<T extends keyof JSX.IntrinsicElements>(
-  element: T
+  element: T,
 ): ComponentType<any> {
   return dynamic(
-    () => import("framer-motion").then(mod => ({
-      default: mod.motion[element] as ComponentType<any>
-    })),
-    { 
+    () =>
+      import("framer-motion").then((mod) => ({
+        default: mod.motion[element] as ComponentType<any>,
+      })),
+    {
       ssr: false,
-      loading: () => null
-    }
+      loading: () => null,
+    },
   );
 }
 
@@ -81,7 +86,7 @@ export const DynamicMotion = {
   ul: createDynamicMotion("ul"),
   li: createDynamicMotion("li"),
   img: createDynamicMotion("img"),
-  svg: createDynamicMotion("svg")
+  svg: createDynamicMotion("svg"),
 };
 
 /**
@@ -89,17 +94,17 @@ export const DynamicMotion = {
  * Use this when you need complex animations that aren't needed initially
  */
 export async function loadAnimationFeatures() {
-  const { 
-    AnimatePresence, 
-    motion, 
-    useAnimation, 
+  const {
+    AnimatePresence,
+    motion,
+    useAnimation,
     useInView,
     useScroll,
     useTransform,
     useSpring,
-    useMotionValue
+    useMotionValue,
   } = await import("framer-motion");
-  
+
   return {
     AnimatePresence,
     motion,
@@ -108,6 +113,6 @@ export async function loadAnimationFeatures() {
     useScroll,
     useTransform,
     useSpring,
-    useMotionValue
+    useMotionValue,
   };
 }

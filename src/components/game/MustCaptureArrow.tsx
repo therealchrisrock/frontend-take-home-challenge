@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { cn } from '~/lib/utils';
-import { type Position } from '~/lib/game-logic';
+import { useEffect, useState } from "react";
+import { cn } from "~/lib/utils";
+import { type Position } from "~/lib/game-logic";
 
 interface MustCaptureArrowProps {
   show: boolean;
@@ -11,8 +11,18 @@ interface MustCaptureArrowProps {
   boardSize?: number;
 }
 
-export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8 }: MustCaptureArrowProps) {
-  const [arrowPath, setArrowPath] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+export function MustCaptureArrow({
+  show,
+  fromPosition,
+  toPosition,
+  boardSize = 8,
+}: MustCaptureArrowProps) {
+  const [arrowPath, setArrowPath] = useState<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
 
   useEffect(() => {
     if (show && fromPosition && toPosition) {
@@ -23,7 +33,7 @@ export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8
       const squares = board.querySelectorAll('[class*="aspect-square"]');
       const targetSquareIndex = toPosition.row * boardSize + toPosition.col;
       const targetSquare = squares[targetSquareIndex] as HTMLElement;
-      
+
       if (targetSquare) {
         const rect = targetSquare.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
@@ -38,7 +48,7 @@ export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8
           x1: startX,
           y1: startY,
           x2: centerX,
-          y2: centerY
+          y2: centerY,
         });
       }
     } else {
@@ -49,18 +59,21 @@ export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8
   if (!show || !arrowPath) return null;
 
   // Calculate angle for arrow head
-  const angle = Math.atan2(arrowPath.y2 - arrowPath.y1, arrowPath.x2 - arrowPath.x1);
+  const angle = Math.atan2(
+    arrowPath.y2 - arrowPath.y1,
+    arrowPath.x2 - arrowPath.x1,
+  );
   const arrowLength = 15;
   const arrowAngle = 0.5; // radians
 
   return (
     <svg
       className={cn(
-        'fixed inset-0 pointer-events-none z-40',
-        'transition-opacity duration-300',
-        show ? 'opacity-100' : 'opacity-0'
+        "pointer-events-none fixed inset-0 z-40",
+        "transition-opacity duration-300",
+        show ? "opacity-100" : "opacity-0",
       )}
-      style={{ width: '100vw', height: '100vh' }}
+      style={{ width: "100vw", height: "100vh" }}
     >
       {/* Arrow line */}
       <line
@@ -73,7 +86,7 @@ export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8
         strokeDasharray="5,5"
         className="animate-pulse"
       />
-      
+
       {/* Arrow head */}
       <polygon
         points={`

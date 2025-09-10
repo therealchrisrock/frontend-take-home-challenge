@@ -19,9 +19,13 @@ export const authRouter = createTRPCRouter({
       z.object({
         email: z.string().email(),
         password: z.string().min(8),
-        username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_-]+$/),
+        username: z
+          .string()
+          .min(3)
+          .max(20)
+          .regex(/^[a-zA-Z0-9_-]+$/),
         name: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const existingUser = await ctx.db.user.findFirst({
@@ -60,8 +64,12 @@ export const authRouter = createTRPCRouter({
   setUsername: protectedProcedure
     .input(
       z.object({
-        username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_-]+$/),
-      })
+        username: z
+          .string()
+          .min(3)
+          .max(20)
+          .regex(/^[a-zA-Z0-9_-]+$/),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
@@ -147,7 +155,7 @@ export const authRouter = createTRPCRouter({
       z.object({
         token: z.string(),
         password: z.string().min(8),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const resetToken = await ctx.db.passwordResetToken.findUnique({
@@ -191,7 +199,7 @@ export const authRouter = createTRPCRouter({
       z.object({
         name: z.string().optional(),
         image: z.string().url().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.user.update({

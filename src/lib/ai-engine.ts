@@ -1,19 +1,17 @@
-import { 
-  type Board, 
-  type Move, 
-  type PieceColor, 
+import {
+  type Board,
+  type Move,
+  type PieceColor,
   type Position,
   type Piece,
   getValidMoves,
   makeMove,
   checkWinner,
-  getMustCapturePositions,
-  getCaptureMoves
-} from './game-logic';
-import type { VariantConfig } from './game-engine/rule-schema';
-import { AmericanConfig } from './game-engine/rule-configs/american';
+} from "./game-logic";
+import type { VariantConfig } from "./game-engine/rule-schema";
+import { AmericanConfig } from "./game-engine/rule-configs/american";
 
-export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
+export type AIDifficulty = "easy" | "medium" | "hard" | "expert";
 
 export interface AIConfig {
   difficulty: AIDifficulty;
@@ -43,7 +41,7 @@ const DEFAULT_WEIGHTS: EvaluationWeights = {
   mobility: 2,
   forwardPosition: 3,
   protection: 5,
-  tempo: 1
+  tempo: 1,
 };
 
 // Difficulty presets
@@ -56,8 +54,8 @@ const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
       piece: 100,
       king: 120,
       centerControl: 2,
-      mobility: 1
-    }
+      mobility: 1,
+    },
   },
   medium: {
     maxDepth: 4,
@@ -67,8 +65,8 @@ const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
       piece: 100,
       king: 150,
       centerControl: 5,
-      mobility: 3
-    }
+      mobility: 3,
+    },
   },
   hard: {
     maxDepth: 6,
@@ -80,8 +78,8 @@ const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
       king: 175,
       centerControl: 8,
       mobility: 4,
-      protection: 7
-    }
+      protection: 7,
+    },
   },
   expert: {
     maxDepth: 8,
@@ -95,19 +93,22 @@ const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
       centerControl: 10,
       mobility: 5,
       protection: 10,
-      tempo: 2
-    }
-  }
+      tempo: 2,
+    },
+  },
 };
 
 // Opening book - common strong opening moves
 const OPENING_BOOK = new Map<string, Move[]>([
   // Standard opening positions
-  ['initial', [
-    { from: { row: 5, col: 0 }, to: { row: 4, col: 1 } },
-    { from: { row: 5, col: 2 }, to: { row: 4, col: 3 } },
-    { from: { row: 5, col: 2 }, to: { row: 4, col: 1 } }
-  ]]
+  [
+    "initial",
+    [
+      { from: { row: 5, col: 0 }, to: { row: 4, col: 1 } },
+      { from: { row: 5, col: 2 }, to: { row: 4, col: 3 } },
+      { from: { row: 5, col: 2 }, to: { row: 4, col: 1 } },
+    ],
+  ],
 ]);
 
 export class CheckersAI {
@@ -116,31 +117,43 @@ export class CheckersAI {
   private nodesEvaluated = 0;
   private startTime = 0;
   private timeLimit: number;
-  private transpositionTable = new Map<string, { score: number; depth: number; bestMove?: Move }>();
+  private transpositionTable = new Map<
+    string,
+    { score: number; depth: number; bestMove?: Move }
+  >();
 
-  constructor(config: Partial<AIConfig> = {}, rules: VariantConfig = AmericanConfig) {
-    const difficultyConfig = config.difficulty ? DIFFICULTY_CONFIGS[config.difficulty] : {};
+  constructor(
+    config: Partial<AIConfig> = {},
+    rules: VariantConfig = AmericanConfig,
+  ) {
+    const difficultyConfig = config.difficulty
+      ? DIFFICULTY_CONFIGS[config.difficulty]
+      : {};
     this.config = {
-      difficulty: 'medium',
+      difficulty: "medium",
       maxDepth: 4,
       timeLimit: 5000,
       useOpeningBook: false,
       useEndgameDatabase: false,
       evaluationWeights: DEFAULT_WEIGHTS,
       ...difficultyConfig,
-      ...config
+      ...config,
     };
     this.rules = rules;
     this.timeLimit = this.config.timeLimit || 5000;
   }
 
-  public async getBestMove(board: Board, color: PieceColor, moveNumber = 0): Promise<Move | null> {
+  public async getBestMove(
+    board: Board,
+    color: PieceColor,
+    moveNumber = 0,
+  ): Promise<Move | null> {
     this.nodesEvaluated = 0;
     this.startTime = Date.now();
     this.transpositionTable.clear();
 
     // Random difficulty - just return a random move
-    if (this.config.difficulty === 'easy') {
+    if (this.config.difficulty === "easy") {
       return this.getRandomMove(board, color);
     }
 
@@ -164,12 +177,12 @@ export class CheckersAI {
       if (this.isTimeUp()) break;
 
       const result = this.minimax(
-        board, 
-        depth, 
-        -Infinity, 
-        Infinity, 
-        true, 
-        color
+        board,
+        depth,
+        -Infinity,
+        Infinity,
+        true,
+        color,
       );
 
       if (result.move && !this.isTimeUp()) {
@@ -178,7 +191,9 @@ export class CheckersAI {
       }
     }
 
-    console.log(`AI evaluated ${this.nodesEvaluated} nodes in ${Date.now() - this.startTime}ms`);
+    console.log(
+      `AI evaluated ${this.nodesEvaluated} nodes in ${Date.now() - this.startTime}ms`,
+    );
     return bestMove;
   }
 
@@ -188,7 +203,7 @@ export class CheckersAI {
     alpha: number,
     beta: number,
     maximizingPlayer: boolean,
-    playerColor: PieceColor
+    playerColor: PieceColor,
   ): { score: number; move?: Move } {
     this.nodesEvaluated++;
 
@@ -207,7 +222,8 @@ export class CheckersAI {
     // Terminal node checks
     const winner = checkWinner(board, this.rules);
     if (winner) {
-      const score = winner === playerColor ? 10000 : winner === 'draw' ? 0 : -10000;
+      const score =
+        winner === playerColor ? 10000 : winner === "draw" ? 0 : -10000;
       return { score: score * (depth + 1) }; // Prefer quicker wins
     }
 
@@ -215,7 +231,11 @@ export class CheckersAI {
       return { score: this.evaluatePosition(board, playerColor) };
     }
 
-    const currentColor = maximizingPlayer ? playerColor : (playerColor === 'red' ? 'black' : 'red');
+    const currentColor = maximizingPlayer
+      ? playerColor
+      : playerColor === "red"
+        ? "black"
+        : "red";
     const moves = this.getAllMoves(board, currentColor);
 
     if (moves.length === 0) {
@@ -240,7 +260,7 @@ export class CheckersAI {
         alpha,
         beta,
         !maximizingPlayer,
-        playerColor
+        playerColor,
       );
 
       if (maximizingPlayer) {
@@ -266,7 +286,7 @@ export class CheckersAI {
     this.transpositionTable.set(boardKey, {
       score: bestScore,
       depth,
-      bestMove
+      bestMove,
     });
 
     return { score: bestScore, move: bestMove };
@@ -276,8 +296,8 @@ export class CheckersAI {
     const weights = this.config.evaluationWeights || DEFAULT_WEIGHTS;
     let score = 0;
 
-    const opponentColor = playerColor === 'red' ? 'black' : 'red';
-    
+    const opponentColor = playerColor === "red" ? "black" : "red";
+
     // Material and positional evaluation
     for (let row = 0; row < this.rules.board.size; row++) {
       for (let col = 0; col < this.rules.board.size; col++) {
@@ -288,19 +308,21 @@ export class CheckersAI {
         const multiplier = isPlayer ? 1 : -1;
 
         // Material value
-        score += multiplier * (piece.type === 'king' ? weights.king : weights.piece);
+        score +=
+          multiplier * (piece.type === "king" ? weights.king : weights.piece);
 
         // Positional bonuses
-        if (piece.type === 'regular') {
+        if (piece.type === "regular") {
           // Forward position bonus (encourage advancement)
-          const advanceBonus = piece.color === 'red' 
-            ? (this.rules.board.size - 1 - row) 
-            : row;
+          const advanceBonus =
+            piece.color === "red" ? this.rules.board.size - 1 - row : row;
           score += multiplier * weights.forwardPosition * advanceBonus;
 
           // Back row protection
-          if ((piece.color === 'red' && row === this.rules.board.size - 1) ||
-              (piece.color === 'black' && row === 0)) {
+          if (
+            (piece.color === "red" && row === this.rules.board.size - 1) ||
+            (piece.color === "black" && row === 0)
+          ) {
             score += multiplier * weights.backRow;
           }
         }
@@ -309,7 +331,10 @@ export class CheckersAI {
         const center = (this.rules.board.size - 1) / 2;
         const maxCenterDistance = this.rules.board.size - 1;
         const centerDistance = Math.abs(row - center) + Math.abs(col - center);
-        score += multiplier * weights.centerControl * (maxCenterDistance - centerDistance);
+        score +=
+          multiplier *
+          weights.centerControl *
+          (maxCenterDistance - centerDistance);
 
         // Protection bonus (pieces protected by back row or other pieces)
         if (this.isPieceProtected(board, { row, col }, piece)) {
@@ -329,15 +354,22 @@ export class CheckersAI {
     return score;
   }
 
-  private isPieceProtected(board: Board, position: Position, piece: Piece): boolean {
+  private isPieceProtected(
+    board: Board,
+    position: Position,
+    piece: Piece,
+  ): boolean {
     // Check if piece is on back row
-    if ((piece.color === 'red' && position.row === this.rules.board.size - 1) ||
-        (piece.color === 'black' && position.row === 0)) {
+    if (
+      (piece.color === "red" && position.row === this.rules.board.size - 1) ||
+      (piece.color === "black" && position.row === 0)
+    ) {
       return true;
     }
 
     // Check if piece has friendly pieces behind it
-    const behindRow = piece.color === 'red' ? position.row + 1 : position.row - 1;
+    const behindRow =
+      piece.color === "red" ? position.row + 1 : position.row - 1;
     if (behindRow >= 0 && behindRow < this.rules.board.size) {
       for (const colOffset of [-1, 1]) {
         const checkCol = position.col + colOffset;
@@ -355,34 +387,43 @@ export class CheckersAI {
 
   private getAllMoves(board: Board, color: PieceColor): Move[] {
     const moves: Move[] = [];
-    
+
     for (let row = 0; row < this.rules.board.size; row++) {
       for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (piece && piece.color === color) {
-          const pieceMoves = getValidMoves(board, { row, col }, color, this.rules);
+          const pieceMoves = getValidMoves(
+            board,
+            { row, col },
+            color,
+            this.rules,
+          );
           moves.push(...pieceMoves);
         }
       }
     }
-    
+
     return moves;
   }
 
   private getRandomMove(board: Board, color: PieceColor): Move | null {
     const moves = this.getAllMoves(board, color);
     if (moves.length === 0) return null;
-    
+
     // Prefer captures even in random mode
-    const captures = moves.filter(m => m.captures && m.captures.length > 0);
+    const captures = moves.filter((m) => m.captures && m.captures.length > 0);
     if (captures.length > 0) {
       return captures[Math.floor(Math.random() * captures.length)] || null;
     }
-    
+
     return moves[Math.floor(Math.random() * moves.length)] || null;
   }
 
-  private getOpeningBookMove(board: Board, color: PieceColor, moveNumber: number): Move | null {
+  private getOpeningBookMove(
+    board: Board,
+    color: PieceColor,
+    moveNumber: number,
+  ): Move | null {
     // Simple opening book - just return null for now
     // In a full implementation, this would have a database of strong openings
     return null;
@@ -407,14 +448,21 @@ export class CheckersAI {
 
   private getBoardKey(board: Board): string {
     // Create a unique string representation of the board for caching
-    let key = '';
+    let key = "";
     for (let row = 0; row < this.rules.board.size; row++) {
       for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (!piece) {
-          key += '0';
+          key += "0";
         } else {
-          key += piece.color === 'red' ? (piece.type === 'king' ? 'R' : 'r') : (piece.type === 'king' ? 'B' : 'b');
+          key +=
+            piece.color === "red"
+              ? piece.type === "king"
+                ? "R"
+                : "r"
+              : piece.type === "king"
+                ? "B"
+                : "b";
         }
       }
     }
@@ -430,7 +478,7 @@ export class CheckersAI {
     this.config = {
       ...this.config,
       difficulty,
-      ...difficultyConfig
+      ...difficultyConfig,
     };
   }
 
@@ -443,9 +491,9 @@ export class CheckersAI {
    * Returns a normalized score from -100 to +100
    */
   public async analyzePosition(
-    board: Board, 
+    board: Board,
     playerColor: PieceColor,
-    depth = 4
+    depth = 4,
   ): Promise<number> {
     const result = this.minimax(
       board,
@@ -453,13 +501,13 @@ export class CheckersAI {
       -Infinity,
       Infinity,
       true,
-      playerColor
+      playerColor,
     );
-    
+
     // Normalize score to -100 to +100 range
     // Positive = red advantage, negative = black advantage
     const normalizedScore = Math.max(-100, Math.min(100, result.score / 100));
-    return playerColor === 'red' ? normalizedScore : -normalizedScore;
+    return playerColor === "red" ? normalizedScore : -normalizedScore;
   }
 
   /**
@@ -469,7 +517,7 @@ export class CheckersAI {
     board: Board,
     color: PieceColor,
     topN = 5,
-    depth = 4
+    depth = 4,
   ): Promise<Array<{ move: Move; score: number; evaluation: number }>> {
     const moves = this.getAllMoves(board, color);
     const evaluatedMoves: Array<{ move: Move; score: number }> = [];
@@ -482,7 +530,7 @@ export class CheckersAI {
         -Infinity,
         Infinity,
         false,
-        color
+        color,
       );
       evaluatedMoves.push({ move, score: result.score });
     }
@@ -495,7 +543,7 @@ export class CheckersAI {
     return topMoves.map(({ move, score }) => ({
       move,
       score,
-      evaluation: Math.max(-100, Math.min(100, score / 100))
+      evaluation: Math.max(-100, Math.min(100, score / 100)),
     }));
   }
 
@@ -507,10 +555,10 @@ export class CheckersAI {
     move1: Move,
     move2: Move,
     playerColor: PieceColor,
-    depth = 4
-  ): Promise<{ 
-    move1Score: number; 
-    move2Score: number; 
+    depth = 4,
+  ): Promise<{
+    move1Score: number;
+    move2Score: number;
     difference: number;
     betterMove: Move;
   }> {
@@ -521,7 +569,7 @@ export class CheckersAI {
       -Infinity,
       Infinity,
       false,
-      playerColor
+      playerColor,
     );
 
     const board2 = makeMove(board, move2, this.rules);
@@ -531,21 +579,24 @@ export class CheckersAI {
       -Infinity,
       Infinity,
       false,
-      playerColor
+      playerColor,
     );
 
     return {
       move1Score: result1.score,
       move2Score: result2.score,
       difference: Math.abs(result1.score - result2.score),
-      betterMove: result1.score > result2.score ? move1 : move2
+      betterMove: result1.score > result2.score ? move1 : move2,
     };
   }
 
   /**
    * Evaluate a position and return detailed analysis
    */
-  public evaluatePositionDetailed(board: Board, playerColor: PieceColor): {
+  public evaluatePositionDetailed(
+    board: Board,
+    playerColor: PieceColor,
+  ): {
     totalScore: number;
     material: number;
     position: number;
@@ -553,8 +604,8 @@ export class CheckersAI {
     protection: number;
   } {
     const weights = this.config.evaluationWeights || DEFAULT_WEIGHTS;
-    const opponentColor = playerColor === 'red' ? 'black' : 'red';
-    
+    const opponentColor = playerColor === "red" ? "black" : "red";
+
     let material = 0;
     let position = 0;
     let protection = 0;
@@ -569,17 +620,19 @@ export class CheckersAI {
         const multiplier = isPlayer ? 1 : -1;
 
         // Material value
-        material += multiplier * (piece.type === 'king' ? weights.king : weights.piece);
+        material +=
+          multiplier * (piece.type === "king" ? weights.king : weights.piece);
 
         // Positional value
-        if (piece.type === 'regular') {
-          const advanceBonus = piece.color === 'red' 
-            ? (this.rules.board.size - 1 - row) 
-            : row;
+        if (piece.type === "regular") {
+          const advanceBonus =
+            piece.color === "red" ? this.rules.board.size - 1 - row : row;
           position += multiplier * weights.forwardPosition * advanceBonus;
 
-          if ((piece.color === 'red' && row === this.rules.board.size - 1) ||
-              (piece.color === 'black' && row === 0)) {
+          if (
+            (piece.color === "red" && row === this.rules.board.size - 1) ||
+            (piece.color === "black" && row === 0)
+          ) {
             position += multiplier * weights.backRow;
           }
         }
@@ -588,7 +641,10 @@ export class CheckersAI {
         const center = (this.rules.board.size - 1) / 2;
         const maxCenterDistance = this.rules.board.size - 1;
         const centerDistance = Math.abs(row - center) + Math.abs(col - center);
-        position += multiplier * weights.centerControl * (maxCenterDistance - centerDistance);
+        position +=
+          multiplier *
+          weights.centerControl *
+          (maxCenterDistance - centerDistance);
 
         // Protection
         if (this.isPieceProtected(board, { row, col }, piece)) {
@@ -609,7 +665,7 @@ export class CheckersAI {
       material,
       position,
       mobility,
-      protection
+      protection,
     };
   }
 }

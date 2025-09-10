@@ -13,7 +13,8 @@ export const metadata: Metadata = {
     default: "Birdseye Checkers - Play Online & Challenge Friends",
     template: "%s | Birdseye Checkers",
   },
-  description: "Play checkers online with friends or AI opponents. Master classic checkers with multiple difficulty levels, real-time multiplayer, and battle royale modes. Free to play!",
+  description:
+    "Play checkers online with friends or AI opponents. Master classic checkers with multiple difficulty levels, real-time multiplayer, and battle royale modes. Free to play!",
   keywords: [
     "checkers",
     "draughts",
@@ -37,7 +38,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Birdseye Checkers - Play Online & Challenge Friends",
-    description: "Play checkers online with friends or AI opponents. Master classic checkers with multiple difficulty levels and game modes.",
+    description:
+      "Play checkers online with friends or AI opponents. Master classic checkers with multiple difficulty levels and game modes.",
     url: "/",
     siteName: "Birdseye Checkers",
     images: [
@@ -54,7 +56,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Birdseye Checkers - Play Online & Challenge Friends",
-    description: "Play checkers online with friends or AI opponents. Free to play!",
+    description:
+      "Play checkers online with friends or AI opponents. Free to play!",
     images: ["/og-image.png"],
     creator: "@checkersgame",
   },
@@ -118,9 +121,7 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-          <TRPCReactProvider>
-            {children}
-          </TRPCReactProvider>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
         </Providers>
       </body>
     </html>

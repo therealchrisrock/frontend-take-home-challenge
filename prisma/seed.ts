@@ -50,9 +50,10 @@ async function main() {
   for (let i = 1; i <= 15; i++) {
     // Special naming for testuser1
     const username = i === 1 ? "supertester" : `testuser${i}`;
-    const email = i === 1 ? "supertester@example.com" : `testuser${i}@example.com`;
+    const email =
+      i === 1 ? "supertester@example.com" : `testuser${i}@example.com`;
     const name = i === 1 ? "Super Tester" : `Test User ${i}`;
-    
+
     // Check if user already exists
     let user = await prisma.user.findUnique({
       where: { email },
@@ -60,12 +61,15 @@ async function main() {
 
     if (!user) {
       const hashedPassword = await bcrypt.hash(`password${i}`, 10);
-      
+
       // Half of the users (8 out of 15) get avatar images
-      const avatarData = i <= 8 ? {
-        image: avatarUrls[i - 1],
-        avatarKey: `avatar-${username}`,
-      } : {};
+      const avatarData =
+        i <= 8
+          ? {
+              image: avatarUrls[i - 1],
+              avatarKey: `avatar-${username}`,
+            }
+          : {};
 
       user = await prisma.user.create({
         data: {
@@ -81,13 +85,13 @@ async function main() {
     } else {
       console.log(`⏩ User already exists: ${username}`);
     }
-    
+
     testUsers.push(user);
   }
 
   // Create friendships between all test users and the main user
   console.log("\n🤝 Creating friendships with main user...");
-  
+
   for (const testUser of testUsers) {
     // Check if friendship already exists (in either direction)
     const existingFriendship = await prisma.friendship.findFirst({
@@ -108,20 +112,24 @@ async function main() {
           status: "ACCEPTED",
         },
       });
-      console.log(`✅ Created friendship: ${mainUser.username} <-> ${testUser.username}`);
+      console.log(
+        `✅ Created friendship: ${mainUser.username} <-> ${testUser.username}`,
+      );
     } else {
-      console.log(`⏩ Friendship already exists: ${mainUser.username} <-> ${testUser.username}`);
+      console.log(
+        `⏩ Friendship already exists: ${mainUser.username} <-> ${testUser.username}`,
+      );
     }
   }
 
   // Create some additional friendships between test users for a more realistic network
   console.log("\n🔗 Creating additional friendships between test users...");
-  
+
   // Create friendships between consecutive test users
   for (let i = 0; i < testUsers.length - 1; i++) {
     const user1 = testUsers[i];
     const user2 = testUsers[i + 1];
-    
+
     if (!user1 || !user2) continue;
 
     const existingFriendship = await prisma.friendship.findFirst({
@@ -141,7 +149,9 @@ async function main() {
           status: "ACCEPTED",
         },
       });
-      console.log(`✅ Created friendship: ${user1.username} <-> ${user2.username}`);
+      console.log(
+        `✅ Created friendship: ${user1.username} <-> ${user2.username}`,
+      );
     }
   }
 
@@ -149,12 +159,12 @@ async function main() {
   for (let i = 0; i < 10; i++) {
     const randomIndex1 = Math.floor(Math.random() * testUsers.length);
     const randomIndex2 = Math.floor(Math.random() * testUsers.length);
-    
+
     if (randomIndex1 === randomIndex2) continue;
-    
+
     const user1 = testUsers[randomIndex1];
     const user2 = testUsers[randomIndex2];
-    
+
     if (!user1 || !user2) continue;
 
     const existingFriendship = await prisma.friendship.findFirst({
@@ -174,7 +184,9 @@ async function main() {
           status: Math.random() > 0.2 ? "ACCEPTED" : "PENDING", // 80% accepted, 20% pending
         },
       });
-      console.log(`✅ Created friendship: ${user1.username} <-> ${user2.username}`);
+      console.log(
+        `✅ Created friendship: ${user1.username} <-> ${user2.username}`,
+      );
     }
   }
 

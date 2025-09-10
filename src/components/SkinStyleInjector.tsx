@@ -1,21 +1,21 @@
-import { cookies } from 'next/headers';
-import { getSkinStyles } from '~/lib/skins/get-skin-styles';
+import { cookies } from "next/headers";
+import { getSkinStyles } from "~/lib/skins/get-skin-styles";
 
-const SKIN_COOKIE_KEY = 'checkers-skin';
+const SKIN_COOKIE_KEY = "checkers-skin";
 
 export async function SkinStyleInjector() {
   const cookieStore = await cookies();
-  const skinId = cookieStore.get(SKIN_COOKIE_KEY)?.value ?? 'the-og';
+  const skinId = cookieStore.get(SKIN_COOKIE_KEY)?.value ?? "the-og";
   const styles = getSkinStyles(skinId);
-  
+
   if (!styles) return null;
-  
+
   return (
     <>
       <style
         id="skin-styles-server"
         dangerouslySetInnerHTML={{
-          __html: `:root {${styles}}`
+          __html: `:root {${styles}}`,
         }}
       />
       <script
@@ -41,7 +41,7 @@ export async function SkinStyleInjector() {
                 // Ignore errors (e.g., if localStorage is not available)
               }
             })();
-          `
+          `,
         }}
       />
     </>

@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.userId = user.id;
         token.username = user.username;
-        token.needsUsername = user.username.startsWith('user_');
+        token.needsUsername = user.username.startsWith("user_");
         token.image = user.image;
       }
 
@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
 
         // Check if input is email or username
         const isEmail = credentials.emailOrUsername.includes("@");
-        
+
         const user = await db.user.findFirst({
           where: isEmail
             ? { email: credentials.emailOrUsername }
@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.password
+          user.password,
         );
 
         if (!isPasswordValid) {
@@ -89,7 +89,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           username: safeUsername,
           image: user.image,
-          needsUsername: safeUsername.startsWith("user_")
+          needsUsername: safeUsername.startsWith("user_"),
         };
       },
     }),

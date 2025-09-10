@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import { Pause, Play, RotateCcw, Settings } from 'lucide-react';
-import { TimeDisplay } from './TimeDisplay';
-import { cn } from '~/lib/utils';
-import { 
-  type TimeState, 
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Pause, Play, RotateCcw, Settings } from "lucide-react";
+import { TimeDisplay } from "./TimeDisplay";
+import { cn } from "~/lib/utils";
+import {
+  type TimeState,
   type TimeControl,
   type TimeWarning,
   DEFAULT_TIME_WARNINGS,
-  timeControlToString
-} from '~/lib/time-control-types';
+  timeControlToString,
+} from "~/lib/time-control-types";
 
 interface TimeControlPanelProps {
   /** Current time state */
@@ -44,42 +44,44 @@ export function TimeControlPanel({
   onPauseResume,
   onReset,
   onSettings,
-  className
+  className,
 }: TimeControlPanelProps) {
-  
   // Calculate time advantage (positive = red ahead, negative = black ahead)
   const timeAdvantage = timeState.redTime - timeState.blackTime;
   const advantageText = Math.abs(timeAdvantage);
-  const advantagePlayer = timeAdvantage > 0 ? 'red' : 'black';
+  const advantagePlayer = timeAdvantage > 0 ? "red" : "black";
   const showAdvantage = Math.abs(timeAdvantage) > 5000; // Show if more than 5 seconds difference
 
   return (
     <Card className={cn("w-full", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             Time Control
             {timeControl && (
-              <Badge variant="outline" className="text-xs font-mono">
+              <Badge variant="outline" className="font-mono text-xs">
                 {timeControlToString(timeControl)}
               </Badge>
             )}
           </CardTitle>
-          
+
           <div className="flex items-center gap-1">
             {/* Time advantage indicator */}
             {showAdvantage && gameActive && (
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={cn(
                   "text-xs",
-                  advantagePlayer === 'red' ? 'border-red-500 text-red-600' : 'border-gray-600 text-gray-700'
+                  advantagePlayer === "red"
+                    ? "border-red-500 text-red-600"
+                    : "border-gray-600 text-gray-700",
                 )}
               >
-                +{Math.floor(advantageText / 1000)}s {advantagePlayer === 'red' ? 'Red' : 'Black'}
+                +{Math.floor(advantageText / 1000)}s{" "}
+                {advantagePlayer === "red" ? "Red" : "Black"}
               </Badge>
             )}
-            
+
             {/* Settings button */}
             {onSettings && (
               <Button
@@ -94,7 +96,7 @@ export function TimeControlPanel({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {timeControl ? (
           <>
@@ -113,7 +115,7 @@ export function TimeControlPanel({
                 className="w-full"
               />
             </div>
-            
+
             {/* Control buttons */}
             <div className="flex gap-2">
               {onPauseResume && (
@@ -126,18 +128,18 @@ export function TimeControlPanel({
                 >
                   {timeState.isPaused ? (
                     <>
-                      <Play className="w-4 h-4 mr-1" />
+                      <Play className="mr-1 h-4 w-4" />
                       Resume
                     </>
                   ) : (
                     <>
-                      <Pause className="w-4 h-4 mr-1" />
+                      <Pause className="mr-1 h-4 w-4" />
                       Pause
                     </>
                   )}
                 </Button>
               )}
-              
+
               {onReset && (
                 <Button
                   variant="outline"
@@ -145,36 +147,32 @@ export function TimeControlPanel({
                   onClick={onReset}
                   className="flex-1"
                 >
-                  <RotateCcw className="w-4 h-4 mr-1" />
+                  <RotateCcw className="mr-1 h-4 w-4" />
                   Reset
                 </Button>
               )}
             </div>
-            
+
             {/* Status indicators */}
-            <div className="text-xs text-muted-foreground space-y-1">
+            <div className="text-muted-foreground space-y-1 text-xs">
               {timeState.isPaused && (
                 <div className="flex items-center gap-1 text-orange-600">
-                  <Pause className="w-3 h-3" />
+                  <Pause className="h-3 w-3" />
                   Game paused
                 </div>
               )}
-              
+
               {aiThinking && (
-                <div className="text-blue-600">
-                  AI is thinking...
-                </div>
+                <div className="text-blue-600">AI is thinking...</div>
               )}
-              
+
               {!gameActive && (
-                <div className="text-gray-500">
-                  Game not active
-                </div>
+                <div className="text-gray-500">Game not active</div>
               )}
             </div>
           </>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className="text-muted-foreground py-6 text-center">
             <div className="text-sm">No time control set</div>
             {onSettings && (
               <Button
@@ -183,7 +181,7 @@ export function TimeControlPanel({
                 onClick={onSettings}
                 className="mt-2"
               >
-                <Settings className="w-4 h-4 mr-1" />
+                <Settings className="mr-1 h-4 w-4" />
                 Configure Time Control
               </Button>
             )}
