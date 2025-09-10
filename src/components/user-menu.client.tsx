@@ -14,10 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Badge } from "~/components/ui/badge";
 import { api } from "~/trpc/react";
 import { User, MessageSquare, Users, Settings, LogOut } from "lucide-react";
-import { NotificationDropdown } from "~/components/NotificationDropdown";
 
 interface UserMenuClientProps {
   initialSession: Session | null;
@@ -43,7 +41,6 @@ export function UserMenuClient({ initialSession }: UserMenuClientProps) {
   
   return (
     <div className="flex items-center gap-2">
-      <NotificationDropdown messageCount={unreadCount?.count ?? 0} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-10 w-10 rounded-full">

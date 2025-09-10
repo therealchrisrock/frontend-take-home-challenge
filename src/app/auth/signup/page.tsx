@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -35,7 +35,7 @@ const signupSchema = z
 
 type SignupData = z.infer<typeof signupSchema>;
 
-export default function SignUpPage() {
+function SignUpInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -177,5 +177,13 @@ export default function SignUpPage() {
         </div>
       </form>
     </AuthSplitLayout>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center px-4">Loading...</div>}>
+      <SignUpInner />
+    </Suspense>
   );
 }
