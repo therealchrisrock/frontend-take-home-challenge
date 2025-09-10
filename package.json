@@ -94,6 +94,7 @@
     "cz-git": "^1.10.1",
     "eslint": "^9.23.0",
     "eslint-config-next": "^15.2.3",
+    "eslint-plugin-unused-imports": "^4.2.0",
     "happy-dom": "^18.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
