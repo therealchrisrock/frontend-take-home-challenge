@@ -66,6 +66,71 @@ export const skins: Record<string, Skin> = {
     locked: false,
   },
   
+  'the-og': {
+    id: 'the-og',
+    name: 'The OG',
+    description: 'Classic green-and-white board with red and black pieces',
+    category: 'classic',
+    board: {
+      lightSquare: {
+        from: 'rgb(255, 255, 255)', // white
+        to: 'rgb(241, 245, 249)',   // slate-100
+      },
+      darkSquare: {
+        from: 'rgb(21, 128, 61)',  // green-700
+        to: 'rgb(22, 101, 52)',    // green-800
+      },
+      border: 'rgb(0, 0, 0)',
+      selectedRing: 'rgb(59, 130, 246)', // blue-500
+      highlightedRing: 'rgb(250, 204, 21)', // yellow-400
+      possibleMove: 'rgb(74, 222, 128)', // green-400
+      possibleMoveGlow: 'rgba(74, 222, 128, 0.5)',
+      arrow: {
+        stroke: 'rgb(59, 130, 246)',
+        fill: 'rgba(59, 130, 246, 0.8)',
+        glow: 'rgba(59, 130, 246, 0.3)',
+      },
+    },
+    pieces: {
+      red: {
+        base: 'rgb(220, 38, 38)',
+        gradient: {
+          from: 'rgb(239, 68, 68)',
+          to: 'rgb(185, 28, 28)',
+        },
+        border: 'rgb(127, 29, 29)',
+        crown: 'rgb(251, 191, 36)',
+      },
+      black: {
+        base: 'rgb(23, 23, 23)',
+        gradient: {
+          from: 'rgb(38, 38, 38)',
+          to: 'rgb(10, 10, 10)',
+        },
+        border: 'rgb(0, 0, 0)',
+        crown: 'rgb(251, 191, 36)',
+      },
+    },
+    ui: {
+      background: 'oklch(1 0 0)',
+      foreground: 'oklch(0.145 0 0)',
+      card: 'oklch(1 0 0)',
+      cardForeground: 'oklch(0.145 0 0)',
+      primary: 'oklch(0.205 0 0)',
+      primaryForeground: 'oklch(0.985 0 0)',
+      secondary: 'oklch(0.97 0 0)',
+      secondaryForeground: 'oklch(0.205 0 0)',
+      accent: 'oklch(0.97 0 0)',
+      accentForeground: 'oklch(0.205 0 0)',
+      muted: 'oklch(0.97 0 0)',
+      mutedForeground: 'oklch(0.556 0 0)',
+      border: 'oklch(0.922 0 0)',
+      ring: 'oklch(0.708 0 0)',
+    },
+    preview: '🏁',
+    locked: false,
+  },
+  
   midnight: {
     id: 'midnight',
     name: 'Midnight Shadow',

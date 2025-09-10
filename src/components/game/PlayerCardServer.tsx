@@ -67,8 +67,8 @@ export async function PlayerCardServer({
     const enhancedPlayer: PlayerInfo = {
       ...player,
       ...(profileData && {
-        name: profileData.name || player.name,
-        avatar: profileData.image || player.avatar,
+        name: profileData.name ?? player.name,
+        avatar: profileData.image ?? player.avatar,
       }),
       ...(statsData && {
         stats: {

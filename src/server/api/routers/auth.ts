@@ -125,7 +125,7 @@ export const authRouter = createTRPCRouter({
 
       // Send email
       const resetUrl = `${env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
-      
+      console.log(resetUrl);
       await resend.emails.send({
         from: env.RESEND_FROM_EMAIL,
         to: input.email,

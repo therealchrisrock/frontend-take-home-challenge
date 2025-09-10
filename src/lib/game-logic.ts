@@ -1,4 +1,6 @@
-import { type BoardConfig, getBoardConfig } from './board-config';
+import type { VariantConfig } from './game-engine/rule-schema';
+import { AmericanConfig } from './game-engine/rule-configs/american';
+import { checkDrawConditions, type DrawState, type DrawResult } from './draw-detection';
 
 export type PieceColor = 'red' | 'black';
 export type PieceType = 'regular' | 'king';
@@ -28,12 +30,78 @@ export type Board = (Piece | null)[][];
  * @param config Board configuration (defaults to American checkers)
  * @returns Board initialized for a new game.
  */
-export function createInitialBoard(config: BoardConfig = getBoardConfig('american')): Board {
-  const board: Board = Array(config.size).fill(null).map(() => Array(config.size).fill(null));
+type RulesConfig = VariantConfig;
+
+const DEFAULT_RULES: VariantConfig = AmericanConfig;
+
+function getSize(config: RulesConfig): number {
+  return config.board.size;
+}
+
+function getPieceRows(config: RulesConfig): number {
+  return Math.max(config.board.startingRows.red.length, config.board.startingRows.black.length);
+}
+
+function getRedKingRow(config: RulesConfig): number {
+  return config.promotion.customRows?.red?.[0] ?? 0;
+}
+
+function getBlackKingRow(config: RulesConfig): number {
+  return config.promotion.customRows?.black?.[0] ?? (config.board.size - 1);
+}
+
+function getFlyingKings(config: RulesConfig): boolean {
+  return !!config.movement.kings.canFly;
+}
+
+function getMovementDirectionsForPiece(piece: Piece, config: RulesConfig): readonly Direction[] {
+  if (piece.type === 'king') return KING_DIRECTIONS;
+  const baseAllowed = piece.color === 'red' ? config.movement.regularPieces.directions.red : config.movement.regularPieces.directions.black;
+  const allowed = config.movement.regularPieces.canMoveBackward ? 'all' : baseAllowed;
+  if (allowed === 'all') return KING_DIRECTIONS;
+  if (piece.color === 'red') {
+    return allowed === 'forward' ? RED_DIRECTIONS : BLACK_DIRECTIONS;
+  }
+  // piece.color === 'black'
+  return allowed === 'forward' ? BLACK_DIRECTIONS : RED_DIRECTIONS;
+}
+
+function getCaptureDirectionsForPiece(piece: Piece, config: RulesConfig): readonly Direction[] {
+  if (piece.type === 'king') return KING_DIRECTIONS;
+  const captureDir = config.capture.captureDirection.regular;
+  const canBackward = !!config.movement.regularPieces.canCaptureBackward;
+
+  const allowForward = captureDir === 'all' || captureDir === 'forward';
+  const allowBackward = (captureDir === 'all' || captureDir === 'backward') && canBackward;
+
+  if (allowForward && allowBackward) return KING_DIRECTIONS;
+
+  if (piece.color === 'red') {
+    return allowForward ? RED_DIRECTIONS : allowBackward ? BLACK_DIRECTIONS : [] as unknown as readonly Direction[];
+  }
+  // piece.color === 'black'
+  return allowForward ? BLACK_DIRECTIONS : allowBackward ? RED_DIRECTIONS : [] as unknown as readonly Direction[];
+}
+
+function canRegularMoveBackward(config: RulesConfig): boolean {
+  return !!config.movement.regularPieces.canMoveBackward;
+}
+
+function regularCaptureAllowsBackward(config: RulesConfig): boolean {
+  return config.capture.captureDirection.regular !== 'forward';
+}
+
+function isMandatoryCapture(config: RulesConfig): boolean {
+  return !!config.capture.mandatory;
+}
+
+export function createInitialBoard(config: RulesConfig = DEFAULT_RULES): Board {
+  const size = getSize(config);
+  const board: Board = Array(size).fill(null).map(() => Array(size).fill(null));
   
   // Place black pieces (top)
-  for (let row = 0; row < config.pieceRows; row++) {
-    for (let col = 0; col < config.size; col++) {
+  for (let row = 0; row < getPieceRows(config); row++) {
+    for (let col = 0; col < size; col++) {
       if ((row + col) % 2 === 1) {
         set(board, row, col, { color: 'black', type: 'regular' }, config);
       }
@@ -41,9 +109,9 @@ export function createInitialBoard(config: BoardConfig = getBoardConfig('america
   }
   
   // Place red pieces (bottom)
-  const redStartRow = config.size - config.pieceRows;
-  for (let row = redStartRow; row < config.size; row++) {
-    for (let col = 0; col < config.size; col++) {
+  const redStartRow = size - getPieceRows(config);
+  for (let row = redStartRow; row < size; row++) {
+    for (let col = 0; col < size; col++) {
       if ((row + col) % 2 === 1) {
         set(board, row, col, { color: 'red', type: 'regular' }, config);
       }
@@ -60,8 +128,9 @@ export function createInitialBoard(config: BoardConfig = getBoardConfig('america
  * @param config Board configuration (defaults to American checkers)
  * @returns True if the square is on the board.
  */
-export function isValidSquare(row: number, col: number, config: BoardConfig = getBoardConfig('american')): boolean {
-  return row >= 0 && row < config.size && col >= 0 && col < config.size;
+export function isValidSquare(row: number, col: number, config: RulesConfig = DEFAULT_RULES): boolean {
+  const size = getSize(config);
+  return row >= 0 && row < size && col >= 0 && col < size;
 }
 
 // Typed direction tuples for clarity and safety
@@ -78,7 +147,7 @@ const BLACK_DIRECTIONS: readonly Direction[] = [[1, -1], [1, 1]] as const;
  * @param config Board configuration (defaults to American checkers)
  * @returns The piece at the square, or null
  */
-function at(board: Board, row: number, col: number, config: BoardConfig = getBoardConfig('american')): Piece | null {
+function at(board: Board, row: number, col: number, config: RulesConfig = DEFAULT_RULES): Piece | null {
   return isValidSquare(row, col, config) ? board[row]?.[col] ?? null : null;
 }
 
@@ -90,9 +159,9 @@ function at(board: Board, row: number, col: number, config: BoardConfig = getBoa
  * @param value The piece to place, or null to clear
  * @param config Board configuration (defaults to American checkers)
  */
-function set(board: Board, row: number, col: number, value: Piece | null, config: BoardConfig = getBoardConfig('american')): void {
+function set(board: Board, row: number, col: number, value: Piece | null, config: RulesConfig = DEFAULT_RULES): void {
   if (isValidSquare(row, col, config)) {
-    (board[row] as (Piece | null)[])[col] = value;
+    (board[row]!)[col] = value;
   }
 }
 
@@ -106,14 +175,14 @@ function set(board: Board, row: number, col: number, value: Piece | null, config
  * @param config Board configuration (defaults to American checkers)
  * @returns List of legal moves from the position
  */
-export function getValidMoves(board: Board, position: Position, currentPlayer: PieceColor, config: BoardConfig = getBoardConfig('american')): Move[] {
+export function getValidMoves(board: Board, position: Position, currentPlayer: PieceColor, config: RulesConfig = DEFAULT_RULES): Move[] {
   const piece = at(board, position.row, position.col, config);
   if (!piece || piece.color !== currentPlayer) return [];
   
   const moves: Move[] = [];
   const mustCapture = getMustCapturePositions(board, currentPlayer, config);
   
-  if (mustCapture.length > 0) {
+  if (isMandatoryCapture(config) && mustCapture.length > 0) {
     // If there are mandatory captures, only return capture moves
     if (mustCapture.some(pos => pos.row === position.row && pos.col === position.col)) {
       return getCaptureMoves(board, position, piece, config);
@@ -121,14 +190,10 @@ export function getValidMoves(board: Board, position: Position, currentPlayer: P
     return [];
   }
   
-  // Regular moves
-  const directions: readonly Direction[] = piece.type === 'king'
-    ? KING_DIRECTIONS
-    : piece.color === 'red'
-      ? RED_DIRECTIONS
-      : BLACK_DIRECTIONS;
+  // Movement (non-captures)
+  const directions: readonly Direction[] = getMovementDirectionsForPiece(piece, config);
   
-  if (piece.type === 'king' && config.flyingKings) {
+  if (piece.type === 'king' && getFlyingKings(config)) {
     // Flying kings can move multiple squares in a diagonal
     for (const [dRow, dCol] of directions) {
       let distance = 1;
@@ -178,17 +243,12 @@ export function getValidMoves(board: Board, position: Position, currentPlayer: P
  * @param config Board configuration (defaults to American checkers)
  * @returns List of capture moves (possibly multi-jump)
  */
-export function getCaptureMoves(board: Board, position: Position, piece: Piece, config: BoardConfig = getBoardConfig('american')): Move[] {
+export function getCaptureMoves(board: Board, position: Position, piece: Piece, config: RulesConfig = DEFAULT_RULES): Move[] {
   const moves: Move[] = [];
-  // In American checkers, regular pieces can only capture forward
-  // Kings can capture in all directions
-  const directions: readonly Direction[] = piece.type === 'king'
-    ? KING_DIRECTIONS
-    : piece.color === 'red'
-      ? RED_DIRECTIONS
-      : BLACK_DIRECTIONS;
+  // Determine capture directions by rules
+  const directions: readonly Direction[] = getCaptureDirectionsForPiece(piece, config);
   
-  if (piece.type === 'king' && config.flyingKings) {
+  if (piece.type === 'king' && getFlyingKings(config)) {
     // Flying kings can capture at any distance along a diagonal
     for (const [dRow, dCol] of directions) {
       let captureDistance = 1;
@@ -317,11 +377,12 @@ export function getCaptureMoves(board: Board, position: Position, piece: Piece, 
  * @param config Board configuration (defaults to American checkers)
  * @returns Positions that must capture according to rules
  */
-export function getMustCapturePositions(board: Board, currentPlayer: PieceColor, config: BoardConfig = getBoardConfig('american')): Position[] {
+export function getMustCapturePositions(board: Board, currentPlayer: PieceColor, config: RulesConfig = DEFAULT_RULES): Position[] {
   const positions: Position[] = [];
   
-  for (let row = 0; row < config.size; row++) {
-    for (let col = 0; col < config.size; col++) {
+  const size = getSize(config);
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
       const piece = at(board, row, col, config);
       if (piece && piece.color === currentPlayer) {
         const captures = getCaptureMoves(board, { row, col }, piece, config);
@@ -343,7 +404,7 @@ export function getMustCapturePositions(board: Board, currentPlayer: PieceColor,
  * @param config Board configuration (defaults to American checkers)
  * @returns A new board after the move
  */
-export function makeMove(board: Board, move: Move, config: BoardConfig = getBoardConfig('american')): Board {
+export function makeMove(board: Board, move: Move, config: RulesConfig = DEFAULT_RULES): Board {
   const newBoard = structuredClone(board);
   const piece = at(newBoard, move.from.row, move.from.col, config);
   
@@ -362,8 +423,8 @@ export function makeMove(board: Board, move: Move, config: BoardConfig = getBoar
   
   // King promotion
   if (piece.type === 'regular') {
-    if ((piece.color === 'red' && move.to.row === config.redKingRow) ||
-        (piece.color === 'black' && move.to.row === config.blackKingRow)) {
+    if ((piece.color === 'red' && move.to.row === getRedKingRow(config)) ||
+        (piece.color === 'black' && move.to.row === getBlackKingRow(config))) {
       set(newBoard, move.to.row, move.to.col, { ...piece, type: 'king' }, config);
     }
   }
@@ -375,16 +436,22 @@ export function makeMove(board: Board, move: Move, config: BoardConfig = getBoar
  * Determine if the game has a winner based on pieces and legal moves.
  * @param board The game board
  * @param config Board configuration (defaults to American checkers)
+ * @param drawState Optional draw state for checking draw conditions
  * @returns 'red' or 'black' if a winner exists, 'draw' if drawn, or null
  */
-export function checkWinner(board: Board, config: BoardConfig = getBoardConfig('american')): PieceColor | 'draw' | null {
+export function checkWinner(
+  board: Board, 
+  config: RulesConfig = DEFAULT_RULES,
+  drawState?: DrawState
+): PieceColor | DrawResult | null {
   let redCount = 0;
   let blackCount = 0;
   let redHasMoves = false;
   let blackHasMoves = false;
   
-  for (let row = 0; row < config.size; row++) {
-    for (let col = 0; col < config.size; col++) {
+  const size = getSize(config);
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
       const piece = at(board, row, col, config);
       if (piece) {
         if (piece.color === 'red') {
@@ -404,8 +471,15 @@ export function checkWinner(board: Board, config: BoardConfig = getBoardConfig('
     }
   }
   
+  // Check for wins
   if (redCount === 0 || !redHasMoves) return 'black';
   if (blackCount === 0 || !blackHasMoves) return 'red';
+  
+  // Check for draws if draw state is provided
+  if (drawState) {
+    const drawResult = checkDrawConditions(board, drawState, config);
+    if (drawResult) return drawResult;
+  }
   
   return null;
 }
@@ -418,11 +492,12 @@ export function checkWinner(board: Board, config: BoardConfig = getBoardConfig('
  * @param config Board configuration (defaults to American checkers)
  * @returns A selected move, or null if no moves
  */
-export function getRandomAIMove(board: Board, color: PieceColor, config: BoardConfig = getBoardConfig('american')): Move | null {
+export function getRandomAIMove(board: Board, color: PieceColor, config: RulesConfig = DEFAULT_RULES): Move | null {
   const allMoves: Move[] = [];
+  const size = getSize(config);
   
-  for (let row = 0; row < config.size; row++) {
-    for (let col = 0; col < config.size; col++) {
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
       const piece = at(board, row, col, config);
       if (piece && piece.color === color) {
         const moves = getValidMoves(board, { row, col }, color, config);

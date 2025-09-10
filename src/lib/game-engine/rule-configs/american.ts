@@ -1,12 +1,13 @@
 /**
  * American Checkers rule configuration
  */
+import type { VariantConfig } from '../rule-schema';
 
 export const AmericanConfig = {
   "metadata": {
     "name": "american",
     "displayName": "American Checkers",
-    "description": "Standard 8×8 checkers with flying kings and mandatory captures. Also known as English Draughts.",
+    "description": "Standard 8×8 checkers with single-square king movement and mandatory captures. Also known as English Draughts.",
     "origin": "United States",
     "aliases": ["English Draughts", "Straight Checkers"],
     "popularity": "common" as const,
@@ -23,10 +24,6 @@ export const AmericanConfig = {
       "black": [0, 1, 2],
       "red": [5, 6, 7]
     },
-    "squareColors": {
-      "light": "#F0D9B5",
-      "dark": "#B58863"
-    },
     "coordinates": {
       "showNumbers": true,
       "showLetters": false
@@ -42,7 +39,7 @@ export const AmericanConfig = {
       "canMoveBackward": false
     },
     "kings": {
-      "canFly": true,
+      "canFly": false,
       "canCaptureBackward": true
     }
   },
@@ -66,7 +63,7 @@ export const AmericanConfig = {
   },
   "draws": {
     "fortyMoveRule": true,
-    "twentyFiveMoveRule": false,
+    "twentyFiveMoveRule": true,
     "repetitionLimit": 3,
     "insufficientMaterial": true,
     "staleMate": true
@@ -92,4 +89,4 @@ export const AmericanConfig = {
     }
   },
   "schemaVersion": "1.0.0"
-} as const;
+} as const satisfies VariantConfig;

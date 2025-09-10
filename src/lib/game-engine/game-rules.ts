@@ -3,15 +3,16 @@
  * Single implementation that processes all draughts variants through configuration
  */
 
-import type { ResolvedVariantConfig, Direction } from './rule-schema';
+import type { VariantConfig, Direction } from './rule-schema';
 import type { Board, PieceColor, PieceType, Position, Move, Piece } from '../game-logic';
 import { GameConfigLoader } from './config-loader';
+import { getPromotionRows } from './config-utils';
 
 /**
  * Board validator for any board size
  */
 class ConfigurableBoardValidator {
-  constructor(private config: ResolvedVariantConfig) {}
+  constructor(private config: VariantConfig) {}
 
   isValidSquare(row: number, col: number): boolean {
     return row >= 0 && row < this.config.board.size && 
@@ -30,7 +31,8 @@ class ConfigurableBoardValidator {
   }
 
   isPromotionRow(color: PieceColor, row: number): boolean {
-    return this.config.promotionRows[color].includes(row);
+    const promotionRows = getPromotionRows(this.config);
+    return promotionRows[color].includes(row);
   }
 }
 
@@ -38,10 +40,10 @@ class ConfigurableBoardValidator {
  * Game rules engine - handles all draughts variants through configuration
  */
 export class GameRules {
-  private config: ResolvedVariantConfig;
+  private config: VariantConfig;
   private validator: ConfigurableBoardValidator;
 
-  constructor(private variantName: string, config?: ResolvedVariantConfig) {
+  constructor(private variantName: string, config?: VariantConfig) {
     if (config) {
       this.config = config;
     } else {
@@ -52,11 +54,11 @@ export class GameRules {
   }
 
   /**
-   * Initialize the rules engine (async variant loading)
+   * Initialize the rules engine (now synchronous)
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (!this.config) {
-      this.config = await GameConfigLoader.loadVariant(this.variantName);
+      this.config = GameConfigLoader.loadVariant(this.variantName);
       this.validator = new ConfigurableBoardValidator(this.config);
     }
   }
@@ -686,7 +688,7 @@ export class GameRules {
 
   private setPiece(board: Board, pos: Position, piece: Piece | null): void {
     if (this.validator.isValidSquare(pos.row, pos.col)) {
-      (board[pos.row] as (Piece | null)[])[pos.col] = piece;
+      (board[pos.row]!)[pos.col] = piece;
     }
   }
 

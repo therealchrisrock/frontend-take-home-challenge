@@ -27,7 +27,6 @@ export const userRouter = createTRPCRouter({
           email: true,
           emailVerified: true,
           image: true,
-          avatarUrl: true,
           createdAt: true,
         },
       });
@@ -82,7 +81,6 @@ export const userRouter = createTRPCRouter({
           username: true,
           name: true,
           image: true,
-          avatarUrl: true,
         },
         take: 10,
       });
@@ -271,7 +269,6 @@ export const userRouter = createTRPCRouter({
             username: true,
             name: true,
             image: true,
-            avatarUrl: true,
           },
         },
         receiver: {
@@ -280,7 +277,6 @@ export const userRouter = createTRPCRouter({
             username: true,
             name: true,
             image: true,
-            avatarUrl: true,
           },
         },
       },
@@ -304,7 +300,6 @@ export const userRouter = createTRPCRouter({
             username: true,
             name: true,
             image: true,
-            avatarUrl: true,
           },
         },
       },
@@ -402,13 +397,77 @@ export const userRouter = createTRPCRouter({
             username: true,
             name: true,
             image: true,
-            avatarUrl: true,
           },
         },
       },
     });
 
     return blocks.map((b) => b.blocked);
+  }),
+
+  // Public site-wide quick stats
+  getQuickStats: publicProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [activePlayers, gamesToday, activeSessions] = await Promise.all([
+      ctx.db.user.count(),
+      ctx.db.game.count({
+        where: { gameStartTime: { gte: startOfDay } },
+      }),
+      ctx.db.session.findMany({
+        where: { expires: { gt: now } },
+        select: { userId: true },
+      }),
+    ]);
+
+    const onlineNow = new Set(activeSessions.map((s) => s.userId)).size;
+
+    return { activePlayers, gamesToday, onlineNow };
+  }),
+
+  // Returns friends plus a computed `online` flag based on active NextAuth sessions
+  getFriendsWithStatus: protectedProcedure.query(async ({ ctx }) => {
+    const friendships = await ctx.db.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: ctx.session.user.id, status: FriendshipStatus.ACCEPTED },
+          { receiverId: ctx.session.user.id, status: FriendshipStatus.ACCEPTED },
+        ],
+      },
+      include: {
+        sender: {
+          select: { id: true, username: true, name: true, image: true },
+        },
+        receiver: {
+          select: { id: true, username: true, name: true, image: true },
+        },
+      },
+    });
+
+    const friends = friendships.map((f) =>
+      f.senderId === ctx.session.user.id ? f.receiver : f.sender
+    );
+
+    if (friends.length === 0) return [] as Array<
+      typeof friends[number] & { online: boolean }
+    >;
+
+    const friendIds = friends.map((f) => f.id);
+
+    // Consider a user online if they have at least one non-expired session
+    const activeSessions = await ctx.db.session.findMany({
+      where: {
+        userId: { in: friendIds },
+        expires: { gt: new Date() },
+      },
+      select: { userId: true },
+    });
+
+    const onlineSet = new Set(activeSessions.map((s) => s.userId));
+
+    return friends.map((f) => ({ ...f, online: onlineSet.has(f.id) }));
   }),
 
   // Player data procedures for PlayerCard component
@@ -420,7 +479,6 @@ export const userRouter = createTRPCRouter({
         username: true,
         name: true,
         image: true,
-        avatarUrl: true,
         createdAt: true,
       },
     });
@@ -975,7 +1033,7 @@ export const userRouter = createTRPCRouter({
 
   updateAvatar: protectedProcedure
     .input(z.object({
-      avatarUrl: z.string().url(),
+      image: z.string().url(),
       avatarKey: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -997,7 +1055,7 @@ export const userRouter = createTRPCRouter({
       const updated = await ctx.db.user.update({
         where: { id: ctx.session.user.id },
         data: {
-          avatarUrl: input.avatarUrl,
+          image: input.image,
           avatarKey: input.avatarKey,
         },
         select: {
@@ -1005,7 +1063,6 @@ export const userRouter = createTRPCRouter({
           username: true,
           name: true,
           image: true,
-          avatarUrl: true,
         },
       });
 
@@ -1030,7 +1087,7 @@ export const userRouter = createTRPCRouter({
       const updated = await ctx.db.user.update({
         where: { id: ctx.session.user.id },
         data: {
-          avatarUrl: null,
+          image: null,
           avatarKey: null,
         },
         select: {
@@ -1038,10 +1095,110 @@ export const userRouter = createTRPCRouter({
           username: true,
           name: true,
           image: true,
-          avatarUrl: true,
         },
       });
 
       return updated;
+    }),
+
+  getFriendRequestNotificationCount: protectedProcedure.query(async ({ ctx }) => {
+    const count = await ctx.db.friendship.count({
+      where: {
+        receiverId: ctx.session.user.id,
+        status: FriendshipStatus.PENDING,
+      },
+    });
+
+    return { count };
+  }),
+
+  getFriendRequestNotifications: protectedProcedure.query(async ({ ctx }) => {
+    const notifications = await ctx.db.friendship.findMany({
+      where: {
+        receiverId: ctx.session.user.id,
+        status: FriendshipStatus.PENDING,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return notifications.map(notification => ({
+      id: notification.id,
+      type: 'FRIEND_REQUEST_RECEIVED' as const,
+      sender: notification.sender,
+      createdAt: notification.createdAt,
+      read: false, // For now, we'll consider all friend requests as unread until acted upon
+    }));
+  }),
+
+  getLeaderboard: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(50).default(10),
+        variant: z.nativeEnum(GameVariantEnum).default(GameVariantEnum.AMERICAN),
+        playMode: z.nativeEnum(PlayModeEnum).default(PlayModeEnum.CASUAL),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const playerRatings = await ctx.db.playerRating.findMany({
+        where: {
+          variant: input.variant,
+          playMode: input.playMode,
+          gamesPlayed: { gt: 0 }, // Only include players who have played at least one game
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+      });
+
+      // Calculate win rate and sort by it instead of rating
+      const playersWithWinRate = playerRatings.map((playerRating) => ({
+        id: playerRating.user.id,
+        username: playerRating.user.username,
+        name: playerRating.user.name,
+        image: playerRating.user.image,
+        rating: playerRating.rating,
+        wins: playerRating.wins,
+        losses: playerRating.losses,
+        draws: playerRating.draws,
+        totalGames: playerRating.gamesPlayed,
+        winRate: playerRating.gamesPlayed > 0 
+          ? Math.round((playerRating.wins / playerRating.gamesPlayed) * 100 * 10) / 10
+          : 0,
+        streak: 0, // We'd need to calculate this from recent games
+      }));
+
+      // Sort by win rate (descending), then by wins (descending), then by total games (descending)
+      const sortedPlayers = playersWithWinRate.sort((a, b) => {
+        if (b.winRate !== a.winRate) {
+          return b.winRate - a.winRate;
+        }
+        if (b.wins !== a.wins) {
+          return b.wins - a.wins;
+        }
+        return b.totalGames - a.totalGames;
+      });
+
+      // Take only the requested limit and add rank
+      return sortedPlayers.slice(0, input.limit).map((player, index) => ({
+        ...player,
+        rank: index + 1,
+      }));
     }),
 });

@@ -1,9 +1,5 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import {
-  getServerSession,
-  type DefaultSession,
-  type NextAuthOptions,
-} from "next-auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
 import DiscordProvider from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -11,31 +7,7 @@ import bcrypt from "bcryptjs";
 import { env } from "~/env";
 import { db } from "~/server/db";
 
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user: {
-      id: string;
-      username: string;
-      needsUsername: boolean;
-      avatarUrl?: string | null;
-    } & DefaultSession["user"];
-  }
-
-  interface User {
-    username: string;
-    needsUsername?: boolean;
-    avatarUrl?: string | null;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    userId: string;
-    username: string;
-    needsUsername: boolean;
-    avatarUrl?: string | null;
-  }
-}
+// Module augmentations for NextAuth are declared in src/types/next-auth.d.ts
 
 export const authOptions: NextAuthOptions = {
   callbacks: {
@@ -46,24 +18,25 @@ export const authOptions: NextAuthOptions = {
         id: token.userId,
         username: token.username,
         needsUsername: token.needsUsername,
-        avatarUrl: token.avatarUrl,
+        image: token.image || session.user?.image,
       },
     }),
     jwt: async ({ token, user, trigger, session }) => {
       if (user) {
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: { avatarUrl: true },
-        });
         token.userId = user.id;
         token.username = user.username;
         token.needsUsername = user.username.startsWith('user_');
-        token.avatarUrl = dbUser?.avatarUrl || null;
+        token.image = user.image;
       }
 
       if (trigger === "update" && session?.username) {
         token.username = session.username;
         token.needsUsername = false;
+      }
+
+      // If trigger is "update" and we have image data, update the token
+      if (trigger === "update" && session?.image !== undefined) {
+        token.image = session.image;
       }
 
       return token;
@@ -95,7 +68,7 @@ export const authOptions: NextAuthOptions = {
             : { username: credentials.emailOrUsername },
         });
 
-        if (!user || !user.password) {
+        if (!user?.password) {
           return null;
         }
 
@@ -108,13 +81,15 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const safeUsername = user.username ?? `user_${user.id.slice(-8)}`;
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          username: user.username,
+          username: safeUsername,
           image: user.image,
-          avatarUrl: user.avatarUrl,
+          needsUsername: safeUsername.startsWith("user_")
         };
       },
     }),
@@ -142,4 +117,10 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
+/**
+ * Retrieves the current server-side authentication session using the configured auth options.
+ * Useful for accessing the authenticated user's session data in server components or API routes.
+ *
+ * @returns {Promise<Session | null>} The current session object or null if not authenticated.
+ */
 export const getServerAuthSession = () => getServerSession(authOptions);

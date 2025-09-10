@@ -1,20 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getBoardConfig,
-  getBoardVariants,
-  getBoardGridStyle,
-  getMaxBoardSize,
-  BOARD_CONFIGS,
-  type BoardVariant,
-} from './board-config';
+import { GameConfigLoader } from './game-engine/config-loader';
+import { getBoardGridStyleFromSize } from './board-style';
+import { getBoardVariants, type BoardVariant } from './variants';
 
-describe('Board Configuration System', () => {
+describe('Variant Rules Configuration System', () => {
   describe('getBoardConfig', () => {
     it('should return American checkers config by default', () => {
-      const config = getBoardConfig();
-      expect(config.size).toBe(8);
-      expect(config.pieceRows).toBe(3);
-      expect(config.name).toBe('American Checkers');
+      const rules = GameConfigLoader.exportVariant('american')!;
+      expect(rules.board.size).toBe(8);
+      expect(Math.max(rules.board.startingRows.red.length, rules.board.startingRows.black.length)).toBe(3);
+      expect(rules.metadata.displayName).toBe('American Checkers');
     });
 
     it('should return correct config for each variant', () => {
@@ -26,18 +21,18 @@ describe('Board Configuration System', () => {
       ];
 
       testCases.forEach(([variant, expectedSize, expectedRows]) => {
-        const config = getBoardConfig(variant);
-        expect(config.size).toBe(expectedSize);
-        expect(config.pieceRows).toBe(expectedRows);
-        expect(config.redKingRow).toBe(0);
-        expect(config.blackKingRow).toBe(expectedSize - 1);
+        const rules = GameConfigLoader.exportVariant(variant)!;
+        expect(rules.board.size).toBe(expectedSize);
+        expect(Math.max(rules.board.startingRows.red.length, rules.board.startingRows.black.length)).toBe(expectedRows);
+        expect((rules.promotion.customRows?.red?.[0]) ?? 0).toBe(0);
+        expect((rules.promotion.customRows?.black?.[0]) ?? (rules.board.size - 1)).toBe(expectedSize - 1);
       });
     });
 
     it('should have proper descriptions', () => {
-      expect(getBoardConfig('american').description).toContain('8×8');
-      expect(getBoardConfig('international').description).toContain('10×10');
-      expect(getBoardConfig('canadian').description).toContain('12×12');
+      expect(GameConfigLoader.getVariantMetadata('american')!.description).toContain('8×8');
+      expect(GameConfigLoader.getVariantMetadata('international')!.description).toContain('10×10');
+      expect(GameConfigLoader.getVariantMetadata('canadian')!.description).toContain('12×12');
     });
   });
 
@@ -54,53 +49,44 @@ describe('Board Configuration System', () => {
 
   describe('getBoardGridStyle', () => {
     it('should generate correct CSS for 8x8 board', () => {
-      const config = getBoardConfig('american');
-      const style = getBoardGridStyle(config);
+      const style = getBoardGridStyleFromSize(8);
       expect(style['--board-size']).toBe('8');
       expect(style.gridTemplateColumns).toBe('repeat(8, minmax(0, 1fr))');
     });
 
     it('should generate correct CSS for 10x10 board', () => {
-      const config = getBoardConfig('international');
-      const style = getBoardGridStyle(config);
+      const style = getBoardGridStyleFromSize(10);
       expect(style['--board-size']).toBe('10');
       expect(style.gridTemplateColumns).toBe('repeat(10, minmax(0, 1fr))');
     });
 
     it('should generate correct CSS for 12x12 board', () => {
-      const config = getBoardConfig('canadian');
-      const style = getBoardGridStyle(config);
+      const style = getBoardGridStyleFromSize(12);
       expect(style['--board-size']).toBe('12');
       expect(style.gridTemplateColumns).toBe('repeat(12, minmax(0, 1fr))');
     });
   });
 
-  describe('getMaxBoardSize', () => {
-    it('should scale appropriately for different board sizes', () => {
-      const american = getBoardConfig('american');
-      const international = getBoardConfig('international');
-      const canadian = getBoardConfig('canadian');
+  // getMaxBoardSize tested elsewhere or with size-only helpers
 
-      expect(getMaxBoardSize(american)).toContain('320px');
-      expect(getMaxBoardSize(international)).toContain('400px');
-      expect(getMaxBoardSize(canadian)).toContain('480px');
-    });
-  });
-
-  describe('BOARD_CONFIGS data integrity', () => {
+  describe('Rules configs data integrity', () => {
     it('should have valid king rows for all configs', () => {
-      Object.values(BOARD_CONFIGS).forEach(config => {
-        expect(config.redKingRow).toBe(0);
-        expect(config.blackKingRow).toBe(config.size - 1);
-        expect(config.blackKingRow).toBeGreaterThan(config.redKingRow);
+      getBoardVariants().forEach(variant => {
+        const rules = GameConfigLoader.exportVariant(variant)!;
+        const redKingRow = rules.promotion.customRows?.red?.[0] ?? 0;
+        const blackKingRow = rules.promotion.customRows?.black?.[0] ?? (rules.board.size - 1);
+        expect(redKingRow).toBe(0);
+        expect(blackKingRow).toBe(rules.board.size - 1);
+        expect(blackKingRow).toBeGreaterThan(redKingRow);
       });
     });
 
     it('should have piece rows less than half board size', () => {
-      Object.values(BOARD_CONFIGS).forEach(config => {
-        expect(config.pieceRows).toBeLessThan(config.size / 2);
-        // Ensure there's at least one empty row between sides
-        expect(config.pieceRows * 2).toBeLessThan(config.size);
+      getBoardVariants().forEach(variant => {
+        const rules = GameConfigLoader.exportVariant(variant)!;
+        const pieceRows = Math.max(rules.board.startingRows.red.length, rules.board.startingRows.black.length);
+        expect(pieceRows).toBeLessThan(rules.board.size / 2);
+        expect(pieceRows * 2).toBeLessThan(rules.board.size);
       });
     });
 
@@ -113,8 +99,9 @@ describe('Board Configuration System', () => {
       ];
 
       testCases.forEach(([variant, expectedPiecesPerSide]) => {
-        const config = getBoardConfig(variant);
-        const piecesPerSide = Math.floor(config.size * config.pieceRows / 2);
+        const rules = GameConfigLoader.exportVariant(variant)!;
+        const pieceRows = Math.max(rules.board.startingRows.red.length, rules.board.startingRows.black.length);
+        const piecesPerSide = Math.floor(rules.board.size * pieceRows / 2);
         expect(piecesPerSide).toBe(expectedPiecesPerSide);
       });
     });

@@ -79,7 +79,7 @@ export function ChatFriendsPopup({ isOpen, onClose, onOpenDM, theme }: ChatFrien
   // API mutations
   const sendRequestMutation = api.user.sendFriendRequest.useMutation({
     onSuccess: () => {
-      refetchRequests();
+      void refetchRequests();
       toast({
         title: "Friend request sent",
         description: "Your friend request has been sent successfully",
@@ -96,8 +96,8 @@ export function ChatFriendsPopup({ isOpen, onClose, onOpenDM, theme }: ChatFrien
 
   const respondRequestMutation = api.user.respondToFriendRequest.useMutation({
     onSuccess: (_, variables) => {
-      refetchRequests();
-      refetchFriends();
+      void refetchRequests();
+      void refetchFriends();
       toast({
         title: variables.accept ? "Friend added" : "Request declined",
         description: variables.accept ? "You are now friends!" : "Friend request declined",
@@ -107,7 +107,7 @@ export function ChatFriendsPopup({ isOpen, onClose, onOpenDM, theme }: ChatFrien
 
   const removeFriendMutation = api.user.removeFriend.useMutation({
     onSuccess: () => {
-      refetchFriends();
+      void refetchFriends();
       toast({
         title: "Friend removed",
         description: "Friend has been removed from your list",
@@ -117,8 +117,8 @@ export function ChatFriendsPopup({ isOpen, onClose, onOpenDM, theme }: ChatFrien
 
   const blockUserMutation = api.user.blockUser.useMutation({
     onSuccess: () => {
-      refetchFriends();
-      refetchBlocked();
+      void refetchFriends();
+      void refetchBlocked();
       toast({
         title: "User blocked",
         description: "User has been blocked successfully",
@@ -128,7 +128,7 @@ export function ChatFriendsPopup({ isOpen, onClose, onOpenDM, theme }: ChatFrien
 
   const unblockUserMutation = api.user.unblockUser.useMutation({
     onSuccess: () => {
-      refetchBlocked();
+      void refetchBlocked();
       toast({
         title: "User unblocked",
         description: "User has been unblocked",

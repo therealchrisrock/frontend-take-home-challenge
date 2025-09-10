@@ -1,10 +1,11 @@
 'use client';
 
 import { type Board as BoardType, type Position, type Move } from '~/lib/game-logic';
-import { type BoardConfig, getBoardConfig, getBoardGridStyle } from '~/lib/board-config';
-import { Square } from './Square';
+import { getBoardGridStyleFromSize } from '~/lib/board-style';
+import { Square } from './Square.motion';
 import { Piece } from './Piece';
 import { MoveSequenceArrows } from './MoveSequenceArrows';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface BoardProps {
   board: BoardType;
@@ -14,7 +15,9 @@ interface BoardProps {
   mustCapturePositions: Position[];
   currentPlayer: 'red' | 'black';
   keyboardFocusPosition?: Position | null;
-  config?: BoardConfig;
+  size?: number;
+  shouldFlip?: boolean;
+  replayMode?: boolean;
   onSquareClick: (position: Position, event?: React.MouseEvent) => void;
   onDragStart: (position: Position) => void;
   onDragEnd: () => void;
@@ -29,12 +32,42 @@ export function Board({
   mustCapturePositions,
   currentPlayer,
   keyboardFocusPosition,
-  config = getBoardConfig('american'),
+  size,
+  shouldFlip = false,
+  replayMode = false,
   onSquareClick,
   onDragStart,
   onDragEnd,
   onDrop
 }: BoardProps) {
+  const boardSize = size ?? board.length;
+  const [internalFocus, setInternalFocus] = useState<Position | null>(keyboardFocusPosition ?? selectedPosition ?? { row: 0, col: 0 });
+  const effectiveFocus: Position | null = keyboardFocusPosition ?? internalFocus;
+
+  const squareRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const setSquareRef = useCallback((key: string, node: HTMLDivElement | null) => {
+    if (!node) {
+      squareRefs.current.delete(key);
+    } else {
+      squareRefs.current.set(key, node);
+    }
+  }, []);
+
+  const focusSquare = useCallback((pos: Position | null) => {
+    if (!pos) return;
+    setInternalFocus(pos);
+    const k = `${pos.row}-${pos.col}`;
+    const node = squareRefs.current.get(k);
+    if (node) {
+      queueMicrotask(() => node.focus());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedPosition) {
+      focusSquare(selectedPosition);
+    }
+  }, [selectedPosition, focusSquare]);
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -42,29 +75,71 @@ export function Board({
   // Find multi-jump moves for arrow display
   const multiJumpMoves = validMoves.filter(move => move.path && move.path.length > 2);
 
+  // Helper function to transform positions when board is flipped
+  const transformPosition = (pos: Position): Position => {
+    if (!shouldFlip) return pos;
+    const boardSize = size ?? board.length;
+    return {
+      row: boardSize - 1 - pos.row,
+      col: boardSize - 1 - pos.col
+    };
+  };
+
+  // Transform positions for rendering when board is flipped
+  const renderBoard = shouldFlip ? 
+    [...board].reverse().map(row => [...row].reverse()) : 
+    board;
+
+  const moveFocus = useCallback((from: Position, dRow: number, dCol: number): Position => {
+    const mult = shouldFlip ? -1 : 1;
+    const nextRow = Math.min(Math.max(from.row + dRow * mult, 0), boardSize - 1);
+    const nextCol = Math.min(Math.max(from.col + dCol * mult, 0), boardSize - 1);
+    return { row: nextRow, col: nextCol };
+  }, [boardSize, shouldFlip]);
+
+  const moveFocusTab = useCallback((from: Position, reverse: boolean): Position | null => {
+    let r = from.row;
+    let c = from.col + (reverse ? -1 : 1);
+    if (c < 0) {
+      c = boardSize - 1;
+      r -= 1;
+    } else if (c >= boardSize) {
+      c = 0;
+      r += 1;
+    }
+    if (r < 0 || r >= boardSize) return null;
+    return { row: r, col: c };
+  }, [boardSize]);
+
   return (
     <div 
-      className="relative grid gap-0 border-8 rounded-lg shadow-2xl"
+      className="relative grid gap-0 border-8 rounded-lg shadow-2xl w-full h-full box-border overflow-hidden"
+      role="grid"
+      aria-label="Checkers board"
       style={{
         borderColor: 'var(--board-border)',
         backgroundColor: 'var(--board-border)',
-        ...getBoardGridStyle(config)
+        ...getBoardGridStyleFromSize(boardSize)
       }}
     >
-      {board.map((row, rowIndex) =>
+      {renderBoard.map((row, rowIndex) =>
         row.map((piece, colIndex) => {
-          const position = { row: rowIndex, col: colIndex };
-          const isBlack = (rowIndex + colIndex) % 2 === 1;
-          const isSelected = selectedPosition?.row === rowIndex && selectedPosition?.col === colIndex;
-          const isDragging = draggingPosition?.row === rowIndex && draggingPosition?.col === colIndex;
-          const isKeyboardFocused = keyboardFocusPosition?.row === rowIndex && keyboardFocusPosition?.col === colIndex;
+          // Calculate actual position (accounting for flip)
+          const actualRow = shouldFlip ? (board.length - 1 - rowIndex) : rowIndex;
+          const actualCol = shouldFlip ? (board.length - 1 - colIndex) : colIndex;
+          const position = { row: actualRow, col: actualCol };
+          const isBlack = (actualRow + actualCol) % 2 === 1;
+          const isSelected = selectedPosition?.row === actualRow && selectedPosition?.col === actualCol;
+          const isDragging = draggingPosition?.row === actualRow && draggingPosition?.col === actualCol;
+          const isKeyboardFocused = keyboardFocusPosition?.row === actualRow && keyboardFocusPosition?.col === actualCol;
           const isPossibleMove = validMoves.some(
-            move => move.to.row === rowIndex && move.to.col === colIndex
+            move => move.to.row === actualRow && move.to.col === actualCol
           );
           const mustCapture = mustCapturePositions.some(
-            pos => pos.row === rowIndex && pos.col === colIndex
+            pos => pos.row === actualRow && pos.col === actualCol
           );
-          const isDraggable = piece?.color === currentPlayer;
+          const isDraggable = !replayMode && piece?.color === currentPlayer;
+          const key = `${actualRow}-${actualCol}`;
 
           return (
             <Square
@@ -75,12 +150,50 @@ export function Board({
               isSelected={isSelected}
               isPossibleMove={isPossibleMove}
               isKeyboardFocused={isKeyboardFocused}
-              onClick={(e) => onSquareClick(position, e)}
-              onDrop={(e) => {
+              onKeyDown={(e) => {
+                if (replayMode) return;
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || (e as any).code === 'Space') {
+                  e.preventDefault();
+                  onSquareClick(position);
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const next = moveFocus(position, -1, 0);
+                  focusSquare(next);
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const next = moveFocus(position, 1, 0);
+                  focusSquare(next);
+                } else if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  const next = moveFocus(position, 0, -1);
+                  focusSquare(next);
+                } else if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  const next = moveFocus(position, 0, 1);
+                  focusSquare(next);
+                } else if (e.key === 'Tab') {
+                  const next = moveFocusTab(position, e.shiftKey);
+                  if (next) {
+                    e.preventDefault();
+                    focusSquare(next);
+                  }
+                }
+              }}
+              onFocus={() => {
+                if (!isKeyboardFocused) setInternalFocus(position);
+              }}
+              tabIndex={isKeyboardFocused ? 0 : -1}
+              role="gridcell"
+              ariaLabel={`Square ${actualRow + 1}, ${actualCol + 1}`}
+              ariaSelected={isSelected}
+              ref={(node) => setSquareRef(key, node)}
+              onDrop={replayMode ? undefined : (e) => {
                 e.preventDefault();
                 onDrop(position);
               }}
-              onDragOver={handleDragOver}
+              onDragOver={replayMode ? undefined : handleDragOver}
             >
               {piece && (
                 <Piece
@@ -89,11 +202,14 @@ export function Board({
                   isDragging={isDragging}
                   mustCapture={mustCapture}
                   hasOtherMustCapture={mustCapturePositions.length > 0}
-                  onDragStart={(e) => {
+                  onDragStart={replayMode ? undefined : (e: React.DragEvent) => {
                     e.dataTransfer.effectAllowed = 'move';
                     onDragStart(position);
                   }}
-                  onDragEnd={onDragEnd}
+                  onDragEnd={replayMode ? undefined : (_e: React.DragEvent) => {
+                    // ignore event, just delegate to parent
+                    onDragEnd();
+                  }}
                 />
               )}
             </Square>
@@ -102,13 +218,20 @@ export function Board({
       )}
       
       {/* Arrow overlays for multi-jump sequences */}
-      {selectedPosition && multiJumpMoves.map((move, index) => (
-        <MoveSequenceArrows
-          key={`arrow-${index}`}
-          sequence={move.path || []}
-          show={selectedPosition.row === move.from.row && selectedPosition.col === move.from.col}
-        />
-      ))}
+      {selectedPosition && multiJumpMoves.map((move, index) => {
+        const transformedPath = shouldFlip && move.path ? 
+          move.path.map(pos => transformPosition(pos)) : 
+          move.path ?? [];
+        
+        return (
+          <MoveSequenceArrows
+            key={`arrow-${index}`}
+            sequence={transformedPath}
+            show={selectedPosition.row === move.from.row && selectedPosition.col === move.from.col}
+            boardSize={size ?? board.length}
+          />
+        );
+      })}
     </div>
   );
 }

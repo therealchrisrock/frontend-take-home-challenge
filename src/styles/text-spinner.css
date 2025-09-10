@@ -1,0 +1,42 @@
+/* Text Spinner Loader styles */
+.text-spinner-circle, .circle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  animation: spinner-rotate 4s linear infinite;
+}
+
+.text-spinner-text, .text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-spinner-letter, .letter {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  font-weight: 600;
+  font-family: "Rubik Mono One", sans-serif;
+  color: #e91e27;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  animation: letter-fade 1.2s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes letter-fade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}

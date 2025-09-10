@@ -50,7 +50,7 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
       setSyncError(null);
       // Trigger sync when coming back online
       if (enabled && pendingUpdatesRef.current.length > 0) {
-        syncToServer();
+        void syncToServer();
       }
     };
     
@@ -65,7 +65,7 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [enabled]);
+  }, [enabled, syncToServer]);
 
   // Sync function to send pending updates to server
   const syncToServer = useCallback(async () => {
@@ -135,7 +135,7 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
     
     // Trigger sync if online
     if (isOnline && !isSyncing) {
-      syncToServer();
+      void syncToServer();
     }
   }, [enabled, isOnline, isSyncing, syncToServer]);
 
@@ -144,7 +144,7 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
     if (enabled && isOnline && syncInterval > 0) {
       syncIntervalRef.current = setInterval(() => {
         if (pendingUpdatesRef.current.length > 0) {
-          syncToServer();
+          void syncToServer();
         }
       }, syncInterval);
       

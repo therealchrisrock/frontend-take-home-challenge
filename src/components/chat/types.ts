@@ -24,7 +24,7 @@ export interface Notification {
   type: 'friend_request' | 'message' | 'system';
   timestamp: Date;
   read: boolean;
-  actionData?: any;
+  actionData?: { userId?: string; gameId?: string };
 }
 
 export interface ThemeSettings {

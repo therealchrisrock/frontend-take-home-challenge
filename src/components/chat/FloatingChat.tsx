@@ -6,14 +6,11 @@ import { Card } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { 
   Users, 
   Bell, 
   Settings, 
   Send, 
-  MessageCircle,
-  X,
   Minimize2,
   Hash,
   AtSign
@@ -24,7 +21,7 @@ import { ChatSettingsPopup } from "./ChatSettingsPopup";
 import { ChatMessages } from "./ChatMessages";
 import type { FloatingChatProps, ChatChannel, ChatMessage, Notification, ThemeSettings } from "./types";
 
-export function FloatingChat({ initialPosition, defaultChannel = "general" }: FloatingChatProps) {
+export function FloatingChat({ initialPosition }: FloatingChatProps) {
   const { data: session } = useSession();
   const [isMinimized, setIsMinimized] = useState(true); // Start minimized
   const [position, setPosition] = useState(() => {
@@ -136,7 +133,7 @@ export function FloatingChat({ initialPosition, defaultChannel = "general" }: Fl
       id: Date.now().toString(),
       content: message,
       senderId: session.user.id,
-      senderName: session.user.name || session.user.username || "You",
+      senderName: session.user.name ?? session.user.username ?? "You",
       timestamp: new Date(),
       type: currentChannel.type,
       channelId: currentChannel.id

@@ -59,8 +59,8 @@ export function MessageCenter() {
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {
       setMessageInput("");
-      refetchConversation();
-      refetchConversations();
+      void refetchConversation();
+      void refetchConversations();
     },
     onError: (error) => {
       toast({
@@ -73,7 +73,7 @@ export function MessageCenter() {
 
   const markAsReadMutation = api.message.markAsRead.useMutation({
     onSuccess: () => {
-      refetchConversations();
+      void refetchConversations();
     },
   });
 
@@ -118,7 +118,7 @@ export function MessageCenter() {
   
   // Filter conversations based on search
   const filteredConversations = conversations?.filter(conv => 
-    conv.user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (conv.user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
     conv.user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
   );

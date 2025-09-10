@@ -57,7 +57,7 @@ export function GameStats({ board, currentPlayer, moveCount, winner, gameStartTi
   const pieces = countPieces();
 
   return (
-    <Card className="w-full bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300">
+    <Card className="w-full ">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="text-amber-900">Game Stats</span>

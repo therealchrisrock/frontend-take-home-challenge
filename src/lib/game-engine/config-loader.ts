@@ -3,36 +3,38 @@
  * Handles loading, validation, and caching of rule configurations
  */
 
-import type { VariantConfig, ResolvedVariantConfig, VariantCollection } from './rule-schema';
-import { ConfigValidator } from './rule-schema';
+import type { VariantConfig, VariantCollection } from './rule-schema';
+import { validateConfig, validateConfigWithErrors } from './rule-schema';
 
 // Import TypeScript configurations (these will be bundled)
 import { AmericanConfig } from './rule-configs/american';
 import { BrazilianConfig } from './rule-configs/brazilian';
 import { InternationalConfig } from './rule-configs/international';
+import { CanadianConfig } from './rule-configs/canadian';
 
 /**
  * Built-in variant configurations
  */
 const BUILT_IN_CONFIGS: Record<string, VariantConfig> = {
-  american: AmericanConfig as unknown as VariantConfig,
-  brazilian: BrazilianConfig as unknown as VariantConfig,
-  international: InternationalConfig as unknown as VariantConfig
+  american: AmericanConfig,
+  brazilian: BrazilianConfig,
+  international: InternationalConfig,
+  canadian: CanadianConfig
 };
 
 /**
  * Configuration cache for performance
  */
 class ConfigCache {
-  private resolvedConfigs: Map<string, ResolvedVariantConfig> = new Map();
-  private customConfigs: Map<string, VariantConfig> = new Map();
+  private configs = new Map<string, VariantConfig>();
+  private customConfigs = new Map<string, VariantConfig>();
 
-  get(variantName: string): ResolvedVariantConfig | undefined {
-    return this.resolvedConfigs.get(variantName);
+  get(variantName: string): VariantConfig | undefined {
+    return this.configs.get(variantName);
   }
 
-  set(variantName: string, config: ResolvedVariantConfig): void {
-    this.resolvedConfigs.set(variantName, config);
+  set(variantName: string, config: VariantConfig): void {
+    this.configs.set(variantName, config);
   }
 
   setCustom(variantName: string, config: VariantConfig): void {
@@ -44,12 +46,12 @@ class ConfigCache {
   }
 
   clear(): void {
-    this.resolvedConfigs.clear();
+    this.configs.clear();
     this.customConfigs.clear();
   }
 
   has(variantName: string): boolean {
-    return this.resolvedConfigs.has(variantName) || 
+    return this.configs.has(variantName) || 
            BUILT_IN_CONFIGS.hasOwnProperty(variantName);
   }
 
@@ -70,9 +72,9 @@ const configCache = new ConfigCache();
  */
 export class GameConfigLoader {
   /**
-   * Load and resolve a variant configuration
+   * Load a variant configuration (now synchronous)
    */
-  static async loadVariant(variantName: string): Promise<ResolvedVariantConfig> {
+  static loadVariant(variantName: string): VariantConfig {
     // Check cache first
     const cached = configCache.get(variantName);
     if (cached) {
@@ -95,29 +97,29 @@ export class GameConfigLoader {
       throw new Error(`Unknown variant: ${variantName}`);
     }
 
-    // Validate configuration
-    const validation = ConfigValidator.validateWithErrors(config);
-    if (!validation.valid) {
-      throw new Error(`Invalid configuration for ${variantName}: ${validation.errors.join(', ')}`);
+    // Built-in configs are already validated by TypeScript
+    // Only validate custom configs
+    if (!BUILT_IN_CONFIGS[variantName]) {
+      const validation = validateConfigWithErrors(config);
+      if (!validation.valid) {
+        throw new Error(`Invalid configuration for ${variantName}: ${validation.errors.join(', ')}`);
+      }
     }
 
-    // Resolve computed values
-    const resolvedConfig = ConfigValidator.resolve(config);
+    // Cache the configuration
+    configCache.set(variantName, config);
 
-    // Cache the resolved configuration
-    configCache.set(variantName, resolvedConfig);
-
-    return resolvedConfig;
+    return config;
   }
 
   /**
-   * Load multiple variants at once
+   * Load multiple variants at once (now synchronous)
    */
-  static async loadVariants(variantNames: string[]): Promise<Record<string, ResolvedVariantConfig>> {
-    const configs: Record<string, ResolvedVariantConfig> = {};
+  static loadVariants(variantNames: string[]): Record<string, VariantConfig> {
+    const configs: Record<string, VariantConfig> = {};
     
     for (const name of variantNames) {
-      configs[name] = await this.loadVariant(name);
+      configs[name] = this.loadVariant(name);
     }
 
     return configs;
@@ -142,21 +144,14 @@ export class GameConfigLoader {
    */
   static registerCustomVariant(name: string, config: VariantConfig): void {
     // Validate the configuration
-    const validation = ConfigValidator.validateWithErrors(config);
+    const validation = validateConfigWithErrors(config);
     if (!validation.valid) {
       throw new Error(`Invalid custom configuration for ${name}: ${validation.errors.join(', ')}`);
     }
 
     // Store in cache
     configCache.setCustom(name, config);
-
-    // Clear resolved cache for this variant to force re-resolution
-    if (configCache.has(name)) {
-      const current = configCache.get(name);
-      if (current) {
-        configCache.set(name, ConfigValidator.resolve(config));
-      }
-    }
+    configCache.set(name, config);
   }
 
   /**
@@ -212,11 +207,11 @@ export class GameConfigLoader {
   }
 
   /**
-   * Preload all built-in configurations
+   * Preload all built-in configurations (now synchronous)
    */
-  static async preloadBuiltInVariants(): Promise<void> {
+  static preloadBuiltInVariants(): void {
     const variantNames = this.getBuiltInVariants();
-    await this.loadVariants(variantNames);
+    this.loadVariants(variantNames);
   }
 
   /**
@@ -244,7 +239,7 @@ export class GameConfigLoader {
   static createVariantTemplate(
     name: string,
     displayName: string,
-    basedOn: string = 'american'
+    basedOn = 'american'
   ): VariantConfig {
     const baseConfig = BUILT_IN_CONFIGS[basedOn];
     if (!baseConfig) {
@@ -274,7 +269,7 @@ export class GameConfigLoader {
     errors: string[];
     warnings: string[];
   } {
-    const validation = ConfigValidator.validateWithErrors(config);
+    const validation = validateConfigWithErrors(config);
     const warnings: string[] = [];
 
     // Check for schema version compatibility

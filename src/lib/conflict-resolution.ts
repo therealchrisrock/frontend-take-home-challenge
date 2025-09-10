@@ -76,13 +76,13 @@ export class ConflictResolver {
         return this.resolveUserChoice(conflictingMoves, context);
       
       default:
-        throw new Error(`Unsupported resolution strategy: ${this.strategy}`);
+        throw new Error(`Unsupported resolution strategy: ${String(this.strategy)}`);
     }
   }
 
   private resolveFirstWriteWins(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    _context: ConflictContext
   ): ConflictResolution {
     // Sort by timestamp - earliest wins
     const sortedMoves = conflictingMoves.sort((a, b) => 
@@ -101,7 +101,7 @@ export class ConflictResolver {
 
   private resolveLastWriteWins(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    _context: ConflictContext
   ): ConflictResolution {
     // Sort by timestamp - latest wins
     const sortedMoves = conflictingMoves.sort((a, b) => 
@@ -181,7 +181,7 @@ export class ConflictResolver {
 
   private resolveRejectAll(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    _context: ConflictContext
   ): ConflictResolution {
     return {
       strategy: 'reject',
@@ -192,7 +192,7 @@ export class ConflictResolver {
 
   private resolveUserChoice(
     conflictingMoves: ConflictingMove[],
-    context: ConflictContext
+    _context: ConflictContext
   ): ConflictResolution {
     return {
       strategy: 'user-choice',
@@ -229,7 +229,7 @@ export class ConflictResolver {
     optimisticUpdates: OptimisticUpdate[],
     serverBoard: Board,
     serverMoveCount: number,
-    serverVersion: number
+    _serverVersion: number
   ): {
     conflicts: string[];
     validUpdates: string[];

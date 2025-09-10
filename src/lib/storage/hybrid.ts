@@ -187,7 +187,7 @@ export class HybridStorageAdapter implements GameStorageAdapter {
   }
 
   // Utility method to sync all games from one storage to another
-  async syncAll(fromPrimary: boolean = true): Promise<void> {
+  async syncAll(fromPrimary = true): Promise<void> {
     if (!this.secondary) return;
     
     const source = fromPrimary ? this.primary : this.secondary;

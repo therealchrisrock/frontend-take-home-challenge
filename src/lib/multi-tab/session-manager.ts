@@ -107,7 +107,7 @@ export class GameSessionManager {
 
   setActiveTab(gameId: GameId, tabId: TabId): boolean {
     const gameSession = this.sessions.get(gameId);
-    if (!gameSession || !gameSession.tabs.has(tabId)) {
+    if (!gameSession?.tabs.has(tabId)) {
       return false;
     }
 

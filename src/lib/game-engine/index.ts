@@ -10,7 +10,6 @@ export { GameRules } from './game-rules';
 export { GameConfigLoader } from './config-loader';
 export type {
   VariantConfig,
-  ResolvedVariantConfig,
   VariantCollection,
   VariantMetadata,
   BoardConfig,
@@ -22,13 +21,13 @@ export type {
   Direction,
   PieceSetup
 } from './rule-schema';
-export { ConfigValidator } from './rule-schema';
+export { validateConfig, validateConfigWithErrors } from './rule-schema';
 
 // Import for local use in utility functions
 import { GameRules } from './game-rules';
 import { GameConfigLoader } from './config-loader';
-import { ConfigValidator } from './rule-schema';
-import type { VariantConfig, ResolvedVariantConfig } from './rule-schema';
+import { validateConfigWithErrors } from './rule-schema';
+import type { VariantConfig } from './rule-schema';
 
 // Remove backward compatibility exports since we're removing the old system
 
@@ -51,10 +50,10 @@ export const PLAY_MODES = {
 /**
  * Create a game rules engine for a variant
  */
-export const createGameRules = async (variant: string, config?: ResolvedVariantConfig) => {
+export const createGameRules = (variant: string, config?: VariantConfig) => {
   const rules = new GameRules(variant, config);
   if (!config) {
-    await rules.initialize();
+    rules.initialize();
   }
   return rules;
 };
@@ -62,8 +61,8 @@ export const createGameRules = async (variant: string, config?: ResolvedVariantC
 /**
  * Load a variant configuration
  */
-export const loadVariantConfig = async (variant: string) => {
-  return await GameConfigLoader.loadVariant(variant);
+export const loadVariantConfig = (variant: string) => {
+  return GameConfigLoader.loadVariant(variant);
 };
 
 // Removed legacy compatibility - use createGameRules instead
@@ -78,15 +77,15 @@ export const getAvailableVariants = () => {
 /**
  * Preload all built-in variants for performance
  */
-export const preloadVariants = async () => {
-  await GameConfigLoader.preloadBuiltInVariants();
+export const preloadVariants = () => {
+  GameConfigLoader.preloadBuiltInVariants();
 };
 
 /**
  * Validate a custom variant configuration
  */
 export const validateVariantConfig = (config: unknown) => {
-  return ConfigValidator.validateWithErrors(config);
+  return validateConfigWithErrors(config);
 };
 
 /**
@@ -99,7 +98,7 @@ export const registerCustomVariant = (name: string, config: VariantConfig) => {
 /**
  * Create a variant template based on existing variant
  */
-export const createVariantTemplate = (name: string, displayName: string, basedOn: string = 'american') => {
+export const createVariantTemplate = (name: string, displayName: string, basedOn = 'american') => {
   return GameConfigLoader.createVariantTemplate(name, displayName, basedOn);
 };
 

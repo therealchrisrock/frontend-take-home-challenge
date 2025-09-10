@@ -100,7 +100,7 @@ export default function ProfileManagement({ userId }: ProfileManagementProps) {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <AvatarUpload 
-            currentAvatarUrl={profile.avatarUrl}
+            currentAvatarUrl={profile.image}
             onUploadComplete={() => void refetch()}
           />
           

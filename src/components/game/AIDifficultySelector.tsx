@@ -24,13 +24,6 @@ const difficultyConfig: Record<AIDifficulty, {
   color: string;
   badge?: string;
 }> = {
-  random: {
-    label: 'Random',
-    description: 'Completely random moves',
-    icon: Zap,
-    color: 'text-gray-600',
-    badge: 'Beginner'
-  },
   easy: {
     label: 'Easy',
     description: '2-move lookahead',

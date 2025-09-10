@@ -3,6 +3,7 @@
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+import { m } from "framer-motion"
 
 import { cn } from "~/lib/utils"
 
@@ -34,19 +35,40 @@ function DropdownMenuTrigger({
 function DropdownMenuContent({
   className,
   sideOffset = 4,
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="dropdown-menu-content"
-        sideOffset={sideOffset}
-        className={cn(
-          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
-          className
-        )}
-        {...props}
-      />
+      <DropdownMenuPrimitive.Content asChild sideOffset={sideOffset} {...props}>
+        <m.div
+          data-slot="dropdown-menu-content"
+          initial={{ opacity: 0, scale: 0.95, y: -8 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: {
+              type: "spring",
+              stiffness: 300,
+              damping: 25,
+              duration: 0.2,
+            },
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.95,
+            y: -8,
+            transition: { duration: 0.15 },
+          }}
+          className={cn(
+            "bg-popover text-popover-foreground z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+            className
+          )}
+        >
+          {children}
+        </m.div>
+      </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   )
 }
@@ -100,7 +122,9 @@ function DropdownMenuCheckboxItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <m.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+            <CheckIcon className="size-4" />
+          </m.div>
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -135,7 +159,9 @@ function DropdownMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <m.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
+            <CircleIcon className="size-2 fill-current" />
+          </m.div>
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -224,17 +250,39 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
-    <DropdownMenuPrimitive.SubContent
-      data-slot="dropdown-menu-sub-content"
-      className={cn(
-        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
-        className
-      )}
-      {...props}
-    />
+    <DropdownMenuPrimitive.SubContent asChild {...props}>
+      <m.div
+        data-slot="dropdown-menu-sub-content"
+        initial={{ opacity: 0, scale: 0.95, x: -4 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          x: 0,
+          transition: {
+            type: "spring",
+            stiffness: 300,
+            damping: 25,
+            duration: 0.2,
+          },
+        }}
+        exit={{
+          opacity: 0,
+          scale: 0.95,
+          x: -4,
+          transition: { duration: 0.15 },
+        }}
+        className={cn(
+          "bg-popover text-popover-foreground z-50 min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-lg",
+          className
+        )}
+      >
+        {children}
+      </m.div>
+    </DropdownMenuPrimitive.SubContent>
   )
 }
 

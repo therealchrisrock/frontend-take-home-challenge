@@ -43,7 +43,7 @@ const VARIANT_TEST_CASES: VariantTestCase[] = [
     },
     rules: {
       backwardCapture: { regular: false, king: true },
-      flyingKings: true,
+      flyingKings: false,
       mandatoryCapture: true,
       maximumCapture: false,
       kingPriority: false
@@ -85,7 +85,7 @@ const VARIANT_TEST_CASES: VariantTestCase[] = [
 
 describe('Cross-Variant Tests', () => {
   // Store loaded rules for all variants
-  const variantRules: Map<VariantName, GameRules> = new Map();
+  const variantRules = new Map<VariantName, GameRules>();
 
   beforeAll(async () => {
     // Preload all variants

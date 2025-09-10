@@ -3,6 +3,7 @@
 import { type Piece as PieceType } from '~/lib/game-logic';
 import { cn } from '~/lib/utils';
 import { Crown } from 'lucide-react';
+import { useSettings } from '~/contexts/settings-context';
 
 interface PieceProps {
   piece: PieceType;
@@ -10,11 +11,13 @@ interface PieceProps {
   isDragging?: boolean;
   mustCapture?: boolean;
   hasOtherMustCapture?: boolean;
-  onDragStart: (e: React.DragEvent) => void;
-  onDragEnd: (e: React.DragEvent) => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 export function Piece({ piece, isDraggable, isDragging = false, mustCapture = false, hasOtherMustCapture = false, onDragStart, onDragEnd }: PieceProps) {
+  const { settings } = useSettings();
+  
   const pieceStyle = piece.color === 'red' ? {
     background: `linear-gradient(to bottom right, var(--piece-red-from), var(--piece-red-to))`,
     borderColor: 'var(--piece-red-border)'
@@ -55,14 +58,16 @@ export function Piece({ piece, isDraggable, isDragging = false, mustCapture = fa
             try { document.body.removeChild(clone); } catch {}
           }, 0);
         } catch {}
-        onDragStart(e);
+        onDragStart?.(e);
       }}
       onDragEnd={onDragEnd}
       className={cn(
         'w-[80%] h-[80%] rounded-full relative',
-        'shadow-xl hover:scale-105',
-        'border-4',
-        isDraggable && !hasOtherMustCapture && 'cursor-grab hover:shadow-2xl active:scale-95',
+        'shadow-xl border-4',
+        // Only apply hover/scale animations if reduced motion is disabled
+        !settings.reducedMotion && 'hover:scale-105',
+        isDraggable && !hasOtherMustCapture && 'cursor-grab',
+        !settings.reducedMotion && isDraggable && !hasOtherMustCapture && 'hover:shadow-2xl active:scale-95',
         isDraggable && hasOtherMustCapture && !mustCapture && 'cursor-not-allowed opacity-75',
         !isDraggable && 'cursor-not-allowed opacity-90',
         isDragging && 'opacity-0',

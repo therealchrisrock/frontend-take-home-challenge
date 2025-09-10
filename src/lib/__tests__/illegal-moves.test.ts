@@ -62,7 +62,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[4]![4] = { color: 'black', type: 'regular' };
       board[3]![3] = { color: 'red', type: 'regular' }; // backward-left
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       const backwardLeftCapture = captures.find(m => 
         m.captures?.some(c => c.row === 3 && c.col === 3)
@@ -77,7 +77,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[4]![4] = { color: 'black', type: 'regular' };
       board[3]![5] = { color: 'red', type: 'regular' }; // backward-right
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       const backwardRightCapture = captures.find(m => 
         m.captures?.some(c => c.row === 3 && c.col === 5)
@@ -92,7 +92,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[3]![4] = { color: 'red', type: 'regular' };
       board[4]![3] = { color: 'black', type: 'regular' }; // backward-left for red
       
-      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3]![4]!);
+      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3]![4]);
       
       const backwardLeftCapture = captures.find(m => 
         m.captures?.some(c => c.row === 4 && c.col === 3)
@@ -107,7 +107,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[3]![4] = { color: 'red', type: 'regular' };
       board[4]![5] = { color: 'black', type: 'regular' }; // backward-right for red
       
-      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3]![4]!);
+      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3]![4]);
       
       const backwardRightCapture = captures.find(m => 
         m.captures?.some(c => c.row === 4 && c.col === 5)
@@ -123,7 +123,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[3]![3] = { color: 'red', type: 'regular' }; // backward (invalid)
       board[5]![5] = { color: 'red', type: 'regular' }; // forward (valid)
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       // Should only have forward capture
       expect(captures).toHaveLength(1);
@@ -139,7 +139,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[6]![2] = { color: 'red', type: 'regular' }; // First forward capture (black moves down)
       board[5]![3] = { color: 'red', type: 'regular' }; // Would be backward capture after landing at [7,3]
       
-      const captures = getCaptureMoves(board, { row: 5, col: 1 }, board[5]![1]!);
+      const captures = getCaptureMoves(board, { row: 5, col: 1 }, board[5]![1]);
       
       // Should capture the first piece
       const captureExists = captures.length > 0;
@@ -191,7 +191,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[1]![0] = { color: 'black', type: 'regular' };
       board[0]![1] = { color: 'red', type: 'regular' };
       
-      const captures = getCaptureMoves(board, { row: 1, col: 0 }, board[1]![0]!);
+      const captures = getCaptureMoves(board, { row: 1, col: 0 }, board[1]![0]);
       
       // Can't capture because landing would be off board at [-1, 2]
       expect(captures).toHaveLength(0);
@@ -225,7 +225,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[4]![4] = { color: 'red', type: 'regular' };
       board[3]![3] = { color: 'red', type: 'regular' }; // Same color
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       // Should not be able to capture own piece
       expect(captures).toHaveLength(0);
@@ -284,7 +284,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[2]![2] = { color: 'black', type: 'regular' };
       board[1]![1] = { color: 'red', type: 'king' }; // Last red piece - backward capture would win
       
-      const captures = getCaptureMoves(board, { row: 2, col: 2 }, board[2]![2]!);
+      const captures = getCaptureMoves(board, { row: 2, col: 2 }, board[2]![2]);
       
       // Even though capturing would win the game, backward capture is not allowed
       expect(captures).toHaveLength(0);
@@ -313,7 +313,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[5]![3] = { color: 'red', type: 'regular' }; // forward-left
       board[5]![5] = { color: 'red', type: 'regular' }; // forward-right
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       // Regular black piece should only capture forward (down)
       expect(captures).toHaveLength(2); // Only forward-left and forward-right
@@ -351,7 +351,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[4]![4] = { color: 'black', type: 'king' };
       board[3]![3] = { color: 'red', type: 'regular' }; // backward capture
       
-      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 4 }, board[4]![4]);
       
       const backwardCapture = captures.find(m => 
         m.captures?.some(c => c.row === 3 && c.col === 3)
@@ -368,7 +368,7 @@ describe('Illegal Move Prevention - Comprehensive Tests', () => {
       board[3]![2] = { color: 'red', type: 'regular' }; // First capture (backward)
       board[1]![4] = { color: 'red', type: 'regular' }; // Second capture (forward from landing)
       
-      const captures = getCaptureMoves(board, { row: 4, col: 1 }, board[4]![1]!);
+      const captures = getCaptureMoves(board, { row: 4, col: 1 }, board[4]![1]);
       
       // Should find multi-jump with direction change
       const multiJump = captures.find(m => m.captures?.length === 2);

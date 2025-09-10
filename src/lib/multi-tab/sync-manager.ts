@@ -18,7 +18,7 @@ export class MultiTabSyncManager {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private state: MultiTabState;
-  private listeners: Map<string, Set<(event: SyncEvent) => void>> = new Map();
+  private listeners = new Map<string, Set<(event: SyncEvent) => void>>();
   private offlineMoveQueue: Move[] = [];
   private lastSuccessfulConnection: Date | null = null;
   private connectionCheckInterval: NodeJS.Timeout | null = null;

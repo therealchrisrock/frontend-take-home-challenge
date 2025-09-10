@@ -1,12 +1,11 @@
 import type { Move, Position, Board, Piece } from './game-logic';
-import type { BoardConfig } from './board-config';
 
 /**
  * Convert a board position to standard checkers notation.
  * Standard checkers notation numbers squares from 1-32 (for 8x8 board) on dark squares only.
  * Numbering goes from top-left to bottom-right, only counting dark squares.
  */
-export function positionToSquareNumber(position: Position, boardSize: number = 8): number {
+export function positionToSquareNumber(position: Position, boardSize = 8): number {
   const { row, col } = position;
   // Calculate the square number (1-based) for dark squares only
   // Dark squares are where (row + col) % 2 === 1
@@ -27,7 +26,7 @@ export function positionToSquareNumber(position: Position, boardSize: number = 8
 /**
  * Convert square number back to board position
  */
-export function squareNumberToPosition(squareNum: number, boardSize: number = 8): Position {
+export function squareNumberToPosition(squareNum: number, boardSize = 8): Position {
   const squareIndex = squareNum - 1; // Convert to 0-based
   const row = Math.floor(squareIndex / (boardSize / 2));
   const colIndex = squareIndex % (boardSize / 2);
@@ -61,18 +60,18 @@ export interface NotatedMove {
 export function moveToNotation(
   move: Move, 
   board: Board, 
-  boardConfig: BoardConfig,
-  wasKinged: boolean = false
+  boardSize: number,
+  wasKinged = false
 ): NotatedMove {
-  const fromSquare = positionToSquareNumber(move.from, boardConfig.size);
-  const toSquare = positionToSquareNumber(move.to, boardConfig.size);
+  const fromSquare = positionToSquareNumber(move.from, boardSize);
+  const toSquare = positionToSquareNumber(move.to, boardSize);
   const isCapture = move.captures && move.captures.length > 0;
   
   let notation: string;
   
   if (isCapture && move.path && move.path.length > 2) {
     // Multi-jump capture - show all intermediate squares
-    const squares = move.path.map(pos => positionToSquareNumber(pos, boardConfig.size));
+    const squares = move.path.map(pos => positionToSquareNumber(pos, boardSize));
     notation = squares.join('x');
   } else if (isCapture) {
     // Single capture
@@ -100,7 +99,7 @@ export function moveToNotation(
  * Parse notation string back to positions
  * Returns null if notation is invalid
  */
-export function notationToMove(notation: string, boardSize: number = 8): Move | null {
+export function notationToMove(notation: string, boardSize = 8): Move | null {
   try {
     // Remove king annotation if present
     const cleanNotation = notation.replace('(K)', '');
@@ -182,7 +181,7 @@ export function historyToString(history: GameHistoryEntry[]): string {
 /**
  * Parse a string format back to history entries
  */
-export function stringToHistory(str: string, boardSize: number = 8): GameHistoryEntry[] {
+export function stringToHistory(str: string, boardSize = 8): GameHistoryEntry[] {
   const history: GameHistoryEntry[] = [];
   const tokens = str.split(/\s+/).filter(t => t.length > 0);
   

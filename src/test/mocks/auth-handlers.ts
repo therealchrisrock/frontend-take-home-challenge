@@ -47,7 +47,7 @@ export const nextAuthHandlers = [
 
     const user = mockAuthStore.users.get(emailOrUsername);
     
-    if (!user || !user.password) {
+    if (!user?.password) {
       return HttpResponse.json(
         { error: 'CredentialsSignin' },
         { status: 401 }

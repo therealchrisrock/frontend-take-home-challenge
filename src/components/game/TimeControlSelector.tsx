@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
+import { NumberInput } from '~/components/ui/number-input';
 import { Label } from '~/components/ui/label';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
@@ -21,7 +21,6 @@ import { cn } from '~/lib/utils';
 import {
   type TimeControl,
   TIME_CONTROL_PRESETS,
-  parseTimeControl,
   validateTimeControl,
   timeControlToString,
   getTimeControlPreset
@@ -56,8 +55,14 @@ export function TimeControlSelector({
   const [selectedPreset, setSelectedPreset] = useState<string | null>(
     timeControl?.preset && timeControl.preset !== 'custom' ? timeControl.preset : null
   );
-  const [customInput, setCustomInput] = useState(
-    timeControl?.preset === 'custom' ? timeControlToString(timeControl) : ''
+  const [customMinutes, setCustomMinutes] = useState(
+    timeControl?.preset === 'custom' ? timeControl.initialMinutes : 10
+  );
+  const [customIncrement, setCustomIncrement] = useState(
+    timeControl?.preset === 'custom' ? timeControl.incrementSeconds : 5
+  );
+  const [customFormat, setCustomFormat] = useState<'X|Y' | 'X+Y'>(
+    timeControl?.preset === 'custom' ? timeControl.format : 'X|Y'
   );
   const [customError, setCustomError] = useState<string | null>(null);
 
@@ -95,26 +100,29 @@ export function TimeControlSelector({
 
   const handlePresetSelect = (presetKey: string) => {
     setSelectedPreset(presetKey);
-    setCustomInput('');
     setCustomError(null);
   };
 
-  const handleCustomInputChange = (value: string) => {
-    setCustomInput(value);
+  const handleCustomChange = () => {
     setSelectedPreset(null);
     
-    if (value.trim()) {
-      const parsed = parseTimeControl(value);
-      if (parsed) {
-        const validation = validateTimeControl(parsed);
-        setCustomError(validation);
-      } else {
-        setCustomError('Invalid format. Use X|Y or X+Y (e.g., "5|3" or "10+5")');
-      }
-    } else {
-      setCustomError(null);
-    }
+    const customTimeControl: TimeControl = {
+      format: customFormat,
+      initialMinutes: customMinutes,
+      incrementSeconds: customIncrement,
+      preset: 'custom'
+    };
+    
+    const validation = validateTimeControl(customTimeControl);
+    setCustomError(validation);
   };
+
+  // Initial validation check
+  useEffect(() => {
+    if (!selectedPreset) {
+      handleCustomChange();
+    }
+  }, []);
 
   const handleApply = () => {
     if (selectedPreset) {
@@ -123,10 +131,16 @@ export function TimeControlSelector({
         onTimeControlChange(preset);
         onOpenChange(false);
       }
-    } else if (customInput.trim()) {
-      const parsed = parseTimeControl(customInput);
-      if (parsed && !validateTimeControl(parsed)) {
-        onTimeControlChange(parsed);
+    } else if (customMinutes > 0) {
+      const customTimeControl: TimeControl = {
+        format: customFormat,
+        initialMinutes: customMinutes,
+        incrementSeconds: customIncrement,
+        preset: 'custom'
+      };
+      
+      if (!validateTimeControl(customTimeControl)) {
+        onTimeControlChange(customTimeControl);
         onOpenChange(false);
       }
     } else {
@@ -141,7 +155,7 @@ export function TimeControlSelector({
     onOpenChange(false);
   };
 
-  const canApply = selectedPreset || (customInput.trim() && !customError);
+  const canApply = selectedPreset ?? (customMinutes > 0 && !customError);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,26 +222,92 @@ export function TimeControlSelector({
 
           <Separator />
 
-          {/* Custom input */}
-          <div className="space-y-2">
-            <Label htmlFor="custom-time" className="text-sm font-medium">
+          {/* Custom time control */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">
               Custom Time Control
             </Label>
-            <Input
-              id="custom-time"
-              placeholder="e.g., 15|10 or 3+2"
-              value={customInput}
-              onChange={(e) => handleCustomInputChange(e.target.value)}
-              disabled={gameActive}
-              className={customError ? 'border-red-500' : ''}
-            />
+            
+            {/* Format selector */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={customFormat === 'X|Y' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setCustomFormat('X|Y');
+                  handleCustomChange();
+                }}
+                disabled={gameActive}
+                className="flex-1"
+              >
+                Minutes | Increment
+              </Button>
+              <Button
+                type="button"
+                variant={customFormat === 'X+Y' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setCustomFormat('X+Y');
+                  handleCustomChange();
+                }}
+                disabled={gameActive}
+                className="flex-1"
+              >
+                Minutes + Increment
+              </Button>
+            </div>
+            
+            {/* Number inputs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-minutes" className="text-xs font-medium text-muted-foreground">
+                  Minutes
+                </Label>
+                <NumberInput
+                  id="custom-minutes"
+                  value={customMinutes}
+                  onChange={(value) => {
+                    setCustomMinutes(value);
+                    handleCustomChange();
+                  }}
+                  min={0.5}
+                  max={180}
+                  step={0.5}
+                  decimals={1}
+                  disabled={gameActive}
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="custom-increment" className="text-xs font-medium text-muted-foreground">
+                  Increment (seconds)
+                </Label>
+                <NumberInput
+                  id="custom-increment"
+                  value={customIncrement}
+                  onChange={(value) => {
+                    setCustomIncrement(value);
+                    handleCustomChange();
+                  }}
+                  min={0}
+                  max={60}
+                  step={1}
+                  disabled={gameActive}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
             {customError && (
               <p className="text-xs text-red-600">{customError}</p>
             )}
+            
             <div className="text-xs text-muted-foreground">
-              Format: <code>Minutes|Increment</code> or <code>Minutes+Increment</code>
-              <br />
-              Examples: <code>5|0</code> (5 min, no increment), <code>10+5</code> (10 min + 5 sec)
+              Preview: <code className="font-mono bg-muted px-1 py-0.5 rounded">
+                {customMinutes}{customFormat === 'X|Y' ? '|' : '+'}{customIncrement}
+              </code>
             </div>
           </div>
 
@@ -263,7 +343,9 @@ export function TimeControlSelector({
               size="sm"
               onClick={() => {
                 setSelectedPreset(null);
-                setCustomInput('');
+                setCustomMinutes(10);
+                setCustomIncrement(5);
+                setCustomFormat('X|Y');
                 setCustomError(null);
               }}
               disabled={gameActive}

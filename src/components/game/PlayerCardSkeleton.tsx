@@ -32,22 +32,21 @@ export function PlayerCardSkeleton({
         {/* Player Info Skeleton */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            {/* Player name skeleton */}
+            {/* Player name skeleton - matches text-sm */}
             <Skeleton className="h-4 w-20 rounded" />
             
-            {/* Badge skeleton (for Guest or AI difficulty) */}
-            <Skeleton className="h-4 w-12 rounded-full" />
-            
-            {/* Crown icon skeleton (shown occasionally to represent current user) */}
-            {Math.random() > 0.7 && (
-              <Skeleton className="w-3 h-3 rounded" />
+            {/* Badge skeleton (for Guest or AI difficulty) - shown ~50% of time */}
+            {Math.random() > 0.5 && (
+              <Skeleton className="h-4 w-12 rounded-full" />
             )}
           </div>
 
-          {/* W/L/D stats skeleton (shown for players with stats) */}
-          <div className="mt-0.5">
-            <Skeleton className="h-3 w-16 rounded" />
-          </div>
+          {/* W/L/D stats skeleton - shown occasionally for non-AI players */}
+          {Math.random() > 0.6 && (
+            <div className="mt-0.5">
+              <Skeleton className="h-3 w-16 rounded" />
+            </div>
+          )}
         </div>
       </div>
     </div>

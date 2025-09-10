@@ -65,11 +65,15 @@ export function FriendsList() {
   // API mutations
   const sendRequestMutation = api.user.sendFriendRequest.useMutation({
     onSuccess: () => {
-      refetchRequests();
+      void refetchRequests();
       toast({
         title: "Success",
         description: "Friend request sent successfully",
       });
+      // Trigger a refetch of the friend request count in the notification system
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('friendRequestSent'));
+      }, 100);
     },
     onError: (error) => {
       toast({
@@ -82,8 +86,8 @@ export function FriendsList() {
 
   const respondRequestMutation = api.user.respondToFriendRequest.useMutation({
     onSuccess: (_, variables) => {
-      refetchRequests();
-      refetchFriends();
+      void refetchRequests();
+      void refetchFriends();
       toast({
         title: "Success",
         description: variables.accept ? "Friend request accepted" : "Friend request declined",
@@ -100,7 +104,7 @@ export function FriendsList() {
 
   const removeFriendMutation = api.user.removeFriend.useMutation({
     onSuccess: () => {
-      refetchFriends();
+      void refetchFriends();
       toast({
         title: "Success",
         description: "Friend removed successfully",
@@ -117,8 +121,8 @@ export function FriendsList() {
 
   const blockUserMutation = api.user.blockUser.useMutation({
     onSuccess: () => {
-      refetchFriends();
-      refetchBlocked();
+      void refetchFriends();
+      void refetchBlocked();
       toast({
         title: "Success",
         description: "User blocked successfully",
@@ -135,7 +139,7 @@ export function FriendsList() {
 
   const unblockUserMutation = api.user.unblockUser.useMutation({
     onSuccess: () => {
-      refetchBlocked();
+      void refetchBlocked();
       toast({
         title: "Success",
         description: "User unblocked successfully",

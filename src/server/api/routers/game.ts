@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '~/server/api/trpc';
 import { type Board, type Move, createInitialBoard, makeMove } from '~/lib/game-logic';
-import { getBoardConfig, type BoardVariant } from '~/lib/board-config';
+import type { BoardVariant } from '~/lib/variants';
+import { GameConfigLoader } from '~/lib/game-engine/config-loader';
+import type { TimeControl } from '~/lib/time-control-types';
 import { STORAGE_VERSION } from '~/lib/storage/types';
 import { gameSessionManager } from '~/lib/multi-tab/session-manager';
 import type { InitialStatePayload, MoveAppliedPayload } from '~/lib/multi-tab/types';
@@ -32,7 +34,15 @@ export const gameRouter = createTRPCRouter({
     .input(z.object({
       mode: z.enum(['ai', 'local', 'online']),
       playerName: z.string().optional(),
-      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional()
+      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional(),
+      playerColor: z.enum(['red','black']).optional(),
+      aiDifficulty: z.enum(['easy','medium','hard','expert']).optional(),
+      timeControl: z.object({
+        format: z.enum(['X|Y','X+Y']),
+        initialMinutes: z.number(),
+        incrementSeconds: z.number(),
+        preset: z.enum(['bullet','blitz','rapid','classical','custom']).optional()
+      }).nullable().optional()
     }))
     .mutation(async ({ ctx, input }) => {
       // Generate a simple 6-character game code
@@ -41,26 +51,28 @@ export const gameRouter = createTRPCRouter({
       // If user is authenticated, set them as player1
       const player1Id = ctx.session?.user?.id ?? null;
       
-      // Get the board configuration based on the variant
+      // Get the rules configuration based on the variant
       const boardVariant = input.boardVariant || 'american';
-      const boardConfig = getBoardConfig(boardVariant);
+      const rules = await GameConfigLoader.loadVariant(boardVariant);
       
       const game = await ctx.db.game.create({
-        data: {
-          board: JSON.stringify(createInitialBoard(boardConfig)),
+        data: ({
+          board: JSON.stringify(createInitialBoard(rules)),
           currentPlayer: 'red',
           gameMode: input.mode,
           moveCount: 0,
           version: STORAGE_VERSION,
           player1Id: player1Id, // Set authenticated user as player 1
           player2Id: input.mode === 'ai' || input.mode === 'local' ? player1Id : null, // For AI/local, both players are the same user
-          // Map the board variant to the enum values, Canadian uses International enum with boardSize
-          variant: boardVariant === 'canadian' ? 'INTERNATIONAL' : 
-                  boardVariant === 'brazilian' ? 'BRAZILIAN' : 
-                  boardVariant === 'international' ? 'INTERNATIONAL' : 'AMERICAN',
-          boardSize: boardConfig.size, // Store the actual board size
-          gameConfig: JSON.stringify(boardConfig) // Store full config for reference
-        }
+          gameConfig: JSON.stringify({
+            boardVariant,
+            rules,
+            playerColor: input.playerColor ?? 'red',
+            aiDifficulty: input.aiDifficulty ?? null,
+            timeControl: input.timeControl ?? null
+          }),
+          timeControl: input.timeControl ? JSON.stringify(input.timeControl) : null
+        }) as any
       });
 
       return {
@@ -74,32 +86,42 @@ export const gameRouter = createTRPCRouter({
     .input(z.object({
       mode: z.enum(['ai', 'local', 'online']),
       playerName: z.string().optional(),
-      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional()
+      boardVariant: z.enum(['american', 'brazilian', 'international', 'canadian']).optional(),
+      playerColor: z.enum(['red','black']).optional(),
+      aiDifficulty: z.enum(['easy','medium','hard','expert']).optional(),
+      timeControl: z.object({
+        format: z.enum(['X|Y','X+Y']),
+        initialMinutes: z.number(),
+        incrementSeconds: z.number(),
+        preset: z.enum(['bullet','blitz','rapid','classical','custom']).optional()
+      }).nullable().optional()
     }))
     .mutation(async ({ ctx, input }) => {
       // Generate a simple 6-character game code
       const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // Get the board configuration based on the variant
+      // Get the rules configuration based on the variant
       const boardVariant = input.boardVariant || 'american';
-      const boardConfig = getBoardConfig(boardVariant);
+      const rules = await GameConfigLoader.loadVariant(boardVariant);
       
       const game = await ctx.db.game.create({
-        data: {
-          board: JSON.stringify(createInitialBoard(boardConfig)),
+        data: ({
+          board: JSON.stringify(createInitialBoard(rules)),
           currentPlayer: 'red',
           gameMode: input.mode,
           moveCount: 0,
           version: STORAGE_VERSION,
           player1Id: ctx.session.user.id, // Authenticated user is always player 1
           player2Id: input.mode === 'ai' || input.mode === 'local' ? ctx.session.user.id : null,
-          // Map the board variant to the enum values, Canadian uses International enum with boardSize
-          variant: boardVariant === 'canadian' ? 'INTERNATIONAL' : 
-                  boardVariant === 'brazilian' ? 'BRAZILIAN' : 
-                  boardVariant === 'international' ? 'INTERNATIONAL' : 'AMERICAN',
-          boardSize: boardConfig.size, // Store the actual board size
-          gameConfig: JSON.stringify(boardConfig) // Store full config for reference
-        }
+          gameConfig: JSON.stringify({
+            boardVariant,
+            rules,
+            playerColor: input.playerColor ?? 'red',
+            aiDifficulty: input.aiDifficulty ?? null,
+            timeControl: input.timeControl ?? null
+          }),
+          timeControl: input.timeControl ? JSON.stringify(input.timeControl) : null
+        }) as any
       });
 
       return {
@@ -109,6 +131,82 @@ export const gameRouter = createTRPCRouter({
       };
     }),
   
+  getById: publicProcedure
+    .input(z.object({
+      id: z.string()
+    }))
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.id },
+        include: {
+          moves: {
+            orderBy: {
+              moveIndex: 'asc'
+            }
+          }
+        }
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Game not found'
+        });
+      }
+
+      // Parse the game configuration
+      let gameConfig = null;
+      if (game.gameConfig) {
+        try {
+          gameConfig = JSON.parse(game.gameConfig);
+        } catch (e) {
+          console.error('Failed to parse gameConfig:', e);
+        }
+      }
+
+      // Parse the board
+      let board = null;
+      if (game.board) {
+        try {
+          board = JSON.parse(game.board);
+        } catch (e) {
+          console.error('Failed to parse board:', e);
+        }
+      }
+
+      // Parse time control if present
+      let timeControl = null;
+      if (game.timeControl) {
+        try {
+          timeControl = JSON.parse(game.timeControl);
+        } catch (e) {
+          console.error('Failed to parse timeControl:', e);
+        }
+      }
+
+      // Transform moves to the expected format
+      const moves = game.moves.map(move => ({
+        from: { row: move.fromRow, col: move.fromCol },
+        to: { row: move.toRow, col: move.toCol },
+        captures: move.captures ? JSON.parse(move.captures) : undefined
+      }));
+
+      return {
+        id: game.id,
+        board,
+        currentPlayer: game.currentPlayer,
+        moveCount: game.moveCount,
+        gameMode: game.gameMode,
+        winner: game.winner,
+        gameConfig,
+        timeControl,
+        moves,
+        gameStartTime: game.gameStartTime,
+        player1Id: game.player1Id,
+        player2Id: game.player2Id
+      };
+    }),
+
   join: publicProcedure
     .input(z.object({
       gameId: z.string(),
@@ -220,6 +318,7 @@ export const gameRouter = createTRPCRouter({
         captures: move.captures ? JSON.parse(move.captures) : undefined
       }));
 
+      const storedConfig = (game as any).gameConfig ? JSON.parse((game as any).gameConfig) : null;
       return {
         id: game.id,
         board,
@@ -230,7 +329,14 @@ export const gameRouter = createTRPCRouter({
         gameStartTime: game.gameStartTime.toISOString(),
         lastSaved: game.lastSaved.toISOString(),
         winner: game.winner as ('red' | 'black' | 'draw') | null,
-        version: game.version
+        version: game.version,
+        settings: storedConfig ? {
+          boardVariant: storedConfig.boardVariant as BoardVariant,
+          boardConfig: storedConfig.boardConfig,
+          playerColor: storedConfig.playerColor as ('red'|'black'),
+          aiDifficulty: storedConfig.aiDifficulty as ('easy'|'medium'|'hard'|'expert'|null),
+          timeControl: storedConfig.timeControl as TimeControl | null,
+        } : null
       };
     }),
 

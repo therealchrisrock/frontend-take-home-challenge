@@ -1,0 +1,49 @@
+{
+  "name": "Birdseye Checkers - Play Online",
+  "short_name": "Birdseye",
+  "description": "Play checkers online with friends or AI opponents. Master classic checkers with multiple difficulty levels.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Play vs AI",
+      "short_name": "vs AI",
+      "description": "Start a new game against AI",
+      "url": "/game/bot",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Play Local",
+      "short_name": "Local",
+      "description": "Start a local multiplayer game",
+      "url": "/game/local",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { gameRouter } from "~/server/api/routers/game";
-import { simplifiedGameRouter } from "~/server/api/routers/simplified-game";
 import { authRouter } from "~/server/api/routers/auth";
 import { userRouter } from "~/server/api/routers/user";
 import { messageRouter } from "~/server/api/routers/message";
@@ -12,7 +11,6 @@ import { messageRouter } from "~/server/api/routers/message";
  */
 export const appRouter = createTRPCRouter({
   game: gameRouter,
-  simplifiedGame: simplifiedGameRouter,
   auth: authRouter,
   user: userRouter,
   message: messageRouter,

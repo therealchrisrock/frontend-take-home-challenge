@@ -10,7 +10,8 @@ import {
   getMustCapturePositions,
   getCaptureMoves
 } from './game-logic';
-import { type BoardConfig, getBoardConfig } from './board-config';
+import type { VariantConfig } from './game-engine/rule-schema';
+import { AmericanConfig } from './game-engine/rule-configs/american';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -47,9 +48,6 @@ const DEFAULT_WEIGHTS: EvaluationWeights = {
 
 // Difficulty presets
 const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
-  random: {
-    maxDepth: 0
-  },
   easy: {
     maxDepth: 2,
     timeLimit: 500,
@@ -103,7 +101,7 @@ const DIFFICULTY_CONFIGS: Record<AIDifficulty, Partial<AIConfig>> = {
 };
 
 // Opening book - common strong opening moves
-const OPENING_BOOK: Map<string, Move[]> = new Map([
+const OPENING_BOOK = new Map<string, Move[]>([
   // Standard opening positions
   ['initial', [
     { from: { row: 5, col: 0 }, to: { row: 4, col: 1 } },
@@ -114,13 +112,13 @@ const OPENING_BOOK: Map<string, Move[]> = new Map([
 
 export class CheckersAI {
   private config: AIConfig;
-  private boardConfig: BoardConfig;
-  private nodesEvaluated: number = 0;
-  private startTime: number = 0;
+  private rules: VariantConfig;
+  private nodesEvaluated = 0;
+  private startTime = 0;
   private timeLimit: number;
-  private transpositionTable: Map<string, { score: number; depth: number; bestMove?: Move }> = new Map();
+  private transpositionTable = new Map<string, { score: number; depth: number; bestMove?: Move }>();
 
-  constructor(config: Partial<AIConfig> = {}, boardConfig: BoardConfig = getBoardConfig('american')) {
+  constructor(config: Partial<AIConfig> = {}, rules: VariantConfig = AmericanConfig) {
     const difficultyConfig = config.difficulty ? DIFFICULTY_CONFIGS[config.difficulty] : {};
     this.config = {
       difficulty: 'medium',
@@ -132,17 +130,17 @@ export class CheckersAI {
       ...difficultyConfig,
       ...config
     };
-    this.boardConfig = boardConfig;
+    this.rules = rules;
     this.timeLimit = this.config.timeLimit || 5000;
   }
 
-  public async getBestMove(board: Board, color: PieceColor, moveNumber: number = 0): Promise<Move | null> {
+  public async getBestMove(board: Board, color: PieceColor, moveNumber = 0): Promise<Move | null> {
     this.nodesEvaluated = 0;
     this.startTime = Date.now();
     this.transpositionTable.clear();
 
     // Random difficulty - just return a random move
-    if (this.config.difficulty === 'random') {
+    if (this.config.difficulty === 'easy') {
       return this.getRandomMove(board, color);
     }
 
@@ -207,7 +205,7 @@ export class CheckersAI {
     }
 
     // Terminal node checks
-    const winner = checkWinner(board, this.boardConfig);
+    const winner = checkWinner(board, this.rules);
     if (winner) {
       const score = winner === playerColor ? 10000 : winner === 'draw' ? 0 : -10000;
       return { score: score * (depth + 1) }; // Prefer quicker wins
@@ -235,7 +233,7 @@ export class CheckersAI {
     let bestScore = maximizingPlayer ? -Infinity : Infinity;
 
     for (const move of moves) {
-      const newBoard = makeMove(board, move, this.boardConfig);
+      const newBoard = makeMove(board, move, this.rules);
       const result = this.minimax(
         newBoard,
         depth - 1,
@@ -281,8 +279,8 @@ export class CheckersAI {
     const opponentColor = playerColor === 'red' ? 'black' : 'red';
     
     // Material and positional evaluation
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (!piece) continue;
 
@@ -296,20 +294,22 @@ export class CheckersAI {
         if (piece.type === 'regular') {
           // Forward position bonus (encourage advancement)
           const advanceBonus = piece.color === 'red' 
-            ? (this.boardConfig.size - 1 - row) 
+            ? (this.rules.board.size - 1 - row) 
             : row;
           score += multiplier * weights.forwardPosition * advanceBonus;
 
           // Back row protection
-          if ((piece.color === 'red' && row === this.boardConfig.size - 1) ||
+          if ((piece.color === 'red' && row === this.rules.board.size - 1) ||
               (piece.color === 'black' && row === 0)) {
             score += multiplier * weights.backRow;
           }
         }
 
-        // Center control bonus
-        const centerDistance = Math.abs(row - 3.5) + Math.abs(col - 3.5);
-        score += multiplier * weights.centerControl * (7 - centerDistance);
+        // Center control bonus (scaled to board size)
+        const center = (this.rules.board.size - 1) / 2;
+        const maxCenterDistance = this.rules.board.size - 1;
+        const centerDistance = Math.abs(row - center) + Math.abs(col - center);
+        score += multiplier * weights.centerControl * (maxCenterDistance - centerDistance);
 
         // Protection bonus (pieces protected by back row or other pieces)
         if (this.isPieceProtected(board, { row, col }, piece)) {
@@ -331,17 +331,17 @@ export class CheckersAI {
 
   private isPieceProtected(board: Board, position: Position, piece: Piece): boolean {
     // Check if piece is on back row
-    if ((piece.color === 'red' && position.row === this.boardConfig.size - 1) ||
+    if ((piece.color === 'red' && position.row === this.rules.board.size - 1) ||
         (piece.color === 'black' && position.row === 0)) {
       return true;
     }
 
     // Check if piece has friendly pieces behind it
     const behindRow = piece.color === 'red' ? position.row + 1 : position.row - 1;
-    if (behindRow >= 0 && behindRow < this.boardConfig.size) {
+    if (behindRow >= 0 && behindRow < this.rules.board.size) {
       for (const colOffset of [-1, 1]) {
         const checkCol = position.col + colOffset;
-        if (checkCol >= 0 && checkCol < this.boardConfig.size) {
+        if (checkCol >= 0 && checkCol < this.rules.board.size) {
           const behindPiece = board[behindRow]?.[checkCol];
           if (behindPiece && behindPiece.color === piece.color) {
             return true;
@@ -356,11 +356,11 @@ export class CheckersAI {
   private getAllMoves(board: Board, color: PieceColor): Move[] {
     const moves: Move[] = [];
     
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (piece && piece.color === color) {
-          const pieceMoves = getValidMoves(board, { row, col }, color, this.boardConfig);
+          const pieceMoves = getValidMoves(board, { row, col }, color, this.rules);
           moves.push(...pieceMoves);
         }
       }
@@ -391,8 +391,8 @@ export class CheckersAI {
   private getEndgameMove(board: Board, color: PieceColor): Move | null {
     // Count pieces to determine if we're in endgame
     let pieceCount = 0;
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         if (board[row]?.[col]) pieceCount++;
       }
     }
@@ -408,8 +408,8 @@ export class CheckersAI {
   private getBoardKey(board: Board): string {
     // Create a unique string representation of the board for caching
     let key = '';
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (!piece) {
           key += '0';
@@ -445,7 +445,7 @@ export class CheckersAI {
   public async analyzePosition(
     board: Board, 
     playerColor: PieceColor,
-    depth: number = 4
+    depth = 4
   ): Promise<number> {
     const result = this.minimax(
       board,
@@ -468,14 +468,14 @@ export class CheckersAI {
   public async getTopMoves(
     board: Board,
     color: PieceColor,
-    topN: number = 5,
-    depth: number = 4
+    topN = 5,
+    depth = 4
   ): Promise<Array<{ move: Move; score: number; evaluation: number }>> {
     const moves = this.getAllMoves(board, color);
     const evaluatedMoves: Array<{ move: Move; score: number }> = [];
 
     for (const move of moves) {
-      const newBoard = makeMove(board, move, this.boardConfig);
+      const newBoard = makeMove(board, move, this.rules);
       const result = this.minimax(
         newBoard,
         depth - 1,
@@ -507,14 +507,14 @@ export class CheckersAI {
     move1: Move,
     move2: Move,
     playerColor: PieceColor,
-    depth: number = 4
+    depth = 4
   ): Promise<{ 
     move1Score: number; 
     move2Score: number; 
     difference: number;
     betterMove: Move;
   }> {
-    const board1 = makeMove(board, move1, this.boardConfig);
+    const board1 = makeMove(board, move1, this.rules);
     const result1 = this.minimax(
       board1,
       depth - 1,
@@ -524,7 +524,7 @@ export class CheckersAI {
       playerColor
     );
 
-    const board2 = makeMove(board, move2, this.boardConfig);
+    const board2 = makeMove(board, move2, this.rules);
     const result2 = this.minimax(
       board2,
       depth - 1,
@@ -560,8 +560,8 @@ export class CheckersAI {
     let protection = 0;
 
     // Material and positional evaluation
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (!piece) continue;
 
@@ -574,19 +574,21 @@ export class CheckersAI {
         // Positional value
         if (piece.type === 'regular') {
           const advanceBonus = piece.color === 'red' 
-            ? (this.boardConfig.size - 1 - row) 
+            ? (this.rules.board.size - 1 - row) 
             : row;
           position += multiplier * weights.forwardPosition * advanceBonus;
 
-          if ((piece.color === 'red' && row === this.boardConfig.size - 1) ||
+          if ((piece.color === 'red' && row === this.rules.board.size - 1) ||
               (piece.color === 'black' && row === 0)) {
             position += multiplier * weights.backRow;
           }
         }
 
-        // Center control
-        const centerDistance = Math.abs(row - 3.5) + Math.abs(col - 3.5);
-        position += multiplier * weights.centerControl * (7 - centerDistance);
+        // Center control (scaled to board size)
+        const center = (this.rules.board.size - 1) / 2;
+        const maxCenterDistance = this.rules.board.size - 1;
+        const centerDistance = Math.abs(row - center) + Math.abs(col - center);
+        position += multiplier * weights.centerControl * (maxCenterDistance - centerDistance);
 
         // Protection
         if (this.isPieceProtected(board, { row, col }, piece)) {

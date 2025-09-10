@@ -46,7 +46,7 @@ export default function NewUserPage() {
   const checkUsername = api.auth.checkUsername.useQuery(
     { username: form.watch("username") ?? "" },
     {
-      enabled: !!form.watch("username") && form.watch("username")!.length >= 3,
+      enabled: !!form.watch("username") && form.watch("username").length >= 3,
       refetchOnWindowFocus: false,
     }
   );
@@ -71,7 +71,7 @@ export default function NewUserPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome, {session.user.name || session.user.email}!</CardTitle>
+          <CardTitle>Welcome, {session.user.name ?? session.user.email}!</CardTitle>
           <CardDescription>
             Choose a username to complete your profile
           </CardDescription>

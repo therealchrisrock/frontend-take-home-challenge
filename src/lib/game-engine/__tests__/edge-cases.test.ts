@@ -10,7 +10,7 @@ import type { Board, Move, Piece } from '../../game-logic';
 
 describe('Edge Cases and Complex Scenarios', () => {
   const variants = ['american', 'brazilian', 'international'] as const;
-  const variantRules: Map<string, GameRules> = new Map();
+  const variantRules = new Map<string, GameRules>();
 
   beforeAll(async () => {
     await GameConfigLoader.preloadBuiltInVariants();
@@ -33,14 +33,14 @@ describe('Edge Cases and Complex Scenarios', () => {
       board[2]![5] = { color: 'black', type: 'regular' };
       
       // First jump
-      let move: Move = {
+      const move: Move = {
         from: { row: 7, col: 0 },
         to: { row: 5, col: 2 },
         captures: [{ row: 6, col: 1 }]
       };
       
       expect(rules.validateMove(board, move)).toBe(true);
-      let newBoard = rules.makeMove(board, move);
+      const newBoard = rules.makeMove(board, move);
       expect(newBoard[6]![1]).toBeNull(); // Piece captured
       
       // Should require continuation
@@ -252,7 +252,7 @@ describe('Edge Cases and Complex Scenarios', () => {
           // Assuming it's red's turn
           const moves = rules.findValidMoves(board, 'red');
           const illegalMove = moves.find(m => 
-            m.from.row === blackPiecePos!.row && m.from.col === blackPiecePos!.col
+            m.from.row === blackPiecePos.row && m.from.col === blackPiecePos.col
           );
           expect(illegalMove).toBeUndefined();
         }

@@ -78,15 +78,15 @@ export function PostGameAnalysis({
     
     return {
       accuracy: analysis.averageAccuracy[player],
-      brilliant: moveQuality.brilliant || 0,
-      excellent: moveQuality.excellent || 0,
-      best: moveQuality.best || 0,
-      good: moveQuality.good || 0,
+      brilliant: moveQuality.brilliant ?? 0,
+      excellent: moveQuality.excellent ?? 0,
+      best: moveQuality.best ?? 0,
+      good: moveQuality.good ?? 0,
       book: 0, // Would need to track opening book moves
-      inaccuracy: moveQuality.inaccuracy || 0,
-      mistake: moveQuality.mistake || 0,
+      inaccuracy: moveQuality.inaccuracy ?? 0,
+      mistake: moveQuality.mistake ?? 0,
       miss: 0, // Could track missed wins
-      blunder: moveQuality.blunder || 0
+      blunder: moveQuality.blunder ?? 0
     };
   };
 
@@ -182,7 +182,7 @@ export function PostGameAnalysis({
                     <circle
                       key={idx}
                       cx={x}
-                      cy={60 - (analysis.evaluationGraph[idx]?.evaluation || 0) * 0.5}
+                      cy={60 - (analysis.evaluationGraph[idx]?.evaluation ?? 0) * 0.5}
                       r="3"
                       fill="orange"
                     />
@@ -196,7 +196,7 @@ export function PostGameAnalysis({
                     <circle
                       key={idx}
                       cx={x}
-                      cy={60 - (analysis.evaluationGraph[idx]?.evaluation || 0) * 0.5}
+                      cy={60 - (analysis.evaluationGraph[idx]?.evaluation ?? 0) * 0.5}
                       r="3"
                       fill="red"
                     />
@@ -250,7 +250,7 @@ export function PostGameAnalysis({
               <div key={key} className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-3">
                   <span className="text-orange-400 font-mono text-lg w-8">
-                    {redCount || 0}
+                    {redCount ?? 0}
                   </span>
                   <div className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold bg-gray-800",
@@ -261,7 +261,7 @@ export function PostGameAnalysis({
                   <span className="text-sm font-medium">{label}</span>
                 </div>
                 <span className="text-green-400 font-mono text-lg">
-                  {blackCount || 0}
+                  {blackCount ?? 0}
                 </span>
               </div>
             );

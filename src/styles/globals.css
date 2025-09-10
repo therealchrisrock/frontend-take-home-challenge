@@ -1,6 +1,45 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+:root {
+  --header-height: 64px;
+  /* Vertical sizing variables for board container */
+  --player-card-height: 36px; /* min-h-[56px] from PlayerCardContainer wrappers */
+  --player-card-padding-y: 24px; /* py-3 => 12px top + 12px bottom */
+  --board-outer-padding: 32px; /* p-4 on outer card */
+  --board-bottom-extra-padding: 16px; /* extra bottom spacing (p-4 bottom only) */
+  --board-vertical-offset: calc(
+    var(--header-height)
+    + (2 * (var(--player-card-height) + var(--player-card-padding-y)))
+    + var(--board-outer-padding)
+    + var(--board-bottom-extra-padding)
+  );
+
+  /* Default skin variables (the-og theme) - prevents FOUC */
+  --board-light-from: #faf8f3;
+  --board-light-to: #e8d5b7;
+  --board-dark-from: #8b4513;
+  --board-dark-to: #654321;
+  --board-border: #2c1810;
+  --board-selected-ring: #ffd700;
+  --board-highlighted-ring: #32cd32;
+  --board-possible-move: #ffd700;
+  --board-possible-move-glow: rgba(255, 215, 0, 0.6);
+  --board-arrow-stroke: #ffd700;
+  --board-arrow-fill: rgba(255, 215, 0, 0.2);
+  --board-arrow-glow: rgba(255, 215, 0, 0.5);
+  --piece-red-base: #dc143c;
+  --piece-red-from: #ff6b6b;
+  --piece-red-to: #8b0000;
+  --piece-red-border: #4a0404;
+  --piece-red-crown: #ffd700;
+  --piece-black-base: #1a1a1a;
+  --piece-black-from: #4a4a4a;
+  --piece-black-to: #000000;
+  --piece-black-border: #ffffff;
+  --piece-black-crown: #ffd700;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -64,8 +103,8 @@
   --accent-foreground: oklch(37.49% 0.088 63.1);
   --destructive: oklch(50.04% 0.176 27.5);
   --destructive-foreground: oklch(97.46% 0.008 82);
-  --border: oklch(90.62% 0.005 82 / 0.13);
-  --input: transparent;
+  --border: oklch(70% 0.005 82 / 0.18);
+  --input: oklch(0.922 0 0);
   --input-background: oklch(98.24% 0.006 82);
   --switch-background: oklch(83.04% 0.008 82);
   --ring: oklch(59.94% 0.117 63.6);
@@ -128,6 +167,11 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Utility class for fitting the board + player cards within viewport */
+.board-fit-max {
+  max-width: calc(100vh - var(--board-vertical-offset));
 }
 
 /* 3D Background Animations */

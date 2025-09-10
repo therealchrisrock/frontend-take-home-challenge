@@ -22,7 +22,7 @@ export interface GameSyncActions {
 export interface UseGameSyncOptions {
   gameId?: string;
   enabled?: boolean;
-  onOpponentMove?: (move: Move, newGameState: any) => void;
+  onOpponentMove?: (move: Move, newGameState: unknown) => void;
   onConnectionStatusChange?: (connected: boolean) => void;
 }
 
@@ -88,7 +88,7 @@ export function useGameSync(options: UseGameSyncOptions): [GameSyncState, GameSy
         
         // Process any offline moves
         if (state.offlineMoveQueue.length > 0) {
-          processOfflineQueue();
+          void processOfflineQueue();
         }
       };
 

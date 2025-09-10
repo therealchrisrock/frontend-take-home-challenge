@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameRules } from '../game-rules';
 import { GameConfigLoader } from '../config-loader';
-import { ConfigValidator } from '../rule-schema';
+import { validateConfigWithErrors } from '../rule-schema';
 import type { VariantConfig } from '../rule-schema';
 
 describe('Game Rules Engine', () => {
@@ -18,8 +18,8 @@ describe('Game Rules Engine', () => {
       expect(variants).toContain('international');
     });
 
-    it('should load American variant configuration', async () => {
-      const config = await GameConfigLoader.loadVariant('american');
+    it('should load American variant configuration', () => {
+      const config = GameConfigLoader.loadVariant('american');
       expect(config.metadata.name).toBe('american');
       expect(config.board.size).toBe(8);
       expect(config.board.pieceCount).toBe(12);
@@ -27,8 +27,8 @@ describe('Game Rules Engine', () => {
       expect(config.board.startingRows.red).toEqual([5, 6, 7]);
     });
 
-    it('should load International variant configuration', async () => {
-      const config = await GameConfigLoader.loadVariant('international');
+    it('should load International variant configuration', () => {
+      const config = GameConfigLoader.loadVariant('international');
       expect(config.metadata.name).toBe('international');
       expect(config.board.size).toBe(10);
       expect(config.board.pieceCount).toBe(20);
@@ -36,9 +36,9 @@ describe('Game Rules Engine', () => {
       expect(config.board.startingRows.red).toEqual([6, 7, 8, 9]);
     });
 
-    it('should validate configurations', async () => {
-      const config = await GameConfigLoader.loadVariant('american');
-      const validation = ConfigValidator.validateWithErrors(config);
+    it('should validate configurations', () => {
+      const config = GameConfigLoader.loadVariant('american');
+      const validation = validateConfigWithErrors(config);
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
@@ -47,9 +47,9 @@ describe('Game Rules Engine', () => {
   describe('American Checkers', () => {
     let rules: GameRules;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
     });
 
     it('should create initial 8x8 board with 12 pieces per player', () => {
@@ -91,8 +91,45 @@ describe('Game Rules Engine', () => {
       expect(rules.canCaptureBackward({ color: 'red', type: 'king' })).toBe(true);
     });
 
-    it('should allow flying kings', () => {
-      expect(rules.canFlyAsKing()).toBe(true);
+    it('should not allow flying kings', () => {
+      expect(rules.canFlyAsKing()).toBe(false);
+    });
+
+    it('should restrict American kings to one-square diagonal moves', () => {
+      const board = rules.createInitialBoard();
+      
+      // Clear some spaces and create a king in the middle of the board for testing
+      // Position [4,3] is a dark square (4+3=7, odd number)
+      board[4]![3] = { color: 'red', type: 'king' };
+      
+      // Clear destination squares to ensure they're empty
+      board[3]![2] = null;
+      board[3]![4] = null;
+      board[5]![2] = null;
+      board[5]![4] = null;
+      
+      // Valid one-square king moves should be allowed
+      const oneSquareMoves = [
+        { from: { row: 4, col: 3 }, to: { row: 3, col: 2 } },
+        { from: { row: 4, col: 3 }, to: { row: 3, col: 4 } },
+        { from: { row: 4, col: 3 }, to: { row: 5, col: 2 } },
+        { from: { row: 4, col: 3 }, to: { row: 5, col: 4 } }
+      ];
+      
+      for (const move of oneSquareMoves) {
+        expect(rules.validateMove(board, move)).toBe(true);
+      }
+      
+      // Multi-square king moves should be rejected
+      const multiSquareMoves = [
+        { from: { row: 4, col: 3 }, to: { row: 2, col: 1 } }, // 2 squares
+        { from: { row: 4, col: 3 }, to: { row: 1, col: 0 } }, // 3 squares
+        { from: { row: 4, col: 3 }, to: { row: 6, col: 5 } }  // 2 squares
+      ];
+      
+      for (const move of multiSquareMoves) {
+        expect(rules.validateMove(board, move)).toBe(false);
+      }
     });
 
     it('should require mandatory captures but not maximum', () => {
@@ -145,9 +182,9 @@ describe('Game Rules Engine', () => {
   describe('Brazilian Draughts', () => {
     let rules: GameRules;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       rules = new GameRules('brazilian');
-      await rules.initialize();
+      rules.initialize();
     });
 
     it('should allow backward captures for all pieces', () => {
@@ -172,9 +209,9 @@ describe('Game Rules Engine', () => {
   describe('International Draughts', () => {
     let rules: GameRules;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       rules = new GameRules('international');
-      await rules.initialize();
+      rules.initialize();
     });
 
     it('should create 10x10 board with 20 pieces per player', () => {
@@ -217,7 +254,7 @@ describe('Game Rules Engine', () => {
 
   describe('Custom Variants', () => {
     it('should register and use custom variant configurations', async () => {
-      const customConfig = await GameConfigLoader.loadVariant('american');
+      const customConfig = GameConfigLoader.loadVariant('american');
       customConfig.metadata.name = 'custom';
       customConfig.metadata.displayName = 'Custom Test Variant';
       customConfig.movement.regularPieces.canCaptureBackward = true;
@@ -225,7 +262,7 @@ describe('Game Rules Engine', () => {
       GameConfigLoader.registerCustomVariant('custom', customConfig);
       
       const rules = new GameRules('custom');
-      await rules.initialize();
+      rules.initialize();
       
       expect(rules.displayName).toBe('Custom Test Variant');
       expect(rules.canCaptureBackward({ color: 'red', type: 'regular' })).toBe(true);
@@ -273,7 +310,7 @@ describe('Game Rules Engine', () => {
         schemaVersion: '1.0.0'
       } as VariantConfig;
 
-      const validation = ConfigValidator.validateWithErrors(validConfig);
+      const validation = validateConfigWithErrors(validConfig);
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
@@ -282,9 +319,9 @@ describe('Game Rules Engine', () => {
   describe('Draw Conditions', () => {
     let rules: GameRules;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
     });
 
     it('should detect insufficient material', () => {
@@ -300,7 +337,7 @@ describe('Game Rules Engine', () => {
 
   describe('Tournament Features', () => {
     it('should load tournament-specific configurations', async () => {
-      const config = await GameConfigLoader.loadVariant('american');
+      const config = GameConfigLoader.loadVariant('american');
       
       if (config.tournament) {
         expect(config.tournament.touchMove).toBe(true);
@@ -310,8 +347,8 @@ describe('Game Rules Engine', () => {
     });
 
     it('should have different time controls per variant', async () => {
-      const americanConfig = await GameConfigLoader.loadVariant('american');
-      const internationalConfig = await GameConfigLoader.loadVariant('international');
+      const americanConfig = GameConfigLoader.loadVariant('american');
+      const internationalConfig = GameConfigLoader.loadVariant('international');
       
       if (americanConfig.tournament?.timeControls && internationalConfig.tournament?.timeControls) {
         expect(americanConfig.tournament.timeControls.classical.baseTime).toBe(60);

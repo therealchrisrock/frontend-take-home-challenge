@@ -193,7 +193,7 @@ describe('Game Logic', () => {
       board[5][2] = { color: 'red', type: 'regular' };
       board[4][3] = { color: 'black', type: 'regular' };
       
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]!);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
       
       expect(captures).toHaveLength(1);
       expect(captures[0]).toEqual({
@@ -210,7 +210,7 @@ describe('Game Logic', () => {
       board[4][3] = { color: 'black', type: 'regular' };
       board[4][5] = { color: 'black', type: 'regular' };
       
-      const captures = getCaptureMoves(board, { row: 5, col: 4 }, board[5][4]!);
+      const captures = getCaptureMoves(board, { row: 5, col: 4 }, board[5][4]);
       
       expect(captures).toHaveLength(2);
     });
@@ -221,7 +221,7 @@ describe('Game Logic', () => {
       board[6][1] = { color: 'black', type: 'regular' };
       board[4][3] = { color: 'black', type: 'regular' };
       
-      const captures = getCaptureMoves(board, { row: 7, col: 0 }, board[7][0]!);
+      const captures = getCaptureMoves(board, { row: 7, col: 0 }, board[7][0]);
       
       // Should detect the double jump
       const multiJump = captures.find(m => m.captures?.length === 2);
@@ -237,7 +237,7 @@ describe('Game Logic', () => {
       board[4][3] = { color: 'black', type: 'regular' };
       board[2][3] = { color: 'black', type: 'regular' };
       
-      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3][4]!);
+      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3][4]);
       
       // King should be able to capture in both directions
       expect(captures.length).toBeGreaterThanOrEqual(2);
@@ -252,7 +252,7 @@ describe('Game Logic', () => {
       board[5][2] = { color: 'red', type: 'regular' };
       board[4][3] = { color: 'red', type: 'regular' }; // Friendly piece
       
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]!);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
       
       expect(captures).toHaveLength(0);
     });
@@ -263,7 +263,7 @@ describe('Game Logic', () => {
       board[4][3] = { color: 'black', type: 'regular' };
       board[3][4] = { color: 'black', type: 'regular' }; // Block landing
       
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]!);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
       
       expect(captures).toHaveLength(0);
     });

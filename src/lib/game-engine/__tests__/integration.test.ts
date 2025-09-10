@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameRules } from '../game-rules';
 import { GameConfigLoader } from '../config-loader';
-import { ConfigValidator } from '../rule-schema';
+import { validateConfigWithErrors } from '../rule-schema';
 import type { Board, Move, PieceColor } from '../../game-logic';
 import type { VariantConfig } from '../rule-schema';
 
@@ -22,9 +22,9 @@ describe('Game Engine Integration Tests', () => {
   });
 
   describe('Complete Game Flow', () => {
-    it('should play a complete game from start to finish', async () => {
+    it('should play a complete game from start to finish', () => {
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       
       let board = rules.createInitialBoard();
       let currentPlayer: PieceColor = 'red';
@@ -62,9 +62,9 @@ describe('Game Engine Integration Tests', () => {
       expect(moveHistory.length).toBe(moveCount);
     });
 
-    it('should maintain game consistency through multiple operations', async () => {
+    it('should maintain game consistency through multiple operations', () => {
       const rules = new GameRules('brazilian');
-      await rules.initialize();
+      rules.initialize();
       
       const initialBoard = rules.createInitialBoard();
       
@@ -72,7 +72,7 @@ describe('Game Engine Integration Tests', () => {
       const countPieces = (b: Board) => {
         let red = 0, black = 0;
         for (const row of b) {
-          for (const cell of row!) {
+          for (const cell of row) {
             if (cell?.color === 'red') red++;
             if (cell?.color === 'black') black++;
           }
@@ -113,13 +113,13 @@ describe('Game Engine Integration Tests', () => {
   });
 
   describe('Variant Switching and Configuration Management', () => {
-    it('should switch between variants without errors', async () => {
+    it('should switch between variants without errors', () => {
       const variants = ['american', 'brazilian', 'international'] as const;
       const boards: Board[] = [];
       
       for (const variant of variants) {
         const rules = new GameRules(variant);
-        await rules.initialize();
+        rules.initialize();
         
         const board = rules.createInitialBoard();
         boards.push(board);
@@ -147,9 +147,9 @@ describe('Game Engine Integration Tests', () => {
       expect(boards[2]!.length).toBe(10); // International
     });
 
-    it('should handle custom variant registration and usage', async () => {
+    it('should handle custom variant registration and usage', () => {
       // Create a custom variant based on American rules
-      const baseConfig = await GameConfigLoader.loadVariant('american');
+      const baseConfig = GameConfigLoader.loadVariant('american');
       const customConfig: VariantConfig = {
         ...baseConfig,
         metadata: {
@@ -178,7 +178,7 @@ describe('Game Engine Integration Tests', () => {
       
       // Use the custom variant
       const rules = new GameRules('custom-test');
-      await rules.initialize();
+      rules.initialize();
       
       // Verify custom rules are applied
       expect(rules.displayName).toBe('Custom Test Variant');
@@ -204,24 +204,22 @@ describe('Game Engine Integration Tests', () => {
         }
       };
       
-      const validation = ConfigValidator.validateWithErrors(invalidConfig);
+      const validation = validateConfigWithErrors(invalidConfig);
       expect(validation.valid).toBe(false);
       expect(validation.errors.length).toBeGreaterThan(0);
     });
   });
 
   describe('Concurrent Game Sessions', () => {
-    it('should handle multiple independent game instances', async () => {
+    it('should handle multiple independent game instances', () => {
       // Create multiple game instances
       const game1 = new GameRules('american');
       const game2 = new GameRules('brazilian');
       const game3 = new GameRules('international');
       
-      await Promise.all([
-        game1.initialize(),
-        game2.initialize(),
-        game3.initialize()
-      ]);
+      game1.initialize();
+      game2.initialize();
+      game3.initialize();
       
       const board1 = game1.createInitialBoard();
       const board2 = game2.createInitialBoard();
@@ -255,15 +253,15 @@ describe('Game Engine Integration Tests', () => {
   });
 
   describe('Performance and Caching', () => {
-    it('should cache configurations for performance', async () => {
+    it('should cache configurations for performance', () => {
       // First load - will fetch and cache
       const start1 = performance.now();
-      await GameConfigLoader.loadVariant('american');
+      GameConfigLoader.loadVariant('american');
       const time1 = performance.now() - start1;
       
       // Second load - should use cache
       const start2 = performance.now();
-      await GameConfigLoader.loadVariant('american');
+      GameConfigLoader.loadVariant('american');
       const time2 = performance.now() - start2;
       
       // Cached load should be faster (allowing some variance)
@@ -271,9 +269,9 @@ describe('Game Engine Integration Tests', () => {
       expect(time2).toBeLessThanOrEqual(time1 + 1);
     });
 
-    it('should handle cache clearing correctly', async () => {
+    it('should handle cache clearing correctly', () => {
       // Load and cache
-      await GameConfigLoader.loadVariant('american');
+      GameConfigLoader.loadVariant('american');
       expect(GameConfigLoader.hasVariant('american')).toBe(true);
       
       // Clear cache
@@ -281,13 +279,13 @@ describe('Game Engine Integration Tests', () => {
       
       // Should still work after cache clear
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       expect(rules.getBoardSize()).toBe(8);
     });
 
-    it('should preload all variants efficiently', async () => {
+    it('should preload all variants efficiently', () => {
       const start = performance.now();
-      await GameConfigLoader.preloadBuiltInVariants();
+      GameConfigLoader.preloadBuiltInVariants();
       const duration = performance.now() - start;
       
       // All variants should be loaded
@@ -301,15 +299,15 @@ describe('Game Engine Integration Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should handle invalid variant names gracefully', async () => {
+    it('should handle invalid variant names gracefully', () => {
       const rules = new GameRules('nonexistent');
       
-      await expect(rules.initialize()).rejects.toThrow('Unknown variant');
+      expect(() => rules.initialize()).toThrow('Unknown variant');
     });
 
-    it('should handle invalid moves gracefully', async () => {
+    it('should handle invalid moves gracefully', () => {
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       
       const board = rules.createInitialBoard();
       
@@ -327,7 +325,7 @@ describe('Game Engine Integration Tests', () => {
       }).not.toThrow();
     });
 
-    it('should recover from configuration errors', async () => {
+    it('should recover from configuration errors', () => {
       // Try to register an invalid configuration
       const invalidConfig = {} as VariantConfig;
       
@@ -337,14 +335,14 @@ describe('Game Engine Integration Tests', () => {
       
       // Should still be able to use valid configurations
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       expect(rules.getBoardSize()).toBe(8);
     });
   });
 
   describe('Tournament Mode Integration', () => {
-    it('should apply tournament rules when enabled', async () => {
-      const config = await GameConfigLoader.loadVariant('american');
+    it('should apply tournament rules when enabled', () => {
+      const config = GameConfigLoader.loadVariant('american');
       
       // Check tournament configuration exists
       expect(config.tournament).toBeDefined();
@@ -362,11 +360,11 @@ describe('Game Engine Integration Tests', () => {
       }
     });
 
-    it('should handle tournament-specific restrictions', async () => {
+    it('should handle tournament-specific restrictions', () => {
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       
-      const config = await GameConfigLoader.loadVariant('american');
+      const config = GameConfigLoader.loadVariant('american');
       
       // In tournament mode with 3-move restriction
       if (config.tournament?.threeMove?.enabled) {
@@ -378,7 +376,7 @@ describe('Game Engine Integration Tests', () => {
   });
 
   describe('State Persistence and Restoration', () => {
-    it('should export and import variant configurations', async () => {
+    it('should export and import variant configurations', () => {
       // Export a variant
       const exported = GameConfigLoader.exportVariant('american');
       expect(exported).toBeDefined();
@@ -391,7 +389,7 @@ describe('Game Engine Integration Tests', () => {
       
       // Use the imported variant
       const rules = new GameRules('imported-american');
-      await rules.initialize();
+      rules.initialize();
       
       // Should behave the same as original
       expect(rules.getBoardSize()).toBe(8);
@@ -399,9 +397,9 @@ describe('Game Engine Integration Tests', () => {
       expect(rules.canCaptureBackward({ color: 'red', type: 'regular' })).toBe(false);
     });
 
-    it('should maintain game state through serialization', async () => {
+    it('should maintain game state through serialization', () => {
       const rules = new GameRules('american');
-      await rules.initialize();
+      rules.initialize();
       
       const board = rules.createInitialBoard();
       
@@ -428,7 +426,7 @@ describe('Game Engine Integration Tests', () => {
       
       // Create new rules instance
       const newRules = new GameRules(serializedState.variant);
-      await newRules.initialize();
+      newRules.initialize();
       
       // Should be able to continue game
       const nextMoves = newRules.findValidMoves(restoredBoard, 'black');

@@ -72,15 +72,13 @@ export function useGameStorage({
 
   // Initialize storage adapter
   useEffect(() => {
-    if (!storageRef.current) {
-      storageRef.current = createStorageAdapter({
-        type: storageType,
-        autoSaveInterval
-      });
-    }
+    storageRef.current ??= createStorageAdapter({
+      type: storageType,
+      autoSaveInterval
+    });
 
     // Check for saved game on mount
-    checkForSavedGame();
+    void checkForSavedGame();
 
     return () => {
       // Cleanup
@@ -88,10 +86,10 @@ export function useGameStorage({
         clearTimeout(autoSaveTimerRef.current);
       }
       if (storageRef.current && 'destroy' in storageRef.current) {
-        (storageRef.current as any).destroy();
+        (storageRef.current as { destroy: () => void }).destroy();
       }
     };
-  }, [storageType]);
+  }, [storageType, autoSaveInterval, checkForSavedGame]);
 
   const checkForSavedGame = useCallback(async (): Promise<boolean> => {
     if (!storageRef.current) return false;
@@ -122,7 +120,7 @@ export function useGameStorage({
         }));
         return false;
       }
-    } catch (error) {
+    } catch (_error) {
       setState(prev => ({
         ...prev,
         loading: false,
@@ -172,7 +170,7 @@ export function useGameStorage({
         // Schedule auto-save if enabled
         if (autoSave && !state.winner) {
           autoSaveTimerRef.current = setTimeout(() => {
-            storageRef.current?.autoSave(persistedState);
+            void storageRef.current?.autoSave(persistedState);
           }, autoSaveInterval);
         }
       } else {
@@ -219,7 +217,7 @@ export function useGameStorage({
         }));
         return null;
       }
-    } catch (error) {
+    } catch (_error) {
       setState(prev => ({
         ...prev,
         loading: false,
@@ -247,7 +245,7 @@ export function useGameStorage({
       } else {
         throw new Error(result.error.message);
       }
-    } catch (error) {
+    } catch (_error) {
       setState(prev => ({
         ...prev,
         loading: false,
@@ -274,7 +272,7 @@ export function useGameStorage({
       } else {
         throw new Error(result.error.message);
       }
-    } catch (error) {
+    } catch (_error) {
       setState(prev => ({
         ...prev,
         loading: false,

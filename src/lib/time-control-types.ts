@@ -154,7 +154,7 @@ export function parseTimeControl(input: string): TimeControl | null {
   const trimmed = input.trim();
   
   // Match X|Y format
-  const pipeMatch = trimmed.match(/^(\d+(?:\.\d+)?)\|(\d+)$/);
+  const pipeMatch = /^(\d+(?:\.\d+)?)\|(\d+)$/.exec(trimmed);
   if (pipeMatch) {
     return {
       format: 'X|Y',
@@ -165,7 +165,7 @@ export function parseTimeControl(input: string): TimeControl | null {
   }
   
   // Match X+Y format
-  const plusMatch = trimmed.match(/^(\d+(?:\.\d+)?)\+(\d+)$/);
+  const plusMatch = /^(\d+(?:\.\d+)?)\+(\d+)$/.exec(trimmed);
   if (plusMatch) {
     return {
       format: 'X+Y',

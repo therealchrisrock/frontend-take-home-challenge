@@ -2,7 +2,8 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Label } from '~/components/ui/label';
-import { type BoardVariant, getBoardVariants, getBoardConfig } from '~/lib/board-config';
+import { type BoardVariant, getBoardVariants } from '~/lib/variants';
+import { GameConfigLoader } from '~/lib/game-engine/config-loader';
 
 interface BoardVariantSelectorProps {
   value: BoardVariant;
@@ -25,17 +26,14 @@ export function BoardVariantSelector({ value, onValueChange, disabled = false }:
           <SelectValue placeholder="Select board variant" />
         </SelectTrigger>
         <SelectContent>
-          {variants.map((variant) => {
-            const config = getBoardConfig(variant);
-            return (
-              <SelectItem key={variant} value={variant}>
-                <div className="flex flex-col">
-                  <span className="font-medium">{config.name}</span>
-                  <span className="text-sm text-muted-foreground">{config.description}</span>
-                </div>
-              </SelectItem>
-            );
-          })}
+          {variants.map((variant) => (
+            <SelectItem key={variant} value={variant}>
+              <div className="flex flex-col">
+                <span className="font-medium">{GameConfigLoader.getVariantMetadata(variant)?.displayName ?? variant}</span>
+                <span className="text-sm text-muted-foreground">{GameConfigLoader.getVariantMetadata(variant)?.description ?? ''}</span>
+              </div>
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

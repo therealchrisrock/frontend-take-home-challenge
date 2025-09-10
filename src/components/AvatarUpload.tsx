@@ -3,12 +3,13 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { Camera, Loader2, User } from "lucide-react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string | null;
-  onUploadComplete?: (avatarUrl: string) => void;
+  onUploadComplete?: (image: string) => void;
 }
 
 export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploadProps) {
@@ -16,6 +17,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { update } = useSession();
 
   const getUploadUrl = api.user.getAvatarUploadUrl.useMutation();
   const updateAvatar = api.user.updateAvatar.useMutation();
@@ -76,7 +78,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
 
       // Update user profile with new avatar
       await updateAvatar.mutateAsync({
-        avatarUrl: publicUrl,
+        image: publicUrl,
         avatarKey: key,
       });
 
@@ -84,6 +86,9 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
         title: "Avatar uploaded",
         description: "Your profile picture has been updated",
       });
+
+      // Update the session with the new image
+      await update({ image: publicUrl });
 
       onUploadComplete?.(publicUrl);
       setPreview(null);
@@ -111,6 +116,10 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
         title: "Avatar removed",
         description: "Your profile picture has been removed",
       });
+      
+      // Update the session to remove the image
+      await update({ image: null });
+      
       onUploadComplete?.("");
     } catch (error) {
       console.error("Delete error:", error);
@@ -124,7 +133,7 @@ export function AvatarUpload({ currentAvatarUrl, onUploadComplete }: AvatarUploa
     }
   };
 
-  const displayUrl = preview || currentAvatarUrl;
+  const displayUrl = preview ?? currentAvatarUrl;
 
   return (
     <div className="space-y-4">

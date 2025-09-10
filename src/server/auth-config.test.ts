@@ -29,7 +29,7 @@ describe('NextAuth Configuration Tests', () => {
             })
           : null;
 
-        if (!mockUser || !mockUser.password) {
+        if (!mockUser?.password) {
           return null;
         }
 

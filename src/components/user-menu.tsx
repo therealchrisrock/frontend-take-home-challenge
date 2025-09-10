@@ -14,5 +14,5 @@ export async function UserMenu() {
     );
   }
 
-  return <UserMenuClient session={session} />;
+  return <UserMenuClient initialSession={session} />;
 }

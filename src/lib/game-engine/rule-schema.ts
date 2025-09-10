@@ -137,10 +137,6 @@ export const BoardConfigSchema = z.object({
   size: z.number().int().min(6).max(12),    // Board dimensions (size x size)
   pieceCount: z.number().int().positive(),   // Total pieces per player
   startingRows: PieceSetupSchema,
-  squareColors: z.object({
-    light: z.string().default('#F0D9B5'),    // Light square color
-    dark: z.string().default('#B58863')      // Dark square color
-  }).optional(),
   coordinates: z.object({
     showNumbers: z.boolean().default(false),
     showLetters: z.boolean().default(false)
@@ -178,87 +174,38 @@ export const VariantCollectionSchema = z.record(z.string(), VariantConfigSchema)
 export type VariantCollection = z.infer<typeof VariantCollectionSchema>;
 
 /**
- * Runtime configuration with resolved values
+ * Validate a variant configuration
  */
-export interface ResolvedVariantConfig extends VariantConfig {
-  // Computed values for performance
-  readonly boardSquareCount: number;
-  readonly totalStartingPieces: number;
-  readonly promotionRows: { red: number[]; black: number[] };
-  readonly validStartingSquares: { row: number; col: number }[];
+export function validateConfig(config: unknown): config is VariantConfig {
+  try {
+    VariantConfigSchema.parse(config);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Configuration validation and type guards
+ * Validate with detailed error reporting
  */
-export class ConfigValidator {
-  /**
-   * Validate a variant configuration
-   */
-  static validate(config: unknown): config is VariantConfig {
-    try {
-      VariantConfigSchema.parse(config);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Validate with detailed error reporting
-   */
-  static validateWithErrors(config: unknown): {
-    valid: boolean;
-    errors: string[];
-    data?: VariantConfig;
-  } {
-    try {
-      const data = VariantConfigSchema.parse(config);
-      return { valid: true, errors: [], data };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return {
-          valid: false,
-          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
-        };
-      }
+export function validateConfigWithErrors(config: unknown): {
+  valid: boolean;
+  errors: string[];
+  data?: VariantConfig;
+} {
+  try {
+    const data = VariantConfigSchema.parse(config);
+    return { valid: true, errors: [], data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: ['Unknown validation error']
+        errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
       };
     }
-  }
-
-  /**
-   * Resolve computed values from configuration
-   */
-  static resolve(config: VariantConfig): ResolvedVariantConfig {
-    const boardSquareCount = config.board.size * config.board.size;
-    const totalStartingPieces = config.board.startingRows.red.length * 
-                               (config.board.size / 2); // Assuming checkerboard pattern
-    
-    // Compute promotion rows
-    const promotionRows = {
-      red: config.promotion.customRows?.red || [0],
-      black: config.promotion.customRows?.black || [config.board.size - 1]
-    };
-
-    // Compute valid starting squares (dark squares only)
-    const validStartingSquares: { row: number; col: number }[] = [];
-    for (let row = 0; row < config.board.size; row++) {
-      for (let col = 0; col < config.board.size; col++) {
-        if ((row + col) % 2 === 1) { // Dark squares
-          validStartingSquares.push({ row, col });
-        }
-      }
-    }
-
     return {
-      ...config,
-      boardSquareCount,
-      totalStartingPieces,
-      promotionRows,
-      validStartingSquares
+      valid: false,
+      errors: ['Unknown validation error']
     };
   }
 }

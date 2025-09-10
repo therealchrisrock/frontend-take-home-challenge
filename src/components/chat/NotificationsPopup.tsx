@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Separator } from "~/components/ui/separator";
@@ -21,7 +20,6 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   AlertTriangle,
-  Mail
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Notification } from "./types";
@@ -53,7 +51,7 @@ export function NotificationsPopup({
     // Handle friend request actions
     if (notification.type === 'friend_request' && notification.actionData) {
       // This would call the appropriate API endpoint
-      console.log(`${action} friend request from ${notification.actionData.userId}`);
+      console.log(`${action} friend request from ${notification.actionData.userId!}`);
     }
     
     // Mark as read

@@ -51,3 +51,22 @@ export interface SocialPopupProps {
 }
 
 export type SocialTab = 'friends' | 'messages';
+
+export type NotificationType = 
+  | 'FRIEND_REQUEST_RECEIVED'
+  | 'FRIEND_REQUEST_ACCEPTED'
+  | 'FRIEND_REQUEST_DECLINED';
+
+export interface FriendRequestNotification {
+  id: string;
+  type: NotificationType;
+  sender: Friend;
+  createdAt: Date;
+  read: boolean;
+}
+
+export interface NotificationCounts {
+  friendRequests: number;
+  messages: number;
+  total: number;
+}

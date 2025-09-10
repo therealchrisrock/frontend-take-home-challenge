@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { GameStats } from './GameStats';
-import type { Board } from '~/lib/game-logic';
+import type { Board, Piece } from '~/lib/game-logic';
 
 describe('GameStats Component', () => {
   const createTestBoard = (): Board => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
+    const board: Board = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => null as Piece | null));
     // Add some pieces
-    board[0][1] = { color: 'black', type: 'regular' };
-    board[0][3] = { color: 'black', type: 'regular' };
-    board[5][2] = { color: 'red', type: 'regular' };
-    board[5][4] = { color: 'red', type: 'king' };
+    board[0]![1] = { color: 'black', type: 'regular' };
+    board[0]![3] = { color: 'black', type: 'regular' };
+    board[5]![2] = { color: 'red', type: 'regular' };
+    board[5]![4] = { color: 'red', type: 'king' };
     return board;
   };
 
@@ -132,11 +132,11 @@ describe('GameStats Component', () => {
   });
 
   it('should count kings separately', () => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
-    board[0][1] = { color: 'black', type: 'king' };
-    board[0][3] = { color: 'black', type: 'regular' };
-    board[5][2] = { color: 'red', type: 'king' };
-    board[5][4] = { color: 'red', type: 'king' };
+    const board: Board = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => null as Piece | null));
+    board[0]![1] = { color: 'black', type: 'king' };
+    board[0]![3] = { color: 'black', type: 'regular' };
+    board[5]![2] = { color: 'red', type: 'king' };
+    board[5]![4] = { color: 'red', type: 'king' };
     
     render(
       <GameStats

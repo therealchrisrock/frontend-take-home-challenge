@@ -20,6 +20,7 @@ const SkinContext = createContext<SkinContextValue | null>(null);
 const STORAGE_KEY_CURRENT = 'checkers-current-skin';
 const STORAGE_KEY_UNLOCKED = 'checkers-unlocked-skins';
 const STORAGE_KEY_PROGRESS = 'checkers-skin-progress';
+const SKIN_COOKIE_KEY = 'checkers-skin';
 
 export function SkinProvider({ children }: { children: React.ReactNode }) {
   // Get all free themes (locked: false)
@@ -29,7 +30,7 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
       .map(skin => skin.id)
   );
   
-  const [currentSkinId, setCurrentSkinId] = useState<string>('classic');
+  const [currentSkinId, setCurrentSkinId] = useState<string>('the-og');
   const [unlockedSkins, setUnlockedSkins] = useState<Set<string>>(defaultUnlocked);
   const [skinProgress, setSkinProgress] = useState<Map<string, SkinUnlockProgress>>(new Map());
   const [mounted, setMounted] = useState(false);
@@ -73,6 +74,12 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     const skin = skins[currentSkinId];
     if (!skin) return;
 
+    // Remove server-side styles to avoid conflicts
+    const serverStyles = document.getElementById('skin-styles-server');
+    if (serverStyles) {
+      serverStyles.remove();
+    }
+
     // Apply board colors
     const root = document.documentElement;
     
@@ -103,21 +110,21 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--piece-black-border', skin.pieces.black.border);
     root.style.setProperty('--piece-black-crown', skin.pieces.black.crown);
     
-    // UI colors (override CSS custom properties)
-    root.style.setProperty('--background', skin.ui.background);
-    root.style.setProperty('--foreground', skin.ui.foreground);
-    root.style.setProperty('--card', skin.ui.card);
-    root.style.setProperty('--card-foreground', skin.ui.cardForeground);
-    root.style.setProperty('--primary', skin.ui.primary);
-    root.style.setProperty('--primary-foreground', skin.ui.primaryForeground);
-    root.style.setProperty('--secondary', skin.ui.secondary);
-    root.style.setProperty('--secondary-foreground', skin.ui.secondaryForeground);
-    root.style.setProperty('--accent', skin.ui.accent);
-    root.style.setProperty('--accent-foreground', skin.ui.accentForeground);
-    root.style.setProperty('--muted', skin.ui.muted);
-    root.style.setProperty('--muted-foreground', skin.ui.mutedForeground);
-    root.style.setProperty('--border', skin.ui.border);
-    root.style.setProperty('--ring', skin.ui.ring);
+    // // UI colors (override CSS custom properties)
+    // root.style.setProperty('--background', skin.ui.background);
+    // root.style.setProperty('--foreground', skin.ui.foreground);
+    // root.style.setProperty('--card', skin.ui.card);
+    // root.style.setProperty('--card-foreground', skin.ui.cardForeground);
+    // root.style.setProperty('--primary', skin.ui.primary);
+    // root.style.setProperty('--primary-foreground', skin.ui.primaryForeground);
+    // root.style.setProperty('--secondary', skin.ui.secondary);
+    // root.style.setProperty('--secondary-foreground', skin.ui.secondaryForeground);
+    // root.style.setProperty('--accent', skin.ui.accent);
+    // root.style.setProperty('--accent-foreground', skin.ui.accentForeground);
+    // root.style.setProperty('--muted', skin.ui.muted);
+    // root.style.setProperty('--muted-foreground', skin.ui.mutedForeground);
+    // root.style.setProperty('--border', skin.ui.border);
+    // root.style.setProperty('--ring', skin.ui.ring);
   }, [currentSkinId, mounted]);
 
   const selectSkin = useCallback((skinId: string) => {
@@ -129,6 +136,9 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     
     setCurrentSkinId(skinId);
     localStorage.setItem(STORAGE_KEY_CURRENT, skinId);
+    
+    // Also update cookie for server-side rendering
+    document.cookie = `${SKIN_COOKIE_KEY}=${skinId}; path=/; max-age=31536000; SameSite=Lax`;
   }, [unlockedSkins]);
 
   const unlockSkin = useCallback((skinId: string) => {
@@ -182,12 +192,14 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     if (!skin?.unlockCondition) return;
     if (unlockedSkins.has(skinId)) return;
     
+    const condition = skin.unlockCondition;
+
     setSkinProgress(prev => {
       const newMap = new Map(prev);
       const currentProgress = newMap.get(skinId) || {
         skinId,
         progress: 0,
-        target: typeof skin.unlockCondition.value === 'number' ? skin.unlockCondition.value : 0,
+        target: typeof condition.value === 'number' ? condition.value : 0,
         unlocked: false,
       };
       
@@ -204,19 +216,25 @@ export function SkinProvider({ children }: { children: React.ReactNode }) {
     });
   }, [unlockedSkins, unlockSkin]);
 
-  const availableSkins = Object.values(skins).map(skin => ({
+  const allSkins: Skin[] = Object.values(skins).sort((a, b) => {
+    if (a.id === 'the-og') return -1;
+    if (b.id === 'the-og') return 1;
+    return 0;
+  });
+  const availableSkins = allSkins.map(skin => ({
     ...skin,
     locked: !unlockedSkins.has(skin.id),
   }));
 
-  const currentSkin = skins[currentSkinId] || skins.classic;
+  const defaultSkin: Skin = skins['the-og'] ?? skins.classic!;
+  const currentSkin: Skin = (skins[currentSkinId] as Skin | undefined) ?? defaultSkin;
 
   if (!mounted) {
     // Return a minimal context during SSR
     return (
       <SkinContext.Provider value={{
-        currentSkin: skins.classic,
-        availableSkins: Object.values(skins),
+        currentSkin: defaultSkin,
+        availableSkins: allSkins,
         unlockedSkins: defaultUnlocked,
         skinProgress: new Map(),
         selectSkin: () => {},

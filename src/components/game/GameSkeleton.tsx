@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
-import { type BoardConfig, getBoardConfig, getBoardGridStyle } from '~/lib/board-config';
+import { getBoardGridStyleFromSize } from '~/lib/board-style';
 
 interface GameSkeletonProps {
-  config?: BoardConfig;
+  size?: number;
 }
 
-export function GameSkeleton({ config = getBoardConfig('american') }: GameSkeletonProps) {
+export function GameSkeleton({ size = 8 }: GameSkeletonProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-amber-100 to-orange-100 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-[1fr_300px] gap-8">
           <div className="flex flex-col items-center justify-start">
@@ -21,13 +21,14 @@ export function GameSkeleton({ config = getBoardConfig('american') }: GameSkelet
                 backgroundColor: 'var(--board-border)'
               }}
             >
-              <div className="grid gap-0 w-full h-full" style={getBoardGridStyle(config)}>
-                {Array.from({ length: config.size * config.size }, (_, i) => {
-                  const row = Math.floor(i / config.size);
-                  const col = i % config.size;
+              <div className="grid gap-0 w-full h-full" style={getBoardGridStyleFromSize(size)}>
+                {Array.from({ length: size * size }, (_, i) => {
+                  const row = Math.floor(i / size);
+                  const col = i % size;
                   const isDark = (row + col) % 2 === 1;
-                  const hasPiece = isDark && ((row < config.pieceRows) || (row >= config.size - config.pieceRows));
-                  const isRed = row >= config.size - config.pieceRows;
+                  const pieceRows = Math.floor(size / 2) - 1;
+                  const hasPiece = isDark && ((row < pieceRows) || (row >= size - pieceRows));
+                  const isRed = row >= size - pieceRows;
                   
                   return (
                     <div

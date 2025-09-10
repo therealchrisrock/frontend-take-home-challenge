@@ -1,15 +1,17 @@
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Bot, Crown, Trophy } from 'lucide-react';
+import { Bot, Crown } from 'lucide-react';
 import { type PieceColor } from '~/lib/game-logic';
 import { type PlayerInfo } from '~/lib/player-types';
+// PlayerCard is strictly the profile display; timers are handled by containers
 
 interface PlayerCardProps {
   player: PlayerInfo;
-  color: PieceColor;
-  position: 'top' | 'bottom';
+  color?: PieceColor;
+  position?: 'top' | 'bottom';
   isActive?: boolean;
   className?: string;
+  context?: 'game' | 'profile';
 }
 
 const difficultyConfig = {
@@ -24,7 +26,8 @@ export function PlayerCard({
   color, 
   position, 
   isActive = false, 
-  className = '' 
+  className = '',
+  context
 }: PlayerCardProps) {
   // Safely calculate stats with fallbacks
   const wins = Math.max(0, player.stats?.wins ?? 0);
@@ -33,19 +36,19 @@ export function PlayerCard({
   const totalGames = wins + draws + losses;
   const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
   
-  // Sanitize player name
-  const displayName = player.name && player.name.trim() 
+  // Sanitize player name - use generic fallback when no color context
+  const displayName = player.name?.trim() 
     ? player.name.trim() 
-    : `${color === 'red' ? 'Red' : 'Black'} Player`;
+    : color ? `${color === 'red' ? 'Red' : 'Black'} Player` : 'Player';
   
   const getInitials = (name: string) => {
     if (!name || typeof name !== 'string') {
-      return color === 'red' ? 'R' : 'B';
+      return color ? (color === 'red' ? 'R' : 'B') : 'U';
     }
     
     const words = name.trim().split(/\s+/).filter(word => word.length > 0);
     if (words.length === 0) {
-      return color === 'red' ? 'R' : 'B';
+      return color ? (color === 'red' ? 'R' : 'B') : 'U';
     }
     
     return words
@@ -54,7 +57,8 @@ export function PlayerCard({
       .slice(0, 2);
   };
 
-  const getAccentColor = (color: PieceColor) => {
+  const getAccentColor = (color?: PieceColor) => {
+    if (!color) return 'bg-blue-600'; // Default neutral color for non-game contexts
     return color === 'red' ? 'bg-red-600' : 'bg-gray-800';
   };
 
@@ -75,25 +79,23 @@ export function PlayerCard({
             </AvatarFallback>
           </Avatar>
           
-          {/* Color indicator */}
-          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ${accentColor} border border-white shadow-sm`} />
+          {/* Color indicator - only show in game context */}
+          {color && (
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ${accentColor} border border-white shadow-sm`} />
+          )}
         </div>
 
         {/* Player Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            {/* For AI, show standardized name */}
+            {/* Show appropriate name based on player type */}
             <h3 className="font-medium text-sm text-gray-900 truncate">
-              {player.isAI ? 'AI Player' : displayName}
+              {player.isAI ? 'AI Player' : player.isGuest ? 'Guest' : displayName}
             </h3>
             
             {player.isAI && player.aiDifficulty ? (
               <Badge variant="secondary" className="text-xs px-1.5 py-0">
                 {difficultyConfig[player.aiDifficulty].label}
-              </Badge>
-            ) : !player.isAI && (!player.stats || totalGames === 0) ? (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                Guest
               </Badge>
             ) : null}
             
@@ -109,6 +111,8 @@ export function PlayerCard({
             </div>
           )}
         </div>
+
+        {/* No timer here; timers are rendered alongside by the container */}
       </div>
     </div>
   );

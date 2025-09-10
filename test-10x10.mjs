@@ -1,14 +1,14 @@
 // Test script for 10x10 board
 import { createInitialBoard } from './dist/lib/game-logic.js';
-import { getBoardConfig } from './dist/lib/board-config.js';
+import { GameConfigLoader } from './dist/lib/game-engine/config-loader.js';
 
-const config = getBoardConfig('international');
-const board = createInitialBoard(config);
+const rules = await GameConfigLoader.loadVariant('international');
+const board = createInitialBoard(rules);
 
 console.log('International Draughts (10x10) Test:');
 console.log('=====================================');
 console.log(`Board size: ${board.length}x${board[0].length}`);
-console.log(`Config size: ${config.size}x${config.size}`);
+console.log(`Rules size: ${rules.board.size}x${rules.board.size}`);
 
 let blackCount = 0;
 let redCount = 0;

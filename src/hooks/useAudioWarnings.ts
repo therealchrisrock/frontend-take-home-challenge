@@ -50,7 +50,7 @@ export function useAudioWarnings({
     if (audioContextRef.current || !enabled) return;
     
     try {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
     } catch (error) {
       console.warn('Audio context not supported:', error);
     }
@@ -175,13 +175,13 @@ export function useAudioWarnings({
   useEffect(() => {
     return () => {
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
     };
   }, []);
 
   const isSupported = typeof window !== 'undefined' && 
-    (window.AudioContext || (window as any).webkitAudioContext);
+    (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
 
   return {
     playWarning,

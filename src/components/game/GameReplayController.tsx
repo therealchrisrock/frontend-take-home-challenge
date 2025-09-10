@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -9,11 +9,11 @@ import { Slider } from "~/components/ui/slider";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Separator } from "~/components/ui/separator";
-import Board from "./Board";
+import { Board } from "./Board";
 import type { Board as BoardType, Move, Position, PieceColor } from "~/lib/game-logic";
 import { 
-  initializeBoard, 
-  getAllValidMoves, 
+  createInitialBoard, 
+  getValidMoves, 
   makeMove as applyMove,
   getMustCapturePositions 
 } from "~/lib/game-logic";
@@ -24,8 +24,6 @@ import {
   SkipForward,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
-  Info,
   TrendingUp,
   AlertCircle,
   Zap,
@@ -56,7 +54,7 @@ export default function GameReplayController({
   const { data: gameData, isLoading, error } = api.game.getGameWithMoves.useQuery({ gameId });
   
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
-  const [board, setBoard] = useState<BoardType>(initializeBoard());
+  const [board, setBoard] = useState<BoardType>(() => createInitialBoard());
   const [currentPlayer, setCurrentPlayer] = useState<PieceColor>("red");
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000); // ms between moves
@@ -68,7 +66,7 @@ export default function GameReplayController({
   useEffect(() => {
     if (!gameData?.moves) return;
 
-    let reconstructedBoard = initializeBoard();
+    let reconstructedBoard: BoardType = createInitialBoard();
     let player: PieceColor = "red";
 
     // Apply moves up to currentMoveIndex
@@ -78,7 +76,7 @@ export default function GameReplayController({
         const gameMove: Move = {
           from: { row: move.fromRow, col: move.fromCol },
           to: { row: move.toRow, col: move.toCol },
-          captures: move.captures ? JSON.parse(move.captures) : []
+          captures: move.captures ? JSON.parse(move.captures) as Position[] : []
         };
         
         reconstructedBoard = applyMove(reconstructedBoard, gameMove);
@@ -101,7 +99,7 @@ export default function GameReplayController({
 
     const timer = setTimeout(() => {
       if (currentMoveIndex < gameData.moves.length) {
-        handleNextMove();
+        setCurrentMoveIndex(prev => prev + 1);
       } else {
         setIsPlaying(false);
       }
@@ -124,10 +122,10 @@ export default function GameReplayController({
         if (piece) {
           if (piece.color === "red") {
             redPieces++;
-            if (piece.isKing) redKings++;
+            if (piece.type === "king") redKings++;
           } else {
             blackPieces++;
-            if (piece.isKing) blackKings++;
+            if (piece.type === "king") blackKings++;
           }
         }
       }
@@ -136,9 +134,18 @@ export default function GameReplayController({
     // Simple material evaluation
     evaluation = (redPieces - blackPieces) * 10 + (redKings - blackKings) * 5;
     
-    // Get valid moves for analysis
-    const moves = getAllValidMoves(board, player);
-    const bestMove = moves[0]; // In a real implementation, this would use minimax
+    // Get valid moves for analysis - get all moves for all pieces of current player
+    const allMoves: Move[] = [];
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row]?.[col];
+        if (piece && piece.color === player) {
+          const pieceMoves = getValidMoves(board, { row, col }, player);
+          allMoves.push(...pieceMoves);
+        }
+      }
+    }
+    const bestMove = allMoves[0]; // In a real implementation, this would use minimax
 
     setAnalysis({
       evaluation,
@@ -177,9 +184,7 @@ export default function GameReplayController({
     
     if (piece && analysisMode) {
       setSelectedPosition(position);
-      const moves = getAllValidMoves(board, currentPlayer).filter(
-        m => m.from.row === position.row && m.from.col === position.col
-      );
+      const moves = getValidMoves(board, position, currentPlayer);
       setValidMoves(moves);
     } else {
       setSelectedPosition(null);
@@ -211,7 +216,7 @@ export default function GameReplayController({
   const moves = gameData.moves ?? [];
   const currentMove = moves[currentMoveIndex - 1];
   const playerColor = gameData.player1Id === userId ? "red" : "black";
-  const isUserTurn = currentPlayer === playerColor;
+  // const isUserTurn = currentPlayer === playerColor;
 
   const getPlayerName = (color: PieceColor) => {
     if (gameData.gameMode === "ai") {
@@ -257,21 +262,26 @@ export default function GameReplayController({
         <div className="lg:col-span-2">
           <Card>
             <CardContent className="p-6">
-              <Board
-                board={board}
-                currentPlayer={currentPlayer}
-                onSquareClick={handleSquareClick}
-                selectedPosition={selectedPosition}
-                validMoves={validMoves}
-                onDragStart={() => {}}
-                onDragEnd={() => {}}
-                onDrop={() => {}}
-                draggingPosition={null}
-                mustCapturePositions={mustCapturePositions}
-              />
+              <div className="flex items-center justify-center">
+                <div className="relative aspect-square w-full board-fit-max lg:max-w-[855px] min-h-0">
+                  <Board
+                    board={board}
+                    currentPlayer={currentPlayer}
+                    onSquareClick={analysisMode ? handleSquareClick : () => {}}
+                    selectedPosition={analysisMode ? selectedPosition : null}
+                    validMoves={analysisMode ? validMoves : []}
+                    onDragStart={() => { /* No-op in replay mode */ }}
+                    onDragEnd={() => { /* No-op in replay mode */ }}
+                    onDrop={() => { /* No-op in replay mode */ }}
+                    draggingPosition={null}
+                    mustCapturePositions={[]}
+                    replayMode={true}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
-
+          
           {/* Playback Controls */}
           <Card className="mt-4">
             <CardContent className="p-4">
@@ -467,9 +477,9 @@ export default function GameReplayController({
                           <span>Black: </span>
                         )}
                         {moveNotation}
-                        {move?.captures && JSON.parse(move.captures).length > 0 && (
+                        {move?.captures && (JSON.parse(move.captures) as Position[]).length > 0 && (
                           <Badge variant="outline" className="ml-auto">
-                            x{JSON.parse(move.captures).length}
+                            x{(JSON.parse(move.captures) as Position[]).length}
                           </Badge>
                         )}
                       </Button>

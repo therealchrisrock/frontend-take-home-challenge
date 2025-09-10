@@ -9,7 +9,7 @@ import { getCaptureMoves, type Board, type Piece } from '../game-logic';
 
 describe('Backward Capture Prevention', () => {
   it('regular black pieces should NOT be able to capture backward (upward)', () => {
-    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
+    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null)) as Board;
     
     // Place a black regular piece at position [3, 3]
     const blackPiece: Piece = { color: 'black', type: 'regular' };
@@ -38,7 +38,7 @@ describe('Backward Capture Prevention', () => {
   });
 
   it('regular red pieces should NOT be able to capture backward (downward)', () => {
-    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
+    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null)) as Board;
     
     // Place a red regular piece at position [4, 3]
     const redPiece: Piece = { color: 'red', type: 'regular' };
@@ -67,7 +67,7 @@ describe('Backward Capture Prevention', () => {
   });
 
   it('kings SHOULD be able to capture in all directions', () => {
-    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
+    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null)) as Board;
     
     // Place a black king at position [4, 4]
     const blackKing: Piece = { color: 'black', type: 'king' };
@@ -106,14 +106,14 @@ describe('Backward Capture Prevention', () => {
   });
 
   it('should prevent backward captures in actual game scenario', () => {
-    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
+    const board: Board = Array(8).fill(null).map(() => Array(8).fill(null)) as Board;
     
     // Recreate the reported bug scenario:
     // Black regular piece capturing a red king that's above it
     board[4]![2] = { color: 'black', type: 'regular' };
     board[3]![3] = { color: 'red', type: 'king' }; // This should NOT be capturable by regular black
     
-    const blackPiece = board[4]![2]!;
+    const blackPiece = board[4]![2];
     const captures = getCaptureMoves(board, { row: 4, col: 2 }, blackPiece);
     
     // The black regular piece should NOT be able to capture the red king above it

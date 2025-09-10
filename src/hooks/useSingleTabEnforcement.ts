@@ -41,7 +41,7 @@ export function useSingleTabEnforcement(gameId?: string) {
       }
       
       try {
-        const data = JSON.parse(currentActive);
+        const data = JSON.parse(currentActive) as { tabId: string; timestamp: number };
         const age = Date.now() - data.timestamp;
         
         // If the active tab hasn't updated in 3 seconds, it's probably closed
@@ -57,7 +57,7 @@ export function useSingleTabEnforcement(gameId?: string) {
         const isActive = data.tabId === tabId;
         return { isActive, hasOthers: !isActive };
         
-      } catch (e) {
+      } catch (_e) {
         // Invalid data, claim the tab
         localStorage.setItem(storageKey, JSON.stringify({
           tabId,
@@ -77,14 +77,14 @@ export function useSingleTabEnforcement(gameId?: string) {
         const currentActive = localStorage.getItem(storageKey);
         if (currentActive) {
           try {
-            const data = JSON.parse(currentActive);
+            const data = JSON.parse(currentActive) as { tabId: string; timestamp: number };
             if (data.tabId === tabId) {
               localStorage.setItem(storageKey, JSON.stringify({
                 tabId,
                 timestamp: Date.now()
               }));
             }
-          } catch (e) {
+          } catch (_e) {
             // Ignore errors
           }
         }
@@ -111,11 +111,11 @@ export function useSingleTabEnforcement(gameId?: string) {
       const current = localStorage.getItem(storageKey);
       if (current) {
         try {
-          const data = JSON.parse(current);
+          const data = JSON.parse(current) as { tabId: string; timestamp: number };
           if (data.tabId === tabIdRef.current) {
             localStorage.removeItem(storageKey);
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore errors
         }
       }

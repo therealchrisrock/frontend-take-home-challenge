@@ -4,6 +4,7 @@ import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
+import { m } from "framer-motion"
 
 import { cn } from "~/lib/utils"
 
@@ -16,7 +17,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 gap-2 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
       className
     )}
     {...props}
@@ -41,16 +42,27 @@ const toastVariants = cva(
 )
 
 const Toast = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+  React.ElementRef<typeof m.li>,
+  React.ComponentPropsWithoutRef<typeof m.li> &
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
+  // Filter out Radix-specific props that shouldn't be passed to DOM elements
+  const { onOpenChange, ...motionProps } = props as any
+  
   return (
-    <ToastPrimitives.Root
-      ref={ref}
-      className={cn(toastVariants({ variant }), className)}
-      {...props}
-    />
+    <ToastPrimitives.Root asChild onOpenChange={onOpenChange}>
+      <m.li
+        ref={ref}
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1, transition: { type: "spring", damping: 20, stiffness: 300 } }}
+        exit={{ x: "100%", opacity: 0, transition: { duration: 0.2 } }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 300 }}
+        dragElastic={0.2}
+        className={cn(toastVariants({ variant }), className)}
+        {...motionProps}
+      />
+    </ToastPrimitives.Root>
   )
 })
 Toast.displayName = ToastPrimitives.Root.displayName

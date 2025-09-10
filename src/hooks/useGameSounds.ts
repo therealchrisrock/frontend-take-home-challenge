@@ -10,140 +10,92 @@ interface UseGameSoundsOptions {
 export function useGameSounds(options: UseGameSoundsOptions = {}) {
   const { enabled = true, volume = 0.5 } = options;
   
-  // Create audio elements with refs
-  const captureAudioRef = useRef<HTMLAudioElement | null>(null);
-  const startGameAudioRef = useRef<HTMLAudioElement | null>(null);
-  const moveAudioRef = useRef<HTMLAudioElement | null>(null);
+  type SoundKey = 'capture' | 'startGame' | 'move' | 'king' | 'complete';
+  const SOUND_FILES: Record<SoundKey, string> = {
+    capture: 'capture',
+    startGame: 'start-game',
+    move: 'move',
+    king: 'king',
+    complete: 'complete',
+  };
+
+  // Create audio elements with a single map of refs
+  const audioRefs = useRef<Record<SoundKey, HTMLAudioElement | null>>({
+    capture: null,
+    startGame: null,
+    move: null,
+    king: null,
+    complete: null,
+  });
   const isInitializedRef = useRef(false);
   
   // Initialize audio elements on mount
   useEffect(() => {
     if (!isInitializedRef.current && typeof window !== 'undefined') {
-      // Check for m4a support
       const testAudio = new Audio();
       const canPlayM4A = testAudio.canPlayType('audio/mp4') || testAudio.canPlayType('audio/x-m4a');
-      
-      // Create capture sound audio element
-      const captureAudio = new Audio();
-      captureAudio.src = canPlayM4A ? '/capture.m4a' : '/capture.mp3';
-      captureAudio.volume = volume;
-      captureAudio.preload = 'auto';
-      captureAudioRef.current = captureAudio;
-      
-      // Create start game sound audio element
-      const startGameAudio = new Audio();
-      startGameAudio.src = canPlayM4A ? '/start-game.m4a' : '/start-game.mp3';
-      startGameAudio.volume = volume;
-      startGameAudio.preload = 'auto';
-      startGameAudioRef.current = startGameAudio;
-      
-      // Create move sound audio element
-      const moveAudio = new Audio();
-      moveAudio.src = canPlayM4A ? '/move.m4a' : '/move.mp3';
-      moveAudio.volume = volume;
-      moveAudio.preload = 'auto';
-      moveAudioRef.current = moveAudio;
+
+      (Object.keys(SOUND_FILES) as SoundKey[]).forEach((key) => {
+        const base = SOUND_FILES[key];
+        const audio = new Audio();
+        audio.src = canPlayM4A ? `/${base}.m4a` : `/${base}.mp3`;
+        audio.volume = volume;
+        audio.preload = 'auto';
+        audioRefs.current[key] = audio;
+      });
       
       isInitializedRef.current = true;
     }
     
     // Cleanup on unmount
     return () => {
-      if (captureAudioRef.current) {
-        captureAudioRef.current.pause();
-        captureAudioRef.current = null;
-      }
-      if (startGameAudioRef.current) {
-        startGameAudioRef.current.pause();
-        startGameAudioRef.current = null;
-      }
-      if (moveAudioRef.current) {
-        moveAudioRef.current.pause();
-        moveAudioRef.current = null;
-      }
+      (Object.keys(SOUND_FILES) as SoundKey[]).forEach((key) => {
+        const ref = audioRefs.current[key];
+        if (ref) {
+          ref.pause();
+          audioRefs.current[key] = null;
+        }
+      });
       isInitializedRef.current = false;
     };
   }, [volume]);
   
   // Update volume when it changes
   useEffect(() => {
-    if (captureAudioRef.current) {
-      captureAudioRef.current.volume = volume;
-    }
-    if (startGameAudioRef.current) {
-      startGameAudioRef.current.volume = volume;
-    }
-    if (moveAudioRef.current) {
-      moveAudioRef.current.volume = volume;
-    }
+    (Object.keys(SOUND_FILES) as SoundKey[]).forEach((key) => {
+      const ref = audioRefs.current[key];
+      if (ref) ref.volume = volume;
+    });
   }, [volume]);
   
-  // Play capture sound
-  const playCapture = useCallback(() => {
-    if (!enabled || !captureAudioRef.current) return;
-    
+  const play = useCallback((key: SoundKey) => {
+    if (!enabled) return;
+    const audio = audioRefs.current[key];
+    if (!audio) return;
     try {
-      // Reset the audio to start and play
-      captureAudioRef.current.currentTime = 0;
-      const playPromise = captureAudioRef.current.play();
-      
-      // Handle play promise to avoid console errors
+      audio.currentTime = 0;
+      const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          // Auto-play was prevented or other error
           console.debug('Audio play prevented:', error);
         });
       }
     } catch (error) {
-      console.debug('Error playing capture sound:', error);
+      console.debug('Error playing sound:', error);
     }
   }, [enabled]);
-  
-  // Play start game sound
-  const playStartGame = useCallback(() => {
-    if (!enabled || !startGameAudioRef.current) return;
-    
-    try {
-      // Reset the audio to start and play
-      startGameAudioRef.current.currentTime = 0;
-      const playPromise = startGameAudioRef.current.play();
-      
-      // Handle play promise to avoid console errors
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          // Auto-play was prevented or other error
-          console.debug('Audio play prevented:', error);
-        });
-      }
-    } catch (error) {
-      console.debug('Error playing start game sound:', error);
-    }
-  }, [enabled]);
-  
-  // Play move sound
-  const playMove = useCallback(() => {
-    if (!enabled || !moveAudioRef.current) return;
-    
-    try {
-      // Reset the audio to start and play
-      moveAudioRef.current.currentTime = 0;
-      const playPromise = moveAudioRef.current.play();
-      
-      // Handle play promise to avoid console errors
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          // Auto-play was prevented or other error
-          console.debug('Audio play prevented:', error);
-        });
-      }
-    } catch (error) {
-      console.debug('Error playing move sound:', error);
-    }
-  }, [enabled]);
+
+  const playCapture = useCallback(() => play('capture'), [play]);
+  const playStartGame = useCallback(() => play('startGame'), [play]);
+  const playMove = useCallback(() => play('move'), [play]);
+  const playKing = useCallback(() => play('king'), [play]);
+  const playComplete = useCallback(() => play('complete'), [play]);
   
   return {
     playCapture,
     playStartGame,
     playMove,
+    playKing,
+    playComplete,
   };
 }

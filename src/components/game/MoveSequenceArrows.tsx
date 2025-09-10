@@ -9,9 +9,10 @@ const ARROWS_ENABLED = true;
 interface MoveSequenceArrowsProps {
   sequence: Position[];
   show: boolean;
+  boardSize?: number;
 }
 
-export function MoveSequenceArrows({ sequence, show }: MoveSequenceArrowsProps) {
+export function MoveSequenceArrows({ sequence, show, boardSize = 8 }: MoveSequenceArrowsProps) {
   if (!ARROWS_ENABLED || !show || sequence.length < 1) {
     return null;
   }
@@ -24,6 +25,7 @@ export function MoveSequenceArrows({ sequence, show }: MoveSequenceArrowsProps) 
         key={`${sequence[i]!.row}-${sequence[i]!.col}-to-${sequence[i + 1]!.row}-${sequence[i + 1]!.col}`}
         from={sequence[i]!}
         to={sequence[i + 1]!}
+        boardSize={boardSize}
       />
     );
   }

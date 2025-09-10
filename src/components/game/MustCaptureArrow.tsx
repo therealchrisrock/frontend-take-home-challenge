@@ -8,19 +8,20 @@ interface MustCaptureArrowProps {
   show: boolean;
   fromPosition?: { x: number; y: number };
   toPosition?: Position;
+  boardSize?: number;
 }
 
-export function MustCaptureArrow({ show, fromPosition, toPosition }: MustCaptureArrowProps) {
+export function MustCaptureArrow({ show, fromPosition, toPosition, boardSize = 8 }: MustCaptureArrowProps) {
   const [arrowPath, setArrowPath] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   useEffect(() => {
     if (show && fromPosition && toPosition) {
       // Calculate the target square's position on the board
-      const board = document.querySelector('[class*="grid-cols-8"]');
+      const board = document.querySelector(`[class*="grid-cols-${boardSize}"]`);
       if (!board) return;
 
       const squares = board.querySelectorAll('[class*="aspect-square"]');
-      const targetSquareIndex = toPosition.row * 8 + toPosition.col;
+      const targetSquareIndex = toPosition.row * boardSize + toPosition.col;
       const targetSquare = squares[targetSquareIndex] as HTMLElement;
       
       if (targetSquare) {

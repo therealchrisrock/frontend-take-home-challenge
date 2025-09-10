@@ -1,4 +1,4 @@
-import { api } from '~/trpc/react';
+import { type api } from '~/trpc/react';
 import type { api as serverApi } from '~/trpc/server';
 import {
   type GameStorageAdapter,

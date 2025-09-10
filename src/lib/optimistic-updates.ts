@@ -28,7 +28,7 @@ export class OptimisticUpdateManager {
     lastUpdateTime: null
   };
 
-  private listeners: Set<(state: OptimisticUpdateState) => void> = new Set();
+  private listeners = new Set<(state: OptimisticUpdateState) => void>();
 
   // Create a new optimistic update
   createUpdate(

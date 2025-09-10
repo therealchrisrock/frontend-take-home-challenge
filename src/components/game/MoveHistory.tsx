@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
-import { ScrollArea } from '~/components/ui/scroll-area';
 import { 
   ChevronFirst, 
   ChevronLeft, 
@@ -11,12 +10,9 @@ import {
   ChevronLast,
   Play,
   Pause,
-  RotateCcw,
-  Download,
   Copy
 } from 'lucide-react';
 import type { Move, Board, PieceColor } from '~/lib/game-logic';
-import type { BoardConfig } from '~/lib/board-config';
 import type { GameAnalysis, MoveEvaluation } from '~/lib/types/move-analysis';
 import { MOVE_INDICATORS } from '~/lib/types/move-analysis';
 import { 
@@ -32,7 +28,7 @@ interface MoveHistoryProps {
   moves: Move[];
   currentMoveIndex: number;
   board: Board;
-  boardConfig: BoardConfig;
+  boardSize: number;
   currentPlayer: PieceColor;
   onNavigateToMove: (moveIndex: number) => void;
   winner: PieceColor | 'draw' | null;
@@ -44,7 +40,7 @@ export function MoveHistory({
   moves,
   currentMoveIndex,
   board,
-  boardConfig,
+  boardSize,
   currentPlayer,
   onNavigateToMove,
   winner,
@@ -57,40 +53,75 @@ export function MoveHistory({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const currentMoveRef = useRef<HTMLDivElement>(null);
   const lastMoveIndexRef = useRef<number>(-1);
+  // Keep a stable reference to onNavigateToMove to avoid effect churn
+  const navigateToMoveRef = useRef(onNavigateToMove);
+  useEffect(() => {
+    navigateToMoveRef.current = onNavigateToMove;
+  }, [onNavigateToMove]);
 
-  // Convert moves to notated format
-  const notatedMoves: NotatedMove[] = moves.map((move, index) => {
-    // For simplicity, we're not tracking kinging in this implementation
-    // You could enhance this by comparing board states before/after each move
-    return moveToNotation(move, board, boardConfig, false);
-  });
+  // Convert moves to notated format (memoize to prevent recalculation)
+  const notatedMoves: NotatedMove[] = useMemo(() => {
+    // We pass an empty board since moveToNotation only uses it for piece info which we don't need for basic notation
+    const emptyBoard: Board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+    return moves.map((move, index) => {
+      // For simplicity, we're not tracking kinging in this implementation
+      // You could enhance this by comparing board states before/after each move
+      return moveToNotation(move, emptyBoard, boardSize, false);
+    });
+  }, [moves, boardSize]); // Don't include board to prevent excessive recalculation
 
   // Format into game history entries (pairs of moves)
-  const gameHistory = formatGameHistory(notatedMoves);
+  const gameHistory = useMemo(() => formatGameHistory(notatedMoves), [notatedMoves]);
 
   // Auto-scroll to current move when it changes
   useEffect(() => {
-    // Check if a new move was made (currentMoveIndex increased and is at the latest move)
-    const isNewMove = currentMoveIndex > lastMoveIndexRef.current && 
-                      currentMoveIndex === moves.length - 1;
-    
-    if (currentMoveRef.current && scrollAreaRef.current) {
-      // For new moves, scroll to the end to show the latest move
-      // For navigation, scroll the current move into view
-      currentMoveRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: isNewMove ? 'end' : 'nearest'
-      });
+    // Only proceed if we actually need to scroll
+    if (currentMoveIndex === lastMoveIndexRef.current) {
+      return;
     }
     
+    // Update the ref to prevent multiple triggers
     lastMoveIndexRef.current = currentMoveIndex;
+    
+    // Check if we should scroll (new move or navigating)
+    const shouldScrollToMove = currentMoveIndex >= 0 || currentMoveIndex === moves.length - 1;
+    
+    if (!shouldScrollToMove) return;
+    
+    // Use requestAnimationFrame to ensure DOM is updated
+    const scrollTimeout = requestAnimationFrame(() => {
+      if (currentMoveRef.current && scrollAreaRef.current) {
+        const viewport = scrollAreaRef.current;
+        const element = currentMoveRef.current;
+
+        const elementTop = element.offsetTop;
+        const elementHeight = element.offsetHeight;
+        const viewportHeight = viewport.clientHeight;
+        const currentScroll = viewport.scrollTop;
+
+        const elementBottom = elementTop + elementHeight;
+        const viewportBottom = currentScroll + viewportHeight;
+
+        if (elementTop < currentScroll || elementBottom > viewportBottom) {
+          const targetScroll = elementTop - (viewportHeight / 2) + (elementHeight / 2);
+          viewport.scrollTo({
+            top: Math.max(0, targetScroll),
+            behavior: 'smooth'
+          });
+        }
+      }
+    });
+    
+    return () => {
+      cancelAnimationFrame(scrollTimeout);
+    };
   }, [currentMoveIndex, moves.length]);
 
   // Playback functionality
   useEffect(() => {
     if (isPlaying && currentMoveIndex < moves.length - 1) {
       playbackIntervalRef.current = setTimeout(() => {
-        onNavigateToMove(currentMoveIndex + 1);
+        navigateToMoveRef.current(currentMoveIndex + 1);
       }, playbackSpeed);
     } else if (isPlaying && currentMoveIndex >= moves.length - 1) {
       // Reached the end
@@ -102,7 +133,7 @@ export function MoveHistory({
         clearTimeout(playbackIntervalRef.current);
       }
     };
-  }, [isPlaying, currentMoveIndex, moves.length, playbackSpeed, onNavigateToMove]);
+  }, [isPlaying, currentMoveIndex, moves.length, playbackSpeed]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -148,16 +179,16 @@ export function MoveHistory({
 
   const handleExport = () => {
     const historyString = historyToString(gameHistory);
-    navigator.clipboard.writeText(historyString);
+    void navigator.clipboard.writeText(historyString);
     // You could also trigger a download here
   };
 
   const handleCopyNotation = (notation: string) => {
-    navigator.clipboard.writeText(notation);
+    void navigator.clipboard.writeText(notation);
   };
 
   return (
-    <Card className="h-full min-h-0 flex flex-col bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300">
+    <Card className="h-full min-h-0 flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-amber-900 text-sm flex items-center justify-between">
           <span>Move History</span>
@@ -246,7 +277,7 @@ export function MoveHistory({
               
               <div className="flex-1 text-center">
                 <span className="text-xs text-gray-500">
-                  {currentMoveIndex === -1 ? "Start" : `Move ${currentMoveIndex + 1}/${moves.length}`}
+                  {/* {currentMoveIndex === -1 ? "Start" : `Move ${currentMoveIndex + 1}/${moves.length}`} */}
                 </span>
               </div>
               
@@ -280,7 +311,7 @@ export function MoveHistory({
         }
 
         {/* Move List */}
-        <ScrollArea className="flex-1 border rounded-md bg-white/50 min-h-0 overflow-hidden" ref={scrollAreaRef}>
+        <div className="flex-1 border rounded-md bg-white/50 min-h-0 overflow-y-auto" ref={scrollAreaRef}>
           <div className="p-2 space-y-1 pr-3">
             {gameHistory.length === 0 ? (
               <p className="text-xs text-gray-500 text-center py-4">
@@ -314,12 +345,12 @@ export function MoveHistory({
                         onDoubleClick={() => handleCopyNotation(entry.redMove!.notation)}
                         title="Click to jump to this move"
                       >
-                        {showAnalysis && analysis && analysis.moves[redMoveIndex] && (
+                        {showAnalysis && analysis?.moves[redMoveIndex] && (
                           <span 
                             className="text-xs w-4"
-                            title={MOVE_INDICATORS[analysis.moves[redMoveIndex]!.category].description}
+                            title={MOVE_INDICATORS[analysis.moves[redMoveIndex].category].description}
                           >
-                            {MOVE_INDICATORS[analysis.moves[redMoveIndex]!.category].icon}
+                            {MOVE_INDICATORS[analysis.moves[redMoveIndex].category].icon}
                           </span>
                         )}
                         <span className={cn(
@@ -344,12 +375,12 @@ export function MoveHistory({
                         onDoubleClick={() => handleCopyNotation(entry.blackMove!.notation)}
                         title="Click to jump to this move"
                       >
-                        {showAnalysis && analysis && analysis.moves[blackMoveIndex] && (
+                        {showAnalysis && analysis?.moves[blackMoveIndex] && (
                           <span 
                             className="text-xs w-4"
-                            title={MOVE_INDICATORS[analysis.moves[blackMoveIndex]!.category].description}
+                            title={MOVE_INDICATORS[analysis.moves[blackMoveIndex].category].description}
                           >
-                            {MOVE_INDICATORS[analysis.moves[blackMoveIndex]!.category].icon}
+                            {MOVE_INDICATORS[analysis.moves[blackMoveIndex].category].icon}
                           </span>
                         )}
                         <span className={cn(
@@ -374,7 +405,7 @@ export function MoveHistory({
               })
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Position indicator */}
         {currentMoveIndex < moves.length - 1 && moves.length > 0 && (

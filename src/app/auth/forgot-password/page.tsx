@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              If an account exists with that email, we've sent password reset instructions.
+              If an account exists with that email, we&apos;ve sent password reset instructions.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
         <CardHeader>
           <CardTitle>Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a password reset link
+            Enter your email address and we&apos;ll send you a password reset link
           </CardDescription>
         </CardHeader>
         <CardContent>

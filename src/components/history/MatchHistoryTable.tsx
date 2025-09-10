@@ -249,7 +249,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(5) as unknown[]].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
@@ -344,7 +344,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
                       Previous
                     </Button>
                     <div className="flex items-center gap-2">
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                      {[...Array(Math.min(5, totalPages)) as unknown[]].map((_, i) => {
                         const pageNum = page - 2 + i;
                         if (pageNum < 0 || pageNum >= totalPages) return null;
                         return (

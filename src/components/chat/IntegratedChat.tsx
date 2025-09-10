@@ -11,12 +11,8 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { 
   Users, 
   Bell, 
-  Settings, 
   Send, 
   MessageCircle,
-  Hash,
-  AtSign,
-  UserPlus,
   Check,
   X
 } from "lucide-react";
@@ -27,7 +23,7 @@ interface IntegratedChatProps {
   gameId?: string;
 }
 
-export function IntegratedChat({ gameId }: IntegratedChatProps) {
+export function IntegratedChat({ }: IntegratedChatProps) {
   const { data: session } = useSession();
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("chat");
@@ -100,7 +96,7 @@ export function IntegratedChat({ gameId }: IntegratedChatProps) {
       id: Date.now().toString(),
       content: message,
       senderId: session.user.id,
-      senderName: session.user.name || session.user.username || "You",
+      senderName: session.user.name ?? session.user.username ?? "You",
       timestamp: new Date(),
       type: currentChannel.type,
       channelId: currentChannel.id
@@ -141,10 +137,14 @@ export function IntegratedChat({ gameId }: IntegratedChatProps) {
     // Handle notification actions
     if (notification.type === 'friend_request') {
       // API call to accept/decline friend request
-      console.log(`${action} friend request from ${notification.actionData?.userId}`);
+      if (notification.actionData?.userId) {
+        console.log(`${action} friend request from ${notification.actionData.userId}`);
+      }
     } else if (notification.type === 'game_invite') {
       // API call to accept/decline game invite
-      console.log(`${action} game invite for ${notification.actionData?.gameId}`);
+      if (notification.actionData?.gameId) {
+        console.log(`${action} game invite for ${notification.actionData.gameId}`);
+      }
     }
     
     // Mark as read

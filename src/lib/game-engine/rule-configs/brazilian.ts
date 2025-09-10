@@ -1,6 +1,7 @@
 /**
  * Brazilian Draughts rule configuration
  */
+import type { VariantConfig } from '../rule-schema';
 
 export const BrazilianConfig = {
   "metadata": {
@@ -23,10 +24,7 @@ export const BrazilianConfig = {
       "black": [0, 1, 2],
       "red": [5, 6, 7]
     },
-    "squareColors": {
-      "light": "#F0D9B5",
-      "dark": "#B58863"
-    }
+    
   },
   "movement": {
     "regularPieces": {
@@ -88,4 +86,4 @@ export const BrazilianConfig = {
     }
   },
   "schemaVersion": "1.0.0"
-} as const;
+} as const satisfies VariantConfig;

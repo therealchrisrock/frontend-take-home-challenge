@@ -15,6 +15,7 @@ export interface PlayerInfo {
   isAI?: boolean;
   aiDifficulty?: 'easy' | 'medium' | 'hard' | 'expert';
   isCurrentUser?: boolean;
+  isGuest?: boolean;
   color?: PieceColor;
 }
 
@@ -31,10 +32,10 @@ export function createAIPlayer(
   color: PieceColor
 ): PlayerInfo {
   const aiNames = {
-    easy: 'AI Rookie',
+    easy: 'AI Player',
     medium: 'AI Player',
-    hard: 'AI Master',
-    expert: 'Chinook AI'
+    hard: 'AI Player',
+    expert: 'AI Player'
   };
 
   const aiStats = {
@@ -59,9 +60,9 @@ export function createAIPlayer(
  * Create default player info for human players
  */
 export function createHumanPlayer(
-  name: string = 'Player',
+  name = 'Player',
   color: PieceColor,
-  isCurrentUser: boolean = false
+  isCurrentUser = false
 ): PlayerInfo {
   return {
     id: `player-${color}`,
@@ -102,7 +103,7 @@ export function createLocalGamePlayers(): GamePlayers {
  */
 export function createAIGamePlayers(
   difficulty: 'easy' | 'medium' | 'hard' | 'expert' = 'medium',
-  playerName: string = 'You'
+  playerName = 'You'
 ): GamePlayers {
   return {
     red: createHumanPlayer(playerName, 'red', true),

@@ -8,7 +8,8 @@ import {
   getValidMoves,
   getMustCapturePositions 
 } from './game-logic';
-import type { BoardConfig } from './board-config';
+import type { VariantConfig } from './game-engine/rule-schema';
+import { AmericanConfig } from './game-engine/rule-configs/american';
 import { CheckersAI } from './ai-engine';
 import type {
   MoveCategory,
@@ -26,12 +27,12 @@ import {
 
 export class MoveEvaluator {
   private ai: CheckersAI;
-  private boardConfig: BoardConfig;
-  private analysisCache: Map<string, MoveEvaluation> = new Map();
+  private rules: VariantConfig;
+  private analysisCache = new Map<string, MoveEvaluation>();
   
-  constructor(boardConfig: BoardConfig, aiDifficulty: 'medium' | 'hard' | 'expert' = 'expert') {
-    this.boardConfig = boardConfig;
-    this.ai = new CheckersAI({ difficulty: aiDifficulty }, boardConfig);
+  constructor(rules: VariantConfig = AmericanConfig, aiDifficulty: 'medium' | 'hard' | 'expert' = 'expert') {
+    this.rules = rules;
+    this.ai = new CheckersAI({ difficulty: aiDifficulty }, rules);
   }
 
   /**
@@ -81,7 +82,7 @@ export class MoveEvaluator {
 
     // Evaluate positions before and after the move
     const positionEvalBefore = await this.evaluatePosition(board, playerColor);
-    const boardAfter = makeMove(board, move, this.boardConfig);
+    const boardAfter = makeMove(board, move, this.rules);
     const positionEvalAfter = await this.evaluatePosition(boardAfter, playerColor);
     const swingValue = positionEvalAfter - positionEvalBefore;
 
@@ -213,7 +214,7 @@ export class MoveEvaluator {
       });
 
       // Update for next iteration
-      currentBoard = makeMove(currentBoard, move, this.boardConfig);
+      currentBoard = makeMove(currentBoard, move, this.rules);
       currentPlayer = currentPlayer === 'red' ? 'black' : 'red';
       previousEval = evaluation.positionEvalAfter;
     }
@@ -347,7 +348,7 @@ export class MoveEvaluator {
       .map(m => m.score);
 
     // Determine if this is a forced move
-    const mustCapture = getMustCapturePositions(board, playerColor, this.boardConfig);
+    const mustCapture = getMustCapturePositions(board, playerColor, this.rules);
     const forcedMoveCount = mustCapture.length;
 
     // Check if this is the only good move
@@ -378,11 +379,11 @@ export class MoveEvaluator {
   
   private getAllLegalMoves(board: Board, color: PieceColor): Move[] {
     const moves: Move[] = [];
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (piece && piece.color === color) {
-          const pieceMoves = getValidMoves(board, { row, col }, color, this.boardConfig);
+          const pieceMoves = getValidMoves(board, { row, col }, color, this.rules);
           moves.push(...pieceMoves);
         }
       }
@@ -400,7 +401,7 @@ export class MoveEvaluator {
     const results: { move: Move; score: number }[] = [];
     
     for (const move of moves) {
-      const boardAfter = makeMove(board, move, this.boardConfig);
+      const boardAfter = makeMove(board, move, this.rules);
       // Use AI to evaluate the position after the move
       const score = await this.evaluatePositionWithAI(boardAfter, playerColor, depth);
       results.push({ move, score });
@@ -433,8 +434,8 @@ export class MoveEvaluator {
 
   private determineGamePhase(board: Board): GamePhase {
     let pieceCount = 0;
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         if (board[row]?.[col]) pieceCount++;
       }
     }
@@ -445,9 +446,9 @@ export class MoveEvaluator {
   }
 
   private assessThreatLevel(board: Board, playerColor: PieceColor): ThreatLevel {
-    const mustCapture = getMustCapturePositions(board, playerColor, this.boardConfig);
+    const mustCapture = getMustCapturePositions(board, playerColor, this.rules);
     const opponentColor = playerColor === 'red' ? 'black' : 'red';
-    const opponentMustCapture = getMustCapturePositions(board, opponentColor, this.boardConfig);
+    const opponentMustCapture = getMustCapturePositions(board, opponentColor, this.rules);
     
     if (mustCapture.length > 2 || opponentMustCapture.length > 2) {
       return 'critical';
@@ -476,8 +477,8 @@ export class MoveEvaluator {
 
   private calculateMaterialBalance(board: Board): number {
     let balance = 0;
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (piece) {
           const value = piece.type === 'king' ? 3 : 2;
@@ -503,7 +504,7 @@ export class MoveEvaluator {
     if (isMultiJump) complexity += 2;
     
     // Check if move creates threats
-    const boardAfter = makeMove(board, move, this.boardConfig);
+    const boardAfter = makeMove(board, move, this.rules);
     const opponentColor = playerColor === 'red' ? 'black' : 'red';
     const threatsCreated = this.countThreatenedPieces(boardAfter, opponentColor);
     complexity += threatsCreated;
@@ -621,8 +622,8 @@ export class MoveEvaluator {
 
   private getCacheKey(board: Board, move: Move, playerColor: PieceColor): string {
     let boardStr = '';
-    for (let row = 0; row < this.boardConfig.size; row++) {
-      for (let col = 0; col < this.boardConfig.size; col++) {
+    for (let row = 0; row < this.rules.board.size; row++) {
+      for (let col = 0; col < this.rules.board.size; col++) {
         const piece = board[row]?.[col];
         if (!piece) {
           boardStr += '0';

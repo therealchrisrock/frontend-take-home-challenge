@@ -1,6 +1,7 @@
 /**
  * International Draughts rule configuration
  */
+import type { VariantConfig } from '../rule-schema';
 
 export const InternationalConfig = {
   "metadata": {
@@ -22,10 +23,6 @@ export const InternationalConfig = {
     "startingRows": {
       "black": [0, 1, 2, 3],
       "red": [6, 7, 8, 9]
-    },
-    "squareColors": {
-      "light": "#F0D9B5",
-      "dark": "#B58863"
     },
     "coordinates": {
       "showNumbers": true,
@@ -98,4 +95,4 @@ export const InternationalConfig = {
     }
   },
   "schemaVersion": "1.0.0"
-} as const;
+} as const satisfies VariantConfig;

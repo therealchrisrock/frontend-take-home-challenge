@@ -40,7 +40,7 @@ export default function MatchHistory({ userId }: MatchHistoryProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(5) as unknown[]].map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>

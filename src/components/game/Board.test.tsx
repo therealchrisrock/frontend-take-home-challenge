@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Board } from './Board';
 import type { Board as BoardType } from '~/lib/game-logic';
@@ -11,9 +11,9 @@ describe('Board Component', () => {
   const mockOnDrop = vi.fn();
 
   const createTestBoard = (): BoardType => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
-    board[0][1] = { color: 'black', type: 'regular' };
-    board[5][2] = { color: 'red', type: 'regular' };
+    const board: BoardType = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => null));
+    board[0]![1] = { color: 'black', type: 'regular' };
+    board[5]![2] = { color: 'red', type: 'regular' };
     return board;
   };
 
@@ -43,15 +43,7 @@ describe('Board Component', () => {
   });
 
   it('should render pieces at correct positions', () => {
-    const testBoard = createTestBoard();
-    // Count actual pieces
-    let pieceCount = 0;
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        if (testBoard[row][col]) pieceCount++;
-      }
-    }
-    
+    // Test board already created in defaultProps
     render(<Board {...defaultProps} />);
     
     // Check for draggable pieces (only current player's pieces are draggable)
@@ -117,7 +109,7 @@ describe('Board Component', () => {
     render(<Board {...defaultProps} />);
     
     const squares = document.querySelectorAll('.aspect-square');
-    await userEvent.click(squares[0] as Element);
+    await userEvent.click(squares[0]!);
     
     expect(mockOnSquareClick).toHaveBeenCalledWith({ row: 0, col: 0 });
   });
@@ -163,7 +155,7 @@ describe('Board Component', () => {
     const squares = document.querySelectorAll('.aspect-square');
     const dropSquare = squares[4 * 8 + 3];
     
-    fireEvent.drop(dropSquare as Element);
+    fireEvent.drop(dropSquare!);
     expect(mockOnDrop).toHaveBeenCalledWith({ row: 4, col: 3 });
   });
 
@@ -201,7 +193,7 @@ describe('Board Component', () => {
 
   it('should render king pieces with crown icon', () => {
     const board = createTestBoard();
-    board[2][3] = { color: 'red', type: 'king' };
+    board[2]![3] = { color: 'red', type: 'king' };
     
     const props = {
       ...defaultProps,

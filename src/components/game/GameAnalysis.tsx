@@ -1,21 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Progress } from '~/components/ui/progress';
 import { Badge } from '~/components/ui/badge';
 import { 
-  TrendingUp, 
-  TrendingDown, 
   Activity,
   Award,
   AlertTriangle,
-  Brain,
-  Target,
-  BarChart
+  Brain
 } from 'lucide-react';
-import type { GameAnalysis, MoveEvaluation } from '~/lib/types/move-analysis';
+import type { GameAnalysis } from '~/lib/types/move-analysis';
 import { MOVE_INDICATORS, formatEvaluation, getEvaluationBarWidth, getPlayerAdvantage } from '~/lib/types/move-analysis';
 import { cn } from '~/lib/utils';
 
