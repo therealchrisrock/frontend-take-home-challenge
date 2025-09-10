@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import React from "react";
-import Link from "next/link";
 
-interface AuthSplitLayoutProps {
+interface AuthLayoutProps {
   imageSrc: string;
   imageAlt?: string;
   reverse?: boolean;
@@ -13,14 +12,14 @@ interface AuthSplitLayoutProps {
   brandHref?: string;
 }
 
-export default function AuthSplitLayout({
+export default function AuthLayout({
   imageSrc,
   imageAlt = "",
   reverse = false,
   children,
   brandName = "",
   brandHref = "/",
-}: AuthSplitLayoutProps) {
+}: AuthLayoutProps) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Form column */}

@@ -4,7 +4,7 @@ import { type Metadata, type Viewport } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
-import { Providers } from "./_components/providers";
+import { Providers } from "./providers";
 import { SkinStyleInjector } from "~/components/SkinStyleInjector";
 
 export const metadata: Metadata = {

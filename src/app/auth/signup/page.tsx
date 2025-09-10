@@ -10,7 +10,6 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import AuthSplitLayout from "~/components/auth/auth-split-layout";
 import { api } from "~/trpc/react";
 
 const signupSchema = z
@@ -87,13 +86,7 @@ function SignUpInner() {
   };
 
   return (
-    <AuthSplitLayout
-      imageSrc="/rogue.png"
-      imageAlt="Checkers"
-      reverse
-      brandName="Birdseye Checkers"
-      brandHref="/"
-    >
+    <>
       <div className="mb-6 space-y-1 text-center md:text-left">
         <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
         <p className="text-sm text-muted-foreground">Enter your details below to create your account</p>
@@ -176,7 +169,7 @@ function SignUpInner() {
           </Link>
         </div>
       </form>
-    </AuthSplitLayout>
+    </>
   );
 }
 

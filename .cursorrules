@@ -1,0 +1,251 @@
+# Next.js 15 Project Conventions & Rules
+
+## Core Principles
+
+1. **Colocation First**: Keep related code together in route folders
+2. **Single Source of Truth**: Shared logic lives in one place only
+3. **Clear Boundaries**: Distinguish between route-specific and shared code
+4. **Predictable Structure**: Follow consistent patterns throughout
+
+## Directory Structure Rules
+
+### Route Organization
+
+1. **Use semantic route groups** instead of generic names:
+   - ✅ `(auth)`, `(marketing)`, `(hub)`, `(legal)`
+   - ❌ `(app)`, `(pages)`, `(routes)`
+
+2. **Private folders** for colocated code:
+   - Use `_` prefix for non-route folders: `_components`, `_lib`, `_hooks`
+   - Use `__tests__` for test files (double underscore for tooling compatibility)
+
+3. **API routes** always live in `/app/api/`:
+   - Never colocate API routes with page routes
+   - Group by feature: `/api/auth/`, `/api/game/`, `/api/user/`
+
+### Colocation Decision Tree
+
+```
+Is this code used in multiple route groups?
+├─ YES → Put in `/lib/[feature]/` or `/components/ui/`
+└─ NO → Is it used by multiple routes in the same group?
+    ├─ YES → Put in route group's `_components/` or `_lib/`
+    └─ NO → Put in specific route's `_components/` or `_lib/`
+```
+
+### Standard Folder Structure
+
+```
+app/
+├── (route-group)/
+│   ├── _components/       # Shared within route group
+│   ├── _lib/             # Utilities for route group
+│   ├── route-name/
+│   │   ├── _components/  # Route-specific components
+│   │   ├── _lib/        # Route-specific utilities
+│   │   ├── _hooks/      # Route-specific hooks
+│   │   ├── __tests__/   # Route-specific tests
+│   │   └── page.tsx
+│   └── layout.tsx
+├── api/                  # All API routes
+└── providers.tsx         # Root providers
+```
+
+## Naming Conventions
+
+### Files
+
+| Type | Convention | Example |
+|------|------------|---------|
+| **Components** | PascalCase | `GameBoard.tsx`, `UserCard.tsx` |
+| **Hooks** | camelCase with 'use' prefix | `useGameState.ts`, `useAuth.ts` |
+| **Utilities** | camelCase | `formatDate.ts`, `validateMove.ts` |
+| **Types** | PascalCase for types, camelCase for files | `types/game.ts` with `export type GameState` |
+| **Constants** | camelCase file, UPPER_SNAKE in code | `constants.ts` with `export const MAX_PLAYERS` |
+| **API Routes** | lowercase with hyphens | `api/game-state/route.ts` |
+| **Page Routes** | lowercase with hyphens | `user-profile/page.tsx` |
+
+### Folders
+
+| Type | Convention | Example |
+|------|------------|---------|
+| **Route Groups** | Parentheses, lowercase, semantic | `(auth)`, `(hub)`, `(marketing)` |
+| **Private Folders** | Underscore prefix | `_components`, `_lib`, `_hooks` |
+| **Dynamic Routes** | Square brackets, camelCase | `[gameId]`, `[userId]` |
+| **Test Folders** | Double underscore | `__tests__`, `__mocks__` |
+
+## Import Rules
+
+### Path Aliases
+
+Always configure in `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/server/*": ["./src/server/*"]
+    }
+  }
+}
+```
+
+### Import Order
+
+1. React/Next.js imports
+2. Third-party libraries
+3. Absolute imports (`@/lib/...`)
+4. Relative imports (`./`, `../`)
+5. Type imports
+
+```typescript
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import { validateGame } from '@/lib/game'
+import { GameBoard } from './_components/GameBoard'
+import type { GameState } from './_types/game'
+```
+
+## Component Organization Rules
+
+### Component File Structure
+
+```typescript
+// 1. Imports (following import order rules)
+import { useState } from 'react'
+
+// 2. Type definitions
+interface ComponentProps {
+  // ...
+}
+
+// 3. Exported component
+export function ComponentName({ prop }: ComponentProps) {
+  // 3a. Hooks
+  const [state, setState] = useState()
+  
+  // 3b. Handlers
+  const handleClick = () => {}
+  
+  // 3c. Effects
+  useEffect(() => {}, [])
+  
+  // 3d. Render
+  return <div>...</div>
+}
+
+// 4. Helper components (if not exported)
+function HelperComponent() {}
+
+// 5. Utilities (if small and specific)
+function formatLocalData() {}
+```
+
+## Colocation Examples
+
+### Route-Specific (Colocate Everything)
+
+```
+app/(hub)/game/[gameId]/
+├── _components/
+│   ├── GameBoard.tsx       # Only used in this game route
+│   └── GameTimer.tsx
+├── _lib/
+│   └── game-validator.ts   # Specific to this route
+├── _hooks/
+│   └── useGameSync.ts      # Specific game sync logic
+└── page.tsx
+```
+
+### Feature-Wide (Shared Library)
+
+```
+lib/
+├── auth/                   # Used across entire app
+│   ├── hooks/
+│   │   └── useAuth.ts
+│   ├── session.ts
+│   └── validators.ts
+├── game/
+│   └── engine.ts          # Core game logic used by multiple routes
+└── utils/
+    └── cn.ts              # Used everywhere
+```
+
+### UI Components (Design System)
+
+```
+components/
+└── ui/                    # Only truly reusable UI components
+    ├── button.tsx         # Used across all features
+    ├── card.tsx
+    └── modal.tsx
+```
+
+## Server vs Client Rules
+
+### Server Components (Default)
+
+- Place data fetching in page.tsx
+- Keep components server-side unless they need interactivity
+- Use `async` components for data fetching
+
+### Client Components
+
+Mark with `'use client'` only when needed:
+- User interactions (onClick, onChange)
+- Browser APIs (localStorage, window)
+- State management (useState, useReducer)
+- Effects (useEffect)
+
+## Testing Colocation
+
+```
+feature/
+├── _components/
+│   ├── Component.tsx
+│   └── Component.test.tsx    # Unit test next to component
+└── __tests__/
+    └── integration.test.tsx   # Integration tests in dedicated folder
+```
+
+## Do's and Don'ts
+
+### Do's ✅
+- Colocate by feature, not by file type
+- Use route groups for access control
+- Keep shared logic in `/lib`
+- Use underscore prefix for private folders
+- Place all APIs under `/app/api`
+
+### Don'ts ❌
+- Don't split related code across multiple top-level directories
+- Don't use `(app)` as a route group name
+- Don't colocate API routes with page routes
+- Don't duplicate shared logic
+- Don't create deeply nested component folders (max 2-3 levels)
+
+## Migration Checklist
+
+When refactoring existing code:
+
+1. Identify feature boundaries
+2. Determine sharing scope (route-specific vs app-wide)
+3. Move to appropriate location following rules above
+4. Update imports (prefer relative for colocated, absolute for shared)
+5. Remove empty directories
+6. Update tests to match new structure
+
+## Questions to Ask
+
+Before creating a new file/folder:
+
+1. **Who uses this?** → Determines location (colocated vs shared)
+2. **Is it a page, API, or component?** → Determines base directory
+3. **Will it be reused?** → Determines if it goes in `lib` or `_components`
+4. **Is it public or authenticated?** → Determines route group
+5. **Is it testable in isolation?** → Determines test location

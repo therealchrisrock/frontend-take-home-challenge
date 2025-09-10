@@ -11,7 +11,6 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
-import AuthSplitLayout from "~/components/auth/auth-split-layout";
 
 const signinSchema = z.object({
   emailOrUsername: z.string().min(1, "Email or username is required"),
@@ -58,13 +57,7 @@ function SignInInner() {
   };
 
   return (
-    <AuthSplitLayout
-      imageSrc="/checkers.png"
-      imageAlt="Checkers"
-      reverse={false}
-      brandName="Birdseye Checkers"
-      brandHref="/"
-    >
+    <>
       <div className="mb-6 space-y-1 text-center md:text-left">
         <h1 className="text-2xl font-semibold tracking-tight">Login to your account</h1>
         <p className="text-sm text-muted-foreground">Enter your email below to login to your account</p>
@@ -134,7 +127,7 @@ function SignInInner() {
           Sign in with Discord
         </Button>
       </form>
-    </AuthSplitLayout>
+    </>
   );
 }
 
