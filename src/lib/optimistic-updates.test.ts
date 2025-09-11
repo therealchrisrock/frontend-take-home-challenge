@@ -212,7 +212,7 @@ describe("OptimisticUpdateManager", () => {
       const update1 = manager.createUpdate(testMove, testBoard, "red", 5);
       const update2 = manager.createUpdate(testMove, testBoard, "black", 5);
 
-      const conflicts = manager.detectConflicts(testBoard, 7, 10);
+      const conflicts = manager.detectConflicts(testBoard, 7);
 
       expect(conflicts).toEqual([update1.id, update2.id]);
     });
@@ -220,7 +220,7 @@ describe("OptimisticUpdateManager", () => {
     it("should not detect conflicts when server is at same state", () => {
       manager.createUpdate(testMove, testBoard, "red", 5);
 
-      const conflicts = manager.detectConflicts(testBoard, 5, 8);
+      const conflicts = manager.detectConflicts(testBoard, 5);
 
       expect(conflicts).toHaveLength(0);
     });
@@ -232,7 +232,7 @@ describe("OptimisticUpdateManager", () => {
       const storedUpdate = manager.getUpdate(update.id)!;
       delete storedUpdate.rollbackState;
 
-      const conflicts = manager.detectConflicts(testBoard, 5, 8);
+      const conflicts = manager.detectConflicts(testBoard, 5);
 
       expect(conflicts).toEqual([update.id]);
     });

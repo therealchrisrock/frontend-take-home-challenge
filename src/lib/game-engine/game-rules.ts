@@ -224,7 +224,8 @@ export class GameRules {
    * Get promotion row for color
    */
   getPromotionRow(color: PieceColor): number {
-    const rows = this.config.promotionRows[color];
+    const promotionRows = getPromotionRows(this.config);
+    const rows = promotionRows[color];
     if (rows.length === 0) {
       throw new Error(`No promotion rows defined for ${color}`);
     }

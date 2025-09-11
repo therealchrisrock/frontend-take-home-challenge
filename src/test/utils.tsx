@@ -30,6 +30,7 @@ export function renderWithProviders(
 // Create tRPC MSW instance for mocking API calls
 export const trpcMsw = createTRPCMsw<AppRouter>({
   transformer: superjson as any,
+  links: [],
 });
 
 // Test data factories

@@ -223,7 +223,7 @@ export class CheckersAI {
     const winner = checkWinner(board, this.rules);
     if (winner) {
       const score =
-        winner === playerColor ? 10000 : winner === "draw" ? 0 : -10000;
+        winner === playerColor ? 10000 : (typeof winner === "object" && winner.type === "draw") ? 0 : -10000;
       return { score: score * (depth + 1) }; // Prefer quicker wins
     }
 

@@ -9,6 +9,7 @@ import { createMockUser, createMockSession } from "~/test/auth-utils";
 // Create tRPC MSW instance
 export const trpcMsw = createTRPCMsw<AppRouter>({
   transformer: superjson as any,
+  links: [],
 });
 
 // Store for mock data

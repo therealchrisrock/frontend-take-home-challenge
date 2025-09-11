@@ -246,26 +246,47 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
 interface Friend {
   id: string;
   username: string;
-  image?: string | null;
-  name?: string | null;
-  online?: boolean;
-  lastMessage?: string;
-  timestamp?: Date;
+  image: string | null;
+  name: string | null;
+  online: boolean;
 }
 
 interface Conversation {
-  id: string;
-  username: string;
-  image?: string | null;
-  name?: string | null;
-  lastMessage?: string;
-  timestamp?: Date;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+    name: string | null;
+    image: string | null;
+  };
+  lastMessage: {
+    id: string;
+    content: string;
+    senderId: string;
+    receiverId: string;
+    createdAt: Date;
+    read: boolean;
+    sender: {
+      id: string;
+      username: string;
+      name: string | null;
+      image: string | null;
+    };
+    receiver: {
+      id: string;
+      username: string;
+      name: string | null;
+      image: string | null;
+    };
+  };
+  unreadCount: number;
 }
 
 function ExpandedContent({
   friends,
   setFriends,
   conversations,
+  isOpen,
   activeTab,
   friendsLoading,
   conversationsLoading,
@@ -273,8 +294,9 @@ function ExpandedContent({
   markAvatarLoaded,
 }: {
   friends: Friend[];
-  setFriends: (friends: Friend[]) => void;
+  setFriends: React.Dispatch<React.SetStateAction<Friend[] | undefined>>;
   conversations: Conversation[];
+  isOpen: boolean;
   activeTab: "friends" | "notifications";
   friendsLoading?: boolean;
   conversationsLoading?: boolean;

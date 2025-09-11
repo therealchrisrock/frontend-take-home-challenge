@@ -80,7 +80,9 @@ describe("NextAuth Configuration", () => {
           session: mockSession,
           token: mockToken,
           user: {} as any,
-        }) as any;
+          newSession: undefined,
+          trigger: "getSession",
+        } as any) as any;
 
         expect(result.user.id).toBe("user-123");
         expect(result.user.username).toBe("testuser");
@@ -154,7 +156,7 @@ describe("NextAuth Configuration", () => {
       it('should update username when trigger is "update"', async () => {
         const mockToken = {
           userId: "user-123",
-          username: null,
+          username: "",
           needsUsername: true,
           email: "test@example.com",
           name: "Test User",
@@ -164,7 +166,7 @@ describe("NextAuth Configuration", () => {
 
         const result = await authOptions.callbacks!.jwt!({
           token: mockToken,
-          user: undefined,
+          user: undefined as any,
           account: null,
           profile: undefined,
           trigger: "update",

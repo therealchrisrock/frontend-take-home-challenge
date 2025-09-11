@@ -16,7 +16,7 @@ export function useSingleTabEnforcement(gameId?: string) {
   });
 
   const tabIdRef = useRef<string>("");
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     if (!gameId || typeof window === "undefined") return;

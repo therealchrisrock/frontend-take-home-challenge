@@ -370,11 +370,11 @@ describe("Game Engine Integration Tests", () => {
       const config = GameConfigLoader.loadVariant("american");
 
       // In tournament mode with 3-move restriction
-      if (config.openingRestrictions?.threeMove) {
+      if (config.tournament?.openingRestrictions?.threeMove) {
         // Should have specific opening positions defined
-        expect(config.openingRestrictions.customPositions).toBeDefined();
-        if (config.openingRestrictions.customPositions) {
-          expect(config.openingRestrictions.customPositions.length).toBeGreaterThan(0);
+        expect(config.tournament.openingRestrictions.customPositions).toBeDefined();
+        if (config.tournament.openingRestrictions.customPositions) {
+          expect(config.tournament.openingRestrictions.customPositions.length).toBeGreaterThan(0);
         }
       }
     });

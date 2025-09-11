@@ -58,7 +58,7 @@ export function useGameSync(
   const optimisticManagerRef = useRef<OptimisticUpdateManager | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const syncManager = useMemo(() => new MultiTabSyncManager(), []);
+  const syncManager = useMemo(() => new MultiTabSyncManager(gameId ?? ""), [gameId]);
   const tabId = syncManager.getTabId;
 
   // tRPC mutations
