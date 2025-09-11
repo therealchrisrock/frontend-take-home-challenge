@@ -1,7 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { api } from "~/trpc/react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Target,
+  TrendingUp,
+  Trophy,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,37 +24,22 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Slider } from "~/components/ui/slider";
-import { Skeleton } from "~/components/ui/skeleton";
-import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Separator } from "~/components/ui/separator";
-import { Board } from "./Board";
+import { Skeleton } from "~/components/ui/skeleton";
+import { Slider } from "~/components/ui/slider";
 import type {
   Board as BoardType,
   Move,
-  Position,
   PieceColor,
+  Position,
 } from "~/lib/game/logic";
 import {
+  makeMove as applyMove,
   createInitialBoard,
   getValidMoves,
-  makeMove as applyMove,
 } from "~/lib/game/logic";
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  ChevronLeft,
-  ChevronRight,
-  TrendingUp,
-  AlertCircle,
-  Zap,
-  Target,
-  Trophy,
-} from "lucide-react";
+import { api } from "~/trpc/react";
+import { Board } from "./Board";
 
 interface GameReplayControllerProps {
   gameId: string;
@@ -528,7 +528,7 @@ export default function GameReplayController({
                         {moveNotation}
                         {move?.captures &&
                           (JSON.parse(move.captures) as Position[]).length >
-                            0 && (
+                          0 && (
                             <Badge variant="outline" className="ml-auto">
                               x
                               {(JSON.parse(move.captures) as Position[]).length}

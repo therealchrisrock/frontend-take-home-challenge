@@ -59,11 +59,16 @@ model User {
     gameEvents         GameEvent[]
     sentFriendships    Friendship[]        @relation("FriendshipSender")
     receivedFriendships Friendship[]       @relation("FriendshipReceiver")
+    sentFriendRequests FriendRequest[]     @relation("SentFriendRequests")
+    receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
+    notifications      Notification[]
     blockedUsers       Block[]             @relation("BlockedBy")
     blockedByUsers     Block[]             @relation("Blocking")
     sentMessages       Message[]           @relation("MessageSender")
     receivedMessages   Message[]           @relation("MessageReceiver")
     passwordResetTokens PasswordResetToken[]
+    sentGameInvites    GameInvite[]        @relation("GameInviteInviter")
+    receivedGameInvites GameInvite[]       @relation("GameInviteInvitee")
     
     // New rating and tournament fields
     playerRatings      PlayerRating[]
@@ -94,25 +99,42 @@ model PasswordResetToken {
 
 // Social Features
 model Friendship {
-    id         String           @id @default(cuid())
+    id         String   @id @default(cuid())
     senderId   String
     receiverId String
-    status     FriendshipStatus @default(PENDING)
-    createdAt  DateTime         @default(now())
-    updatedAt  DateTime         @updatedAt
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
     
-    sender     User             @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
-    receiver   User             @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+    sender     User     @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+    receiver   User     @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
 
     @@unique([senderId, receiverId])
     @@index([senderId])
     @@index([receiverId])
 }
 
-enum FriendshipStatus {
+model FriendRequest {
+    id         String               @id @default(cuid())
+    senderId   String
+    receiverId String
+    status     FriendRequestStatus  @default(PENDING)
+    message    String?              // Optional request message
+    createdAt  DateTime             @default(now())
+    updatedAt  DateTime             @updatedAt
+    
+    sender     User                 @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+    receiver   User                 @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+    
+    @@unique([senderId, receiverId])
+    @@index([receiverId, status])
+    @@index([senderId])
+}
+
+enum FriendRequestStatus {
     PENDING
     ACCEPTED
     DECLINED
+    CANCELLED
 }
 
 model Block {
@@ -144,6 +166,65 @@ model Message {
     @@index([senderId])
     @@index([receiverId])
     @@index([createdAt])
+}
+
+model GameInvite {
+    id            String            @id @default(cuid())
+    inviterId     String
+    inviteeId     String?           // null for guest invitations
+    inviteToken   String            @unique // unique shareable token
+    gameId        String?           // null until game is created
+    status        GameInviteStatus  @default(PENDING)
+    message       String?           // optional invitation message
+    gameMode      String            @default("online") // 'online' for multiplayer
+    variant       String?           // game variant (optional)
+    expiresAt     DateTime?         // optional expiration
+    createdAt     DateTime          @default(now())
+    updatedAt     DateTime          @updatedAt
+    
+    inviter       User              @relation("GameInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+    invitee       User?             @relation("GameInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+    game          Game?             @relation(fields: [gameId], references: [id], onDelete: SetNull)
+    
+    @@index([inviterId])
+    @@index([inviteeId])
+    @@index([inviteToken])
+    @@index([status])
+    @@index([expiresAt])
+}
+
+enum GameInviteStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+    EXPIRED
+    CANCELLED
+}
+
+model Notification {
+    id              String           @id @default(cuid())
+    userId          String
+    type            NotificationType
+    title           String
+    message         String
+    read            Boolean          @default(false)
+    metadata        String?          // JSON for additional data
+    relatedEntityId String?          // ID of related entity (e.g., friendRequestId)
+    createdAt       DateTime         @default(now())
+    
+    user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    @@index([userId, read])
+    @@index([userId, createdAt])
+}
+
+enum NotificationType {
+    FRIEND_REQUEST
+    FRIEND_REQUEST_ACCEPTED
+    FRIEND_REQUEST_DECLINED
+    MESSAGE
+    GAME_INVITE
+    SYSTEM
 }
 
 // Game Models
@@ -180,6 +261,7 @@ model Game {
     moves         GameMove[]
     events        GameEvent[]
     tournament    Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+    gameInvites   GameInvite[]
     
     @@index([lastSaved])
     @@index([player1Id])

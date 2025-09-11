@@ -32,7 +32,7 @@ export default function MessagesPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { data: conversations, refetch: refetchConversations } =
-    api.message.getConversations.useQuery(undefined, {
+    api.message.getConversations.useQuery({
       enabled: !!session?.user,
     });
 

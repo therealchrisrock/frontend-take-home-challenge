@@ -9,10 +9,9 @@
   --board-outer-padding: 32px; /* p-4 on outer card */
   --board-bottom-extra-padding: 16px; /* extra bottom spacing (p-4 bottom only) */
   --board-vertical-offset: calc(
-    var(--header-height)
-    + (2 * (var(--player-card-height) + var(--player-card-padding-y)))
-    + var(--board-outer-padding)
-    + var(--board-bottom-extra-padding)
+    var(--header-height) +
+      (2 * (var(--player-card-height) + var(--player-card-padding-y))) +
+      var(--board-outer-padding) + var(--board-bottom-extra-padding)
   );
 
   /* Default skin variables (the-og theme) - prevents FOUC */
@@ -43,7 +42,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
@@ -174,16 +174,24 @@
   max-width: calc(100vh - var(--board-vertical-offset));
 }
 
+/* Limit height only on tablet/mobile (single-column layouts) */
+@media (max-width: 1023px) {
+  .board-fit-max {
+    max-height: calc(100vh - var(--board-vertical-offset));
+  }
+}
+
 /* 3D Background Animations */
 @keyframes floatAnimation {
-  0%, 100% { 
-    transform: translate(0, 0) scale(1); 
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
   }
-  33% { 
-    transform: translate(30px, -30px) scale(1.05); 
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
   }
-  66% { 
-    transform: translate(-20px, 20px) scale(0.95); 
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
   }
 }
 
@@ -219,14 +227,14 @@
   --board-highlighted-ring: rgb(250, 204, 21);
   --board-possible-move: rgb(74, 222, 128);
   --board-possible-move-glow: rgba(74, 222, 128, 0.5);
-  
+
   /* Piece Colors */
   --piece-red-base: rgb(185, 28, 28);
   --piece-red-from: rgb(220, 38, 38);
   --piece-red-to: rgb(153, 27, 27);
   --piece-red-border: rgb(127, 29, 29);
   --piece-red-crown: rgb(251, 191, 36);
-  
+
   --piece-black-base: rgb(23, 23, 23);
   --piece-black-from: rgb(38, 38, 38);
   --piece-black-to: rgb(10, 10, 10);

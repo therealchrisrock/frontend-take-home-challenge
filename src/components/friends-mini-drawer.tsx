@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, Gamepad2, User, MessageSquare, UserMinus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Skeleton } from "~/components/ui/skeleton";
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -16,6 +16,13 @@ import {
   TabsUnderlineList,
   TabsUnderlineTrigger,
 } from "~/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 interface FriendsMiniDrawerProps {
   className?: string;
@@ -28,16 +35,23 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
   // Basic data: friends with presence + unread count
   const { data: session } = useSession();
   const { data: friends, isLoading: friendsLoading } =
-    api.user.getFriendsWithStatus.useQuery(undefined, {
+    api.user.getFriendsWithStatus.useQuery({
       enabled: !!session?.user,
     });
-  const { data: unread } = api.message.getUnreadCount.useQuery(undefined, {
+  const { data: unread } = api.message.getUnreadCount.useQuery({
     enabled: !!session?.user,
   });
   const { data: conversations, isLoading: conversationsLoading } =
-    api.message.getConversations.useQuery(undefined, {
+    api.message.getConversations.useQuery({
       enabled: !!session?.user,
     });
+
+  const removeFriendMutation = api.friendRequest.removeFriend.useMutation({
+    onSuccess: () => {
+      // Refetch friends data to update the list
+      void api.useContext().user.getFriendsWithStatus.invalidate();
+    },
+  });
 
   // Manage reorderable friends list
   const [reorderableFriends, setReorderableFriends] = useState<typeof friends>(
@@ -59,12 +73,21 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
   const [activeTab, setActiveTab] = useState<"friends" | "notifications">(
     "friends",
   );
+  // Track which friend's dropdown is open to prevent drawer collapse
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   // Track avatar image load states to show per-avatar skeletons
   const [avatarLoadedMap, setAvatarLoadedMap] = useState<
     Record<string, boolean>
   >({});
   const markAvatarLoaded = (id: string) =>
     setAvatarLoadedMap((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
+
+  // Effect to close drawer when dropdown closes if not hovering
+  useMemo(() => {
+    if (!openDropdownId && !isOpen) {
+      setIsOpen(false);
+    }
+  }, [openDropdownId, isOpen]);
 
   return (
     <motion.aside
@@ -74,20 +97,24 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
         className,
       )}
       initial={false}
-      animate={{ width: COLLAPSED }}
-      whileHover={{ width: EXPANDED }}
+      animate={{ width: (isOpen || openDropdownId) ? EXPANDED : COLLAPSED }}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
       onHoverStart={() => {
         setIsOpen(true);
         setActiveTab("friends");
       }}
-      onHoverEnd={() => setIsOpen(false)}
+      onHoverEnd={() => {
+        // Only close if no dropdown is open
+        if (!openDropdownId) {
+          setIsOpen(false);
+        }
+      }}
     >
       <div className="flex h-full w-full flex-col border-l border-gray-200 bg-white shadow-xl">
         {/* Header: use global header height so separators align perfectly */}
         <div className="relative h-[var(--header-height)] overflow-hidden">
           <AnimatePresence initial={false} mode="popLayout">
-            {!isOpen ? (
+            {!(isOpen || openDropdownId) ? (
               <motion.div
                 key="collapsed-header"
                 className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2"
@@ -150,7 +177,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
         {/* Content: absolute panels stacked to prevent layout shifts */}
         <div className="relative w-full flex-1 overflow-hidden">
           <AnimatePresence initial={false} mode="popLayout">
-            {!isOpen ? (
+            {!(isOpen || openDropdownId) ? (
               <motion.div
                 key="collapsed-content"
                 className="absolute inset-0"
@@ -233,6 +260,9 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                   conversationsLoading={conversationsLoading}
                   avatarLoadedMap={avatarLoadedMap}
                   markAvatarLoaded={markAvatarLoaded}
+                  removeFriendMutation={removeFriendMutation}
+                  openDropdownId={openDropdownId}
+                  setOpenDropdownId={setOpenDropdownId}
                 />
               </motion.div>
             )}
@@ -292,6 +322,9 @@ function ExpandedContent({
   conversationsLoading,
   avatarLoadedMap = {},
   markAvatarLoaded,
+  removeFriendMutation,
+  openDropdownId,
+  setOpenDropdownId,
 }: {
   friends: Friend[];
   setFriends: React.Dispatch<React.SetStateAction<Friend[] | undefined>>;
@@ -302,6 +335,9 @@ function ExpandedContent({
   conversationsLoading?: boolean;
   avatarLoadedMap?: Record<string, boolean>;
   markAvatarLoaded?: (id: string) => void;
+  removeFriendMutation: ReturnType<typeof api.friendRequest.removeFriend.useMutation>;
+  openDropdownId: string | null;
+  setOpenDropdownId: (id: string | null) => void;
 }) {
   const router = useRouter();
   return (
@@ -356,63 +392,96 @@ function ExpandedContent({
                         delay: 0.05 * Math.min(idx, 3),
                       }}
                     >
-                      <div
-                        className="flex h-12 cursor-pointer items-center gap-3 overflow-hidden rounded-lg p-2 transition-colors hover:bg-gray-50"
-                        onClick={() => router.push(`/users/${f.username}`)}
+                      <DropdownMenu
+                        open={openDropdownId === f.id}
+                        onOpenChange={(open) => setOpenDropdownId(open ? f.id : null)}
                       >
-                        <motion.div
-                          layoutId={`friend-avatar-${f.id}`}
-                          className="pointer-events-none relative"
-                        >
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage
-                              src={f.image ?? undefined}
-                              onLoad={() => markAvatarLoaded?.(f.id)}
-                              onError={() => markAvatarLoaded?.(f.id)}
-                            />
-                            <AvatarFallback>
-                              {f.name?.[0] ?? f.username?.[0] ?? "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          {!loaded && (
+                        <DropdownMenuTrigger asChild>
+                          <div className="flex h-12 cursor-pointer items-center gap-3 overflow-hidden rounded-lg p-2 transition-colors hover:bg-gray-50">
                             <motion.div
-                              initial={{ opacity: 1 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              className="absolute inset-0"
+                              layoutId={`friend-avatar-${f.id}`}
+                              className="pointer-events-none relative"
                             >
-                              <Skeleton className="h-full w-full rounded-full" />
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={f.image ?? undefined}
+                                  onLoad={() => markAvatarLoaded?.(f.id)}
+                                  onError={() => markAvatarLoaded?.(f.id)}
+                                />
+                                <AvatarFallback>
+                                  {f.name?.[0] ?? f.username?.[0] ?? "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              {!loaded && (
+                                <motion.div
+                                  initial={{ opacity: 1 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="absolute inset-0"
+                                >
+                                  <Skeleton className="h-full w-full rounded-full" />
+                                </motion.div>
+                              )}
+                              <span
+                                className={cn(
+                                  "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white",
+                                  f.online ? "bg-emerald-500" : "bg-gray-300",
+                                )}
+                              />
                             </motion.div>
-                          )}
-                          <span
-                            className={cn(
-                              "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white",
-                              f.online ? "bg-emerald-500" : "bg-gray-300",
-                            )}
-                          />
-                        </motion.div>
-                        <motion.div
-                          className="pointer-events-none min-w-0 flex-1"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.15, delay: 0.2 }}
-                        >
-                          <div className="truncate text-sm leading-4 font-medium">
-                            {f.name ?? f.username}
+                            <motion.div
+                              className="pointer-events-none min-w-0 flex-1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.15, delay: 0.2 }}
+                            >
+                              <div className="truncate text-sm leading-4 font-medium">
+                                {f.name ?? f.username}
+                              </div>
+                              <div className="text-xs leading-4 text-gray-500">
+                                @{f.username}
+                              </div>
+                            </motion.div>
+                            <div
+                              className={cn(
+                                "pointer-events-none text-xs font-medium",
+                                f.online ? "text-emerald-600" : "text-gray-400",
+                              )}
+                            >
+                              {f.online ? "Online" : "Offline"}
+                            </div>
                           </div>
-                          <div className="text-xs leading-4 text-gray-500">
-                            @{f.username}
-                          </div>
-                        </motion.div>
-                        <div
-                          className={cn(
-                            "pointer-events-none text-xs font-medium",
-                            f.online ? "text-emerald-600" : "text-gray-400",
-                          )}
-                        >
-                          {f.online ? "Online" : "Offline"}
-                        </div>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/game/friend?username=${f.username}`)}
+                          >
+                            <Gamepad2 className="mr-2 h-4 w-4" />
+                            Challenge to a game
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/users/${f.username}`)}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            View profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/messages/${f.username}`)}
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Message
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            variant="destructive"
+                            onClick={() => removeFriendMutation.mutate({ userId: f.id })}
+                            disabled={removeFriendMutation.isLoading}
+                          >
+                            <UserMinus className="mr-2 h-4 w-4" />
+                            {removeFriendMutation.isLoading ? "Removing..." : "Remove friend"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </Reorder.Item>
                   );
                 })}

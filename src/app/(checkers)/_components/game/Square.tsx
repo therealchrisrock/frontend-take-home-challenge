@@ -29,25 +29,28 @@ export function Square({
 }: SquareProps) {
   const squareStyle = isBlack
     ? {
-        background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
-      }
+      background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
+    }
     : {
-        background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
-      };
+      background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
+    };
 
   const ringStyle = isSelected
     ? {
-        boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`,
-      }
+      boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`,
+    }
     : isHighlighted
       ? {
-          boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`,
-        }
+        boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`,
+      }
       : isKeyboardFocused
         ? {
-            boxShadow: `inset 0 0 0 3px #3b82f6, 0 0 8px rgba(59, 130, 246, 0.4)`,
-            outline: "none",
-          }
+          boxShadow: `inset 0 0 0 5px #1d4ed8, 0 0 0 3px #ffffff, 0 0 18px rgba(29, 78, 216, 0.7)`,
+          outline: "3px solid #1d4ed8",
+          outlineOffset: "3px",
+          transform: "scale(1.06)",
+          zIndex: 10,
+        }
         : undefined;
 
   return (
@@ -56,6 +59,7 @@ export function Square({
         "relative flex aspect-square items-center justify-center transition-all duration-200",
         isPossibleMove && "cursor-pointer",
         !isBlack && "shadow-inner",
+        isKeyboardFocused && "relative z-10",
       )}
       style={{
         ...squareStyle,

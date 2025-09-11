@@ -24,14 +24,13 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
   const [isMaximized, setIsMaximized] = useState(false);
 
   // Get unread message count for badge
-  const { data: unreadCount } = api.message.getUnreadCount.useQuery(undefined, {
+  const { data: unreadCount } = api.message.getUnreadCount.useQuery({
     enabled: !!session?.user,
     refetchInterval: 30000,
   });
 
   // Get pending friend requests count
   const { data: pendingRequests } = api.user.getPendingFriendRequests.useQuery(
-    undefined,
     { enabled: !!session?.user },
   );
 

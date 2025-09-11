@@ -1,9 +1,9 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
-import DiscordProvider from "next-auth/providers/discord";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import DiscordProvider from "next-auth/providers/discord";
 import { env } from "~/env";
 import { db } from "~/server/db";
 
@@ -42,7 +42,46 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
   },
-  adapter: PrismaAdapter(db) as Adapter,
+  // Wrap the Prisma adapter to ensure a placeholder username is set for new OAuth users
+  adapter: ((): Adapter => {
+    const base = PrismaAdapter(db) as Adapter;
+    return {
+      ...base,
+      // next-auth calls createUser during initial sign-in for new OAuth users
+      async createUser(data) {
+        // Ensure username is present (Prisma requires it)
+        if (
+          !("username" in data) ||
+          !data.username ||
+          typeof data.username !== "string"
+        ) {
+          // We cannot rely on db to generate id here because createUser is supposed to do that.
+          // Use a temporary placeholder that we will replace after the record exists with its id.
+          // To avoid unique collisions, incorporate a random suffix.
+          const random = Math.random().toString(36).slice(-6);
+          (data as any).username = `user_tmp_${random}`;
+        }
+
+        const user = await base.createUser(data);
+
+        // After we have an id, normalize placeholder to stable form user_<last8>
+        try {
+          if (user && user.id && user.username?.startsWith("user_tmp_")) {
+            const stableUsername = `user_${user.id.slice(-8)}`;
+            await db.user.update({
+              where: { id: user.id },
+              data: { username: stableUsername },
+            });
+            return { ...user, username: stableUsername } as typeof user;
+          }
+        } catch {
+          // If update fails, return the created user; downstream flows can still proceed
+        }
+
+        return user as any;
+      },
+    } as Adapter;
+  })(),
   providers: [
     DiscordProvider({
       clientId: env.DISCORD_CLIENT_ID,

@@ -158,7 +158,14 @@ export class OptimisticUpdateManager {
 
   // Check if there are any pending updates
   hasPendingUpdates(): boolean {
-    return this.state.pendingCount > 0;
+    // Count updates that are not applied
+    let pendingCount = 0;
+    for (const update of this.state.updates.values()) {
+      if (!update.applied) {
+        pendingCount++;
+      }
+    }
+    return pendingCount > 0;
   }
 
   // Get current state (readonly)
@@ -219,7 +226,11 @@ export class OptimisticUpdateManager {
     const conflicts: OptimisticUpdateId[] = [];
 
     for (const [updateId, update] of this.state.updates) {
-      if (!update.rollbackState) continue;
+      // If update has no rollback state, it's definitely conflicted
+      if (!update.rollbackState) {
+        conflicts.push(updateId);
+        continue;
+      }
 
       // Simple conflict detection: if server move count has advanced beyond our rollback point
       if (serverMoveCount > update.rollbackState.moveCount) {

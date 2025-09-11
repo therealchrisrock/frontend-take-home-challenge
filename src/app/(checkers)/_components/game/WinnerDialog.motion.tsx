@@ -209,12 +209,19 @@ export function WinnerDialog({
                       rotate: 0,
                     }
               }
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 15,
-                duration: 0.6,
-              }}
+              transition={
+                isVictory && winner !== "draw"
+                  ? {
+                      duration: 0.6,
+                      ease: "easeOut",
+                    }
+                  : {
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 15,
+                      duration: 0.6,
+                    }
+              }
             >
               {/* Glow effect for victory */}
               {isVictory && winner !== "draw" && (

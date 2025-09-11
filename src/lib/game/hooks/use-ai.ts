@@ -28,7 +28,9 @@ export function useAI() {
         state.moveCount,
       );
       if (cancelled || !aiMove) {
-        dispatch({ type: "SET_AI_THINKING", payload: false });
+        if (!cancelled) {
+          dispatch({ type: "SET_AI_THINKING", payload: false });
+        }
         return;
       }
       const newBoard = makeMove(state.board, aiMove, state.rules);
@@ -43,7 +45,7 @@ export function useAI() {
 
     return () => {
       cancelled = true;
-      dispatch({ type: "SET_AI_THINKING", payload: false });
+      // Don't dispatch in cleanup - let the next render handle it
     };
   }, [
     state.board,

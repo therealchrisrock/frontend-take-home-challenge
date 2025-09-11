@@ -17,33 +17,55 @@ const avatarUrls = [
 async function main() {
   console.log("🌱 Starting database seeding...");
 
-  // First, check if the main user exists (chris6rock@gmail.com / Grootenberg)
-  let mainUser = await prisma.user.findUnique({
-    where: { email: "chris6rock@gmail.com" },
+  // Create or find TheRealChrisRock user (can authenticate with TheRealChrisRock:password or chris6rock@gmail.com:password)
+  let chrisRockUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: "chris6rock@gmail.com" }, { username: "TheRealChrisRock" }],
+    },
   });
 
-  if (!mainUser) {
-    // Also check by username
-    mainUser = await prisma.user.findUnique({
-      where: { username: "Grootenberg" },
-    });
-  }
-
-  if (!mainUser) {
-    console.log("Creating main user (chris6rock@gmail.com / Grootenberg)...");
-    const hashedPassword = await bcrypt.hash("password123", 10);
-    mainUser = await prisma.user.create({
+  if (!chrisRockUser) {
+    console.log("Creating TheRealChrisRock user...");
+    const hashedPassword = await bcrypt.hash("password", 10);
+    chrisRockUser = await prisma.user.create({
       data: {
         email: "chris6rock@gmail.com",
-        username: "Grootenberg",
-        name: "Chris Grootenberg",
+        username: "TheRealChrisRock",
+        name: "Chris Rock",
         password: hashedPassword,
         emailVerified: new Date(),
+        image: "https://api.dicebear.com/9.x/avataaars/svg?seed=ChrisRock",
+        avatarKey: "avatar-chrisrock",
       },
     });
+    console.log(`✅ Created TheRealChrisRock user: ${chrisRockUser.username}`);
+  } else {
+    // Update existing user to be TheRealChrisRock
+    if (chrisRockUser.username !== "TheRealChrisRock") {
+      console.log("Updating existing user to TheRealChrisRock...");
+      const hashedPassword = await bcrypt.hash("password", 10);
+      chrisRockUser = await prisma.user.update({
+        where: { id: chrisRockUser.id },
+        data: {
+          username: "TheRealChrisRock",
+          name: "Chris Rock",
+          password: hashedPassword,
+          image: "https://api.dicebear.com/9.x/avataaars/svg?seed=ChrisRock",
+          avatarKey: "avatar-chrisrock",
+        },
+      });
+      console.log(
+        `✅ Updated user to TheRealChrisRock: ${chrisRockUser.username}`,
+      );
+    } else {
+      console.log(
+        `⏩ TheRealChrisRock user already exists: ${chrisRockUser.username}`,
+      );
+    }
   }
 
-  console.log(`Main user found/created: ${mainUser.username} (${mainUser.id})`);
+  // Use TheRealChrisRock as the main user for friendships
+  const mainUser = chrisRockUser;
 
   // Create 15 test users
   const testUsers = [];
@@ -89,38 +111,46 @@ async function main() {
     testUsers.push(user);
   }
 
-  // Create friendships between all test users and the main user
-  console.log("\n🤝 Creating friendships with main user...");
+  // Create friendships between TheRealChrisRock and all test users except testuser2
+  console.log("\n🤝 Creating friendships for TheRealChrisRock...");
 
-  for (const testUser of testUsers) {
+  // Filter out testuser2 from friendship list
+  const usersToFriend = testUsers.filter(
+    (user) => user.username !== "testuser2",
+  );
+
+  for (const user of usersToFriend) {
     // Check if friendship already exists (in either direction)
     const existingFriendship = await prisma.friendship.findFirst({
       where: {
         OR: [
-          { senderId: mainUser.id, receiverId: testUser.id },
-          { senderId: testUser.id, receiverId: mainUser.id },
+          { senderId: chrisRockUser.id, receiverId: user.id },
+          { senderId: user.id, receiverId: chrisRockUser.id },
         ],
       },
     });
 
     if (!existingFriendship) {
-      // Create accepted friendship
+      // Create accepted friendship (Friendship has no status field)
       await prisma.friendship.create({
         data: {
-          senderId: mainUser.id,
-          receiverId: testUser.id,
-          status: "ACCEPTED",
+          senderId: chrisRockUser.id,
+          receiverId: user.id,
         },
       });
       console.log(
-        `✅ Created friendship: ${mainUser.username} <-> ${testUser.username}`,
+        `✅ Created friendship: ${chrisRockUser.username} <-> ${user.username}`,
       );
     } else {
       console.log(
-        `⏩ Friendship already exists: ${mainUser.username} <-> ${testUser.username}`,
+        `⏩ Friendship already exists: ${chrisRockUser.username} <-> ${user.username}`,
       );
     }
   }
+
+  console.log(`⏩ Skipped creating friendship with testuser2 as requested`);
+
+  // Note: Removed the original "main user" friendship creation since mainUser is now the same as chrisRockUser
 
   // Create some additional friendships between test users for a more realistic network
   console.log("\n🔗 Creating additional friendships between test users...");
@@ -146,7 +176,6 @@ async function main() {
         data: {
           senderId: user1.id,
           receiverId: user2.id,
-          status: "ACCEPTED",
         },
       });
       console.log(
@@ -177,13 +206,27 @@ async function main() {
     });
 
     if (!existingFriendship) {
-      await prisma.friendship.create({
-        data: {
-          senderId: user1.id,
-          receiverId: user2.id,
-          status: Math.random() > 0.2 ? "ACCEPTED" : "PENDING", // 80% accepted, 20% pending
-        },
-      });
+      const createAccepted = Math.random() > 0.2; // 80% accepted, 20% pending
+
+      if (createAccepted) {
+        // Directly create friendship (accepted)
+        await prisma.friendship.create({
+          data: {
+            senderId: user1.id,
+            receiverId: user2.id,
+          },
+        });
+      } else {
+        // Create a pending friend request instead
+        await prisma.friendRequest.create({
+          data: {
+            senderId: user1.id,
+            receiverId: user2.id,
+            status: "PENDING",
+            message: null,
+          },
+        });
+      }
       console.log(
         `✅ Created friendship: ${user1.username} <-> ${user2.username}`,
       );

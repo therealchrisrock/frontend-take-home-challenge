@@ -16,13 +16,47 @@ global.EventSource = vi.fn(() => ({
 // Mock fetch
 global.fetch = vi.fn();
 
+// Mock document and window addEventListener methods
+const documentAddEventListener = vi.fn();
+const windowAddEventListener = vi.fn();
+const documentRemoveEventListener = vi.fn();
+const windowRemoveEventListener = vi.fn();
+
+// Setup DOM mocks
+Object.defineProperty(document, 'addEventListener', {
+  value: documentAddEventListener,
+  writable: true
+});
+
+Object.defineProperty(document, 'removeEventListener', {
+  value: documentRemoveEventListener,
+  writable: true
+});
+
+Object.defineProperty(window, 'addEventListener', {
+  value: windowAddEventListener,
+  writable: true
+});
+
+Object.defineProperty(window, 'removeEventListener', {
+  value: windowRemoveEventListener,
+  writable: true
+});
+
 describe("MultiTabSyncManager", () => {
   let syncManager: MultiTabSyncManager;
   const testGameId = "test-game-123";
 
   beforeEach(() => {
-    syncManager = new MultiTabSyncManager(testGameId);
+    // Clear mocks first, then create sync manager
     vi.clearAllMocks();
+    documentAddEventListener.mockClear();
+    windowAddEventListener.mockClear();
+    documentRemoveEventListener.mockClear();
+    windowRemoveEventListener.mockClear();
+    
+    // Create sync manager after clearing mocks
+    syncManager = new MultiTabSyncManager(testGameId);
   });
 
   afterEach(() => {
@@ -138,7 +172,7 @@ describe("MultiTabSyncManager", () => {
   describe("connection handling", () => {
     it("should handle tab visibility changes", () => {
       // Test that visibility change handler is set up
-      expect(document.addEventListener).toHaveBeenCalledWith(
+      expect(documentAddEventListener).toHaveBeenCalledWith(
         "visibilitychange",
         expect.any(Function),
       );
@@ -146,7 +180,7 @@ describe("MultiTabSyncManager", () => {
 
     it("should handle beforeunload events", () => {
       // Test that beforeunload handler is set up
-      expect(window.addEventListener).toHaveBeenCalledWith(
+      expect(windowAddEventListener).toHaveBeenCalledWith(
         "beforeunload",
         expect.any(Function),
       );

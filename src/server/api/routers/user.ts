@@ -1,22 +1,18 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
+import { GameVariantEnum, PlayModeEnum } from "@prisma/client";
+import {
+  deleteObject,
+  generateAvatarKey,
+  generatePresignedUploadUrl,
+  getPublicUrl,
+} from "~/lib/s3";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import {
-  FriendshipStatus,
-  GameVariantEnum,
-  PlayModeEnum,
-} from "@prisma/client";
-import {
-  generatePresignedUploadUrl,
-  deleteObject,
-  generateAvatarKey,
-  getPublicUrl,
-} from "~/lib/s3";
 
 export const userRouter = createTRPCRouter({
   getProfile: publicProcedure
@@ -152,7 +148,7 @@ export const userRouter = createTRPCRouter({
       }
 
       // Check for existing friendship
-      const existing = await ctx.db.friendship.findFirst({
+      const existingFriendship = await ctx.db.friendship.findFirst({
         where: {
           OR: [
             {
@@ -167,18 +163,43 @@ export const userRouter = createTRPCRouter({
         },
       });
 
-      if (existing) {
+      if (existingFriendship) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Friend request already exists",
+          message: "Already friends",
         });
       }
 
-      await ctx.db.friendship.create({
+      // Check for existing pending friend request in either direction
+      const existingRequest = await (ctx.db as any).friendRequest.findFirst({
+        where: {
+          OR: [
+            {
+              senderId: ctx.session.user.id,
+              receiverId: input.userId,
+              status: "PENDING",
+            },
+            {
+              senderId: input.userId,
+              receiverId: ctx.session.user.id,
+              status: "PENDING",
+            },
+          ],
+        },
+      });
+
+      if (existingRequest) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Friend request already pending",
+        });
+      }
+
+      await (ctx.db as any).friendRequest.create({
         data: {
           senderId: ctx.session.user.id,
           receiverId: input.userId,
-          status: FriendshipStatus.PENDING,
+          status: "PENDING",
         },
       });
 
@@ -188,23 +209,33 @@ export const userRouter = createTRPCRouter({
   respondToFriendRequest: protectedProcedure
     .input(
       z.object({
-        friendshipId: z.string(),
+        // Backward-compatible: accept both friendRequestId and legacy friendshipId
+        friendRequestId: z.string().optional(),
+        friendshipId: z.string().optional(),
         accept: z.boolean(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const friendship = await ctx.db.friendship.findUnique({
-        where: { id: input.friendshipId },
+      const id = input.friendRequestId ?? input.friendshipId;
+      if (!id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Missing friendRequestId",
+        });
+      }
+
+      const request = await (ctx.db as any).friendRequest.findUnique({
+        where: { id },
       });
 
-      if (!friendship) {
+      if (!request) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Friend request not found",
         });
       }
 
-      if (friendship.receiverId !== ctx.session.user.id) {
+      if (request.receiverId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Not authorized to respond to this request",
@@ -212,13 +243,42 @@ export const userRouter = createTRPCRouter({
       }
 
       if (input.accept) {
-        await ctx.db.friendship.update({
-          where: { id: input.friendshipId },
-          data: { status: FriendshipStatus.ACCEPTED },
+        // Create friendship (accepted relationship)
+        // Prevent duplicates in case of race
+        const existingFriendship = await ctx.db.friendship.findFirst({
+          where: {
+            OR: [
+              {
+                senderId: request.senderId,
+                receiverId: request.receiverId,
+              },
+              {
+                senderId: request.receiverId,
+                receiverId: request.senderId,
+              },
+            ],
+          },
+        });
+
+        if (!existingFriendship) {
+          await ctx.db.friendship.create({
+            data: {
+              senderId: request.senderId,
+              receiverId: request.receiverId,
+            },
+          });
+        }
+
+        // Mark request as accepted
+        await (ctx.db as any).friendRequest.update({
+          where: { id: request.id },
+          data: { status: "ACCEPTED" },
         });
       } else {
-        await ctx.db.friendship.delete({
-          where: { id: input.friendshipId },
+        // Mark request as declined
+        await (ctx.db as any).friendRequest.update({
+          where: { id: request.id },
+          data: { status: "DECLINED" },
         });
       }
 
@@ -234,12 +294,10 @@ export const userRouter = createTRPCRouter({
             {
               senderId: ctx.session.user.id,
               receiverId: input.userId,
-              status: FriendshipStatus.ACCEPTED,
             },
             {
               senderId: input.userId,
               receiverId: ctx.session.user.id,
-              status: FriendshipStatus.ACCEPTED,
             },
           ],
         },
@@ -265,11 +323,9 @@ export const userRouter = createTRPCRouter({
         OR: [
           {
             senderId: ctx.session.user.id,
-            status: FriendshipStatus.ACCEPTED,
           },
           {
             receiverId: ctx.session.user.id,
-            status: FriendshipStatus.ACCEPTED,
           },
         ],
       },
@@ -299,10 +355,10 @@ export const userRouter = createTRPCRouter({
   }),
 
   getPendingFriendRequests: protectedProcedure.query(async ({ ctx }) => {
-    const requests = await ctx.db.friendship.findMany({
+    const requests = await (ctx.db as any).friendRequest.findMany({
       where: {
         receiverId: ctx.session.user.id,
-        status: FriendshipStatus.PENDING,
+        status: "PENDING",
       },
       include: {
         sender: {
@@ -357,6 +413,24 @@ export const userRouter = createTRPCRouter({
             {
               senderId: input.userId,
               receiverId: ctx.session.user.id,
+            },
+          ],
+        },
+      });
+
+      // Remove pending friend requests in either direction
+      await (ctx.db as any).friendRequest.deleteMany({
+        where: {
+          OR: [
+            {
+              senderId: ctx.session.user.id,
+              receiverId: input.userId,
+              status: "PENDING",
+            },
+            {
+              senderId: input.userId,
+              receiverId: ctx.session.user.id,
+              status: "PENDING",
             },
           ],
         },
@@ -443,11 +517,8 @@ export const userRouter = createTRPCRouter({
     const friendships = await ctx.db.friendship.findMany({
       where: {
         OR: [
-          { senderId: ctx.session.user.id, status: FriendshipStatus.ACCEPTED },
-          {
-            receiverId: ctx.session.user.id,
-            status: FriendshipStatus.ACCEPTED,
-          },
+          { senderId: ctx.session.user.id },
+          { receiverId: ctx.session.user.id },
         ],
       },
       include: {
@@ -1116,10 +1187,10 @@ export const userRouter = createTRPCRouter({
 
   getFriendRequestNotificationCount: protectedProcedure.query(
     async ({ ctx }) => {
-      const count = await ctx.db.friendship.count({
+      const count = await (ctx.db as any).friendRequest.count({
         where: {
           receiverId: ctx.session.user.id,
-          status: FriendshipStatus.PENDING,
+          status: "PENDING",
         },
       });
 
@@ -1128,10 +1199,10 @@ export const userRouter = createTRPCRouter({
   ),
 
   getFriendRequestNotifications: protectedProcedure.query(async ({ ctx }) => {
-    const notifications = await ctx.db.friendship.findMany({
+    const notifications = await (ctx.db as any).friendRequest.findMany({
       where: {
         receiverId: ctx.session.user.id,
-        status: FriendshipStatus.PENDING,
+        status: "PENDING",
       },
       include: {
         sender: {
@@ -1146,12 +1217,12 @@ export const userRouter = createTRPCRouter({
       orderBy: { createdAt: "desc" },
     });
 
-    return notifications.map((notification) => ({
+    return notifications.map((notification: any) => ({
       id: notification.id,
       type: "FRIEND_REQUEST_RECEIVED" as const,
       sender: notification.sender,
       createdAt: notification.createdAt,
-      read: false, // For now, we'll consider all friend requests as unread until acted upon
+      read: false,
     }));
   }),
 

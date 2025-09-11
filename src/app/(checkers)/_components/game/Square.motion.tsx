@@ -1,10 +1,10 @@
 "use client";
 
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
+import { forwardRef, useState } from "react";
+import { useSettings } from "~/contexts/settings-context";
 import { type Position } from "~/lib/game/logic";
 import { cn } from "~/lib/utils";
-import { useState, forwardRef } from "react";
-import { useSettings } from "~/contexts/settings-context";
 
 interface SquareProps {
   position: Position;
@@ -22,6 +22,8 @@ interface SquareProps {
   role?: string;
   ariaLabel?: string;
   ariaSelected?: boolean;
+  ariaRowIndex?: number;
+  ariaColIndex?: number;
   children?: React.ReactNode;
 }
 
@@ -42,6 +44,8 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
     role,
     ariaLabel,
     ariaSelected,
+    ariaRowIndex,
+    ariaColIndex,
     children,
   }: SquareProps,
   ref,
@@ -59,25 +63,28 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
 
   const squareStyle = isBlack
     ? {
-        background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
-      }
+      background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
+    }
     : {
-        background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
-      };
+      background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
+    };
 
   const ringStyle = isSelected
     ? {
-        boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`,
-      }
+      boxShadow: `inset 0 0 0 4px var(--board-selected-ring)`,
+    }
     : isHighlighted
       ? {
-          boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`,
-        }
+        boxShadow: `inset 0 0 0 4px var(--board-highlighted-ring)`,
+      }
       : isKeyboardFocused
         ? {
-            boxShadow: `inset 0 0 0 3px #3b82f6`,
-            outline: "none",
-          }
+          boxShadow: `inset 0 0 0 5px #1d4ed8, 0 0 0 3px #ffffff, 0 0 18px rgba(29, 78, 216, 0.7)`,
+          outline: "3px solid #1d4ed8",
+          outlineOffset: "3px",
+          transform: "scale(1.06)",
+          zIndex: 10,
+        }
         : undefined;
 
   const SquareComponent = settings.reducedMotion ? "div" : m.div;
@@ -88,6 +95,7 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
         "relative flex aspect-square items-center justify-center transition-all duration-200",
         isPossibleMove && "cursor-pointer",
         !isBlack && "shadow-inner",
+        isKeyboardFocused && "relative z-10",
       )}
       style={{
         ...squareStyle,
@@ -102,6 +110,8 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
       role={role ?? "button"}
       aria-label={ariaLabel}
       aria-selected={ariaSelected}
+      aria-rowindex={ariaRowIndex}
+      aria-colindex={ariaColIndex}
       ref={ref as React.Ref<HTMLDivElement>}
       {...(!settings.reducedMotion && {
         animate: {
@@ -124,9 +134,8 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
             style={{
-              background: `radial-gradient(circle, ${
-                isBlack ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"
-              } 0%, transparent 70%)`,
+              background: `radial-gradient(circle, ${isBlack ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"
+                } 0%, transparent 70%)`,
             }}
           />
         )}
@@ -156,20 +165,22 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
               style={{
                 backgroundColor: "var(--board-possible-move-glow)",
               }}
-              initial={{ scale: 0 }}
+              initial={{ scale: 1 }}
               animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.8, 1, 0.8],
+                scale: 0.5,
+                opacity: 0.8,
               }}
               transition={{
                 scale: {
-                  duration: 1.5,
+                  duration: 0.6,
                   repeat: Infinity,
+                  repeatType: "reverse",
                   ease: "easeInOut",
                 },
                 opacity: {
-                  duration: 1.5,
+                  duration: 0.6,
                   repeat: Infinity,
+                  repeatType: "reverse",
                   ease: "easeInOut",
                 },
               }}

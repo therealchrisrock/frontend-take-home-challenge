@@ -45,7 +45,7 @@ export function MessageCenter() {
 
   // API queries
   const { data: conversations, refetch: refetchConversations } =
-    api.message.getConversations.useQuery(undefined, {
+    api.message.getConversations.useQuery({
       enabled: !!session?.user,
       refetchInterval: 30000,
     });

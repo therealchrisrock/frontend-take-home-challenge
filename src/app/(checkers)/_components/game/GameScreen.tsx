@@ -4,15 +4,16 @@ import { useEffect } from "react";
 import { Board } from "~/app/(checkers)/_components/game/Board";
 import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
 import { GameControls } from "~/app/(checkers)/_components/game/GameControls";
+import { GameControlPanel } from "~/app/(checkers)/_components/game/GameControlPanel";
 import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 import { MoveHistory } from "~/app/(checkers)/_components/game/MoveHistory";
+import { PlayerCardContainer } from "~/app/(checkers)/_components/game/player-card-container";
 import { PostGameAnalysis } from "~/app/(checkers)/_components/game/PostGameAnalysis";
 import { WinnerDialog } from "~/app/(checkers)/_components/game/WinnerDialog.motion";
 import { GameChat } from "~/components/chat/GameChat";
 import { Button } from "~/components/ui/button";
 import { ResizablePanels } from "~/components/ui/resizable-panels";
 import { useSettings } from "~/contexts/settings-context";
-import { PlayerCardContainer } from "~/app/(checkers)/_components/game/player-card-container";
 import { useAudioWarnings } from "~/hooks/useAudioWarnings";
 import { useGameSounds } from "~/hooks/useGameSounds";
 import { useAI } from "~/lib/game/hooks/use-ai";
@@ -59,28 +60,37 @@ export function GameScreen() {
     <div className="h-[calc(100vh-var(--header-height))] overflow-hidden p-2 md:p-4">
       <GameWrapper>
         <div className="board-fit-max flex h-full min-h-0 flex-col items-center justify-between">
-          <div className="flex w-full items-center justify-between px-2 py-1 lg:hidden">
-            <div
-              className={`flex items-center gap-2 rounded-full px-3 py-1 ${state.currentPlayer === "black" ? "bg-gray-800 text-white" : "bg-gray-200 text-gray-600"}`}
-            >
-              <span className="text-sm font-medium">Player 2</span>
-              {state.currentPlayer === "black" && (
-                <span className="animate-pulse text-xs">Playing...</span>
-              )}
-            </div>
-            <div
-              className={`flex items-center gap-2 rounded-full px-3 py-1 ${state.currentPlayer === "red" ? "bg-red-600 text-white" : "bg-red-200 text-red-800"}`}
-            >
-              <span className="text-sm font-medium">Player 1</span>
-              {state.currentPlayer === "red" && (
-                <span className="animate-pulse text-xs">Playing...</span>
-              )}
-            </div>
+          {/* Mobile/Tablet: Top Player Card */}
+          <div className="flex min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:hidden">
+            <PlayerCardContainer
+              player={
+                state.playerColor === "red"
+                  ? state.players.black
+                  : state.players.red
+              }
+              color={state.playerColor === "red" ? "black" : "red"}
+              position="top"
+              isActive={
+                state.currentPlayer ===
+                (state.playerColor === "red" ? "black" : "red") &&
+                !state.winner
+              }
+              enableServerData={state.gameMode === "online"}
+              showLoadingSkeleton={true}
+              timeState={showTimer ? timer.timeState : null}
+              isAIThinking={
+                state.gameMode === "ai" &&
+                state.isAIThinking &&
+                state.currentPlayer ===
+                (state.playerColor === "red" ? "black" : "red")
+              }
+              className="w-full max-w-md"
+            />
           </div>
 
           <div className="flex min-h-0 w-full flex-grow flex-col items-center justify-start">
             <div className="mx-auto flex h-full w-full flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-white p-4 shadow-lg lg:max-w-[855px]">
-              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center justify-center py-3 lg:flex">
+              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:flex">
                 <PlayerCardContainer
                   player={
                     state.playerColor === "red"
@@ -205,7 +215,9 @@ export function GameScreen() {
                     keyboardFocusPosition={null}
                     size={state.rules.board.size}
                     shouldFlip={state.playerColor === "black"}
+                    winner={state.winner}
                     onSquareClick={(pos, e) => {
+                      if (state.winner) return;
                       if (
                         state.gameMode === "online" &&
                         onlineEnabled &&
@@ -220,6 +232,7 @@ export function GameScreen() {
                       onSquareClick(pos, e);
                     }}
                     onDragStart={(pos) => {
+                      if (state.winner) return;
                       if (
                         state.gameMode === "online" &&
                         onlineEnabled &&
@@ -237,6 +250,7 @@ export function GameScreen() {
                       dispatch({ type: "SET_DRAGGING", payload: null })
                     }
                     onDrop={(pos) => {
+                      if (state.winner) return;
                       if (
                         state.gameMode === "online" &&
                         onlineEnabled &&
@@ -254,7 +268,33 @@ export function GameScreen() {
                 </div>
               </div>
 
-              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center justify-center py-3 lg:flex">
+              {/* Desktop: Bottom Player Card */}
+              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:flex">
+                <PlayerCardContainer
+                  player={
+                    state.playerColor === "red"
+                      ? state.players.red
+                      : state.players.black
+                  }
+                  color={state.playerColor === "red" ? "red" : "black"}
+                  position="bottom"
+                  isActive={
+                    state.currentPlayer === state.playerColor && !state.winner
+                  }
+                  enableServerData={state.gameMode === "online"}
+                  showLoadingSkeleton={true}
+                  timeState={showTimer ? timer.timeState : null}
+                  isAIThinking={
+                    state.gameMode === "ai" &&
+                    state.isAIThinking &&
+                    state.currentPlayer === state.playerColor
+                  }
+                  className="w-full max-w-md"
+                />
+              </div>
+
+              {/* Mobile/Tablet: Bottom Player Card */}
+              <div className="flex min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:hidden">
                 <PlayerCardContainer
                   player={
                     state.playerColor === "red"
@@ -326,38 +366,44 @@ export function GameScreen() {
                       />
                     </div>
 
-                    {/* Game Controls Section */}
-                    {!state.isReviewMode &&
-                      !state.isViewingHistory &&
-                      !state.winner && (
-                        <div className="flex-shrink-0 border-t pt-4">
-                          <GameControls
-                            currentPlayer={state.currentPlayer}
-                            winner={state.winner}
-                            isViewingHistory={state.isViewingHistory}
-                            isReviewMode={state.isReviewMode}
-                            gameMode={state.gameMode}
-                            playerColor={state.playerColor}
-                            onResign={(player) =>
-                              dispatch({ type: "RESIGN", payload: player })
-                            }
-                            onRequestDraw={() =>
-                              dispatch({ type: "REQUEST_DRAW" })
-                            }
-                            onAcceptDraw={() =>
-                              dispatch({ type: "ACCEPT_DRAW" })
-                            }
-                            onDeclineDraw={() =>
-                              dispatch({
-                                type: "DIALOGS",
-                                payload: { showDrawDialog: false },
-                              })
-                            }
-                            showDrawDialog={state.showDrawDialog}
-                            drawRequestedBy={state.drawRequestedBy}
-                          />
-                        </div>
-                      )}
+                    {/* Game Control Panel Section */}
+                    <div className="flex-shrink-0 border-t pt-4">
+                      <GameControlPanel
+                        // History navigation props
+                        currentMoveIndex={state.currentMoveIndex + 1}
+                        totalMoves={state.moveHistory.length}
+                        canNavigateHistory={true}
+                        onGoToStart={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: -1 })}
+                        onPreviousMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex - 1 })}
+                        onTogglePlay={() => {
+                          // TODO: Implement auto-play functionality
+                          console.log("Toggle play clicked");
+                        }}
+                        onNextMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex + 1 })}
+                        onGoToEnd={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.moveHistory.length - 1 })}
+                        
+                        // Game action props
+                        currentPlayer={state.currentPlayer}
+                        winner={state.winner}
+                        isViewingHistory={state.isViewingHistory}
+                        isReviewMode={state.isReviewMode}
+                        gameMode={state.gameMode}
+                        playerColor={state.playerColor}
+                        onResign={(player) => dispatch({ type: "RESIGN", payload: player })}
+                        onRequestDraw={() => dispatch({ type: "REQUEST_DRAW" })}
+                        onAcceptDraw={() => dispatch({ type: "ACCEPT_DRAW" })}
+                        onDeclineDraw={() => dispatch({
+                          type: "DIALOGS",
+                          payload: { showDrawDialog: false },
+                        })}
+                        showDrawDialog={state.showDrawDialog}
+                        drawRequestedBy={state.drawRequestedBy}
+                        onOpenSettings={() => {
+                          // TODO: Implement settings dialog
+                          console.log("Settings clicked");
+                        }}
+                      />
+                    </div>
                   </>
                 )}
               </div>
@@ -410,37 +456,44 @@ export function GameScreen() {
                     />
                   </div>
 
-                  {/* Game Controls Section */}
-                  {!state.isReviewMode &&
-                    !state.isViewingHistory &&
-                    !state.winner && (
-                      <div className="flex w-full flex-shrink-0 justify-between border-t pt-4">
-                        <GameControls
-                          currentPlayer={state.currentPlayer}
-                          winner={state.winner}
-                          isViewingHistory={state.isViewingHistory}
-                          isReviewMode={state.isReviewMode}
-                          gameMode={state.gameMode}
-                          playerColor={state.playerColor}
-                          onResign={(player) =>
-                            dispatch({ type: "RESIGN", payload: player })
-                          }
-                          onRequestDraw={() =>
-                            dispatch({ type: "REQUEST_DRAW" })
-                          }
-                          onAcceptDraw={() => dispatch({ type: "ACCEPT_DRAW" })}
-                          onDeclineDraw={() =>
-                            dispatch({
-                              type: "DIALOGS",
-                              payload: { showDrawDialog: false },
-                            })
-                          }
-                          showDrawDialog={state.showDrawDialog}
-                          drawRequestedBy={state.drawRequestedBy}
-                        />
-                        <GameSettings />
-                      </div>
-                    )}
+                  {/* Game Control Panel Section */}
+                  <div className="flex-shrink-0 border-t pt-4">
+                    <GameControlPanel
+                      // History navigation props
+                      currentMoveIndex={state.currentMoveIndex + 1}
+                      totalMoves={state.moveHistory.length}
+                      canNavigateHistory={true}
+                      onGoToStart={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: -1 })}
+                      onPreviousMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex - 1 })}
+                      onTogglePlay={() => {
+                        // TODO: Implement auto-play functionality
+                        console.log("Toggle play clicked");
+                      }}
+                      onNextMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex + 1 })}
+                      onGoToEnd={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.moveHistory.length - 1 })}
+                      
+                      // Game action props
+                      currentPlayer={state.currentPlayer}
+                      winner={state.winner}
+                      isViewingHistory={state.isViewingHistory}
+                      isReviewMode={state.isReviewMode}
+                      gameMode={state.gameMode}
+                      playerColor={state.playerColor}
+                      onResign={(player) => dispatch({ type: "RESIGN", payload: player })}
+                      onRequestDraw={() => dispatch({ type: "REQUEST_DRAW" })}
+                      onAcceptDraw={() => dispatch({ type: "ACCEPT_DRAW" })}
+                      onDeclineDraw={() => dispatch({
+                        type: "DIALOGS",
+                        payload: { showDrawDialog: false },
+                      })}
+                      showDrawDialog={state.showDrawDialog}
+                      drawRequestedBy={state.drawRequestedBy}
+                      onOpenSettings={() => {
+                        // TODO: Implement settings dialog or use existing GameSettings
+                        console.log("Settings clicked");
+                      }}
+                    />
+                  </div>
                 </>
               )}
             </div>

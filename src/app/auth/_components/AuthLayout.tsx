@@ -30,7 +30,7 @@ export default function AuthLayout({
               src="/logo.png"
               alt={brandName || "brand"}
               width={200}
-              height={200}
+              height={57}
             />
           </div>
           {/* Centered content */}

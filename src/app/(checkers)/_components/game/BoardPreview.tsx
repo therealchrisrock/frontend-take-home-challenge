@@ -1,11 +1,11 @@
 "use client";
 
-import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import { PlayerCardContainer } from "~/app/(checkers)/_components/game/player-card-container";
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import {
   type GamePlayers,
-  createLocalGamePlayers,
   createAIGamePlayers,
+  createLocalGamePlayers,
   getPlayerByColor,
 } from "~/lib/game/player-types";
 
@@ -87,11 +87,11 @@ export function BoardPreview({
                     style={
                       isBlack
                         ? {
-                            background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
-                          }
+                          background: `linear-gradient(to bottom right, var(--board-dark-from), var(--board-dark-to))`,
+                        }
                         : {
-                            background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
-                          }
+                          background: `linear-gradient(to bottom right, var(--board-light-from), var(--board-light-to))`,
+                        }
                     }
                   >
                     {hasPiece && (

@@ -1,0 +1,699 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
+import {
+  type Board,
+  type Move,
+  makeMove,
+  getValidMoves,
+  checkWinner,
+  type Position,
+  type PieceColor,
+} from "~/lib/game/logic";
+import type { NotificationType } from "@prisma/client";
+
+const PositionSchema = z.object({
+  row: z.number().int().min(0).max(7),
+  col: z.number().int().min(0).max(7),
+});
+
+const MoveSchema = z.object({
+  from: PositionSchema,
+  to: PositionSchema,
+  captures: z.array(PositionSchema).optional(),
+});
+
+const PlayerRoleSchema = z.enum(["PLAYER_1", "PLAYER_2", "SPECTATOR"]);
+
+const GameStateSchema = z.object({
+  id: z.string(),
+  board: z.string(), // JSON serialized board
+  currentPlayer: z.enum(["red", "black"]),
+  moveCount: z.number(),
+  winner: z.string().nullable(),
+  version: z.number(),
+  players: z.object({
+    player1: z.object({
+      id: z.string().nullable(),
+      username: z.string().nullable(),
+      isGuest: z.boolean(),
+      displayName: z.string().nullable(),
+    }),
+    player2: z.object({
+      id: z.string().nullable(),
+      username: z.string().nullable(),
+      isGuest: z.boolean(),
+      displayName: z.string().nullable(),
+    }),
+  }),
+  spectatorCount: z.number(),
+  lastMove: z.object({
+    from: PositionSchema,
+    to: PositionSchema,
+    captures: z.array(PositionSchema),
+    timestamp: z.date(),
+  }).nullable(),
+});
+
+export const multiplayerGameRouter = createTRPCRouter({
+  /**
+   * Join a multiplayer game as player or spectator
+   * Determines role based on available slots and guest status
+   */
+  joinGame: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        guestInfo: z
+          .object({
+            displayName: z.string().min(1).max(20),
+            sessionId: z.string().optional(), // For guest session tracking
+          })
+          .optional(),
+      })
+    )
+    .output(
+      z.object({
+        playerRole: PlayerRoleSchema,
+        gameState: GameStateSchema,
+        connectionId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          player1: {
+            select: { id: true, username: true, name: true },
+          },
+          player2: {
+            select: { id: true, username: true, name: true },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.gameMode !== "online") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This game is not a multiplayer game",
+        });
+      }
+
+      const isGuest = !ctx.session?.user;
+      const userId = ctx.session?.user?.id;
+      let playerRole: "PLAYER_1" | "PLAYER_2" | "SPECTATOR" = "SPECTATOR";
+
+      // Determine player role
+      if (userId === game.player1Id) {
+        playerRole = "PLAYER_1";
+      } else if (userId === game.player2Id) {
+        playerRole = "PLAYER_2";
+      } else if (isGuest && !game.player2Id) {
+        // Guest can take player 2 slot if available
+        playerRole = "PLAYER_2";
+      } else if (!isGuest && !game.player2Id) {
+        // Authenticated user can take player 2 slot
+        await ctx.db.game.update({
+          where: { id: input.gameId },
+          data: { player2Id: userId },
+        });
+        playerRole = "PLAYER_2";
+      }
+      // Otherwise remains as SPECTATOR
+
+      // Parse game configuration for guest info
+      let gameConfig: any = {};
+      try {
+        gameConfig = game.gameConfig ? JSON.parse(game.gameConfig) : {};
+      } catch (error) {
+        // Ignore parsing errors
+      }
+
+      // Generate connection ID for tracking this session
+      const connectionId = `${input.gameId}_${userId || "guest"}_${Date.now()}`;
+
+      // Get last move from database
+      const lastMove = await ctx.db.gameMove.findFirst({
+        where: { gameId: input.gameId },
+        orderBy: { moveIndex: "desc" },
+      });
+
+      // Build game state response
+      const gameState = {
+        id: game.id,
+        board: game.board,
+        currentPlayer: game.currentPlayer as "red" | "black",
+        moveCount: game.moveCount,
+        winner: game.winner,
+        version: game.version,
+        players: {
+          player1: {
+            id: game.player1?.id || null,
+            username: game.player1?.username || null,
+            isGuest: false,
+            displayName: game.player1?.name || game.player1?.username || null,
+          },
+          player2: {
+            id: game.player2?.id || null,
+            username: game.player2?.username || null,
+            isGuest: !game.player2Id && playerRole === "PLAYER_2",
+            displayName: 
+              !game.player2Id && playerRole === "PLAYER_2" && isGuest
+                ? input.guestInfo?.displayName || null
+                : game.player2?.name || game.player2?.username || null,
+          },
+        },
+        spectatorCount: 0, // TODO: Implement spectator counting
+        lastMove: lastMove
+          ? {
+              from: { row: lastMove.fromRow, col: lastMove.fromCol },
+              to: { row: lastMove.toRow, col: lastMove.toCol },
+              captures: lastMove.captures 
+                ? JSON.parse(lastMove.captures) as Position[]
+                : [],
+              timestamp: lastMove.createdAt,
+            }
+          : null,
+      };
+
+      // Emit SSE event for player joining
+      // TODO: Implement SSE emission
+      // await emitSSEEvent(input.gameId, {
+      //   type: 'PLAYER_JOINED',
+      //   data: { playerRole, connectionId, isGuest }
+      // });
+
+      return {
+        playerRole,
+        gameState,
+        connectionId,
+      };
+    }),
+
+  /**
+   * Make a move in a multiplayer game with server-side validation
+   * Uses optimistic locking to prevent race conditions
+   */
+  makeMove: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        move: MoveSchema,
+        gameVersion: z.number(), // For optimistic locking
+        guestSessionId: z.string().optional(), // For guest players
+      })
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+        newGameState: GameStateSchema.optional(),
+        conflictResolution: z
+          .object({
+            serverVersion: z.number(),
+            conflictingMoves: z.array(MoveSchema),
+          })
+          .optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          player1: {
+            select: { id: true, username: true, name: true },
+          },
+          player2: {
+            select: { id: true, username: true, name: true },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.winner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Game has already ended",
+        });
+      }
+
+      // Check optimistic locking - prevent race conditions
+      if (game.version !== input.gameVersion) {
+        // Get moves that happened after client's version
+        const conflictingMoves = await ctx.db.gameMove.findMany({
+          where: {
+            gameId: input.gameId,
+            moveIndex: { gte: input.gameVersion },
+          },
+          orderBy: { moveIndex: "asc" },
+        });
+
+        return {
+          success: false,
+          conflictResolution: {
+            serverVersion: game.version,
+            conflictingMoves: conflictingMoves.map(move => ({
+              from: { row: move.fromRow, col: move.fromCol },
+              to: { row: move.toRow, col: move.toCol },
+              captures: move.captures ? JSON.parse(move.captures) : [],
+            })),
+          },
+        };
+      }
+
+      const userId = ctx.session.user.id;
+      const isGuest = !!input.guestSessionId;
+
+      // Verify player has permission to make moves
+      let canMove = false;
+      let playerColor: "red" | "black" | null = null;
+
+      if (userId === game.player1Id) {
+        canMove = game.currentPlayer === "red";
+        playerColor = "red";
+      } else if (userId === game.player2Id) {
+        canMove = game.currentPlayer === "black";
+        playerColor = "black";
+      } else if (isGuest && !game.player2Id) {
+        // Guest player can move as black if no player2 assigned
+        canMove = game.currentPlayer === "black";
+        playerColor = "black";
+      }
+
+      if (!canMove) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "It's not your turn or you don't have permission to move",
+        });
+      }
+
+      // Parse current board state
+      let currentBoard: Board;
+      try {
+        currentBoard = JSON.parse(game.board);
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid board state",
+        });
+      }
+
+      // Validate move by checking if it's in the list of valid moves
+      const validMoves = getValidMoves(
+        currentBoard,
+        input.move.from,
+        playerColor!
+      );
+      
+      const moveObj: Move = {
+        from: input.move.from,
+        to: input.move.to,
+        captures: input.move.captures || [],
+      };
+
+      const isValidMove = validMoves.some(validMove => 
+        validMove.from.row === moveObj.from.row &&
+        validMove.from.col === moveObj.from.col &&
+        validMove.to.row === moveObj.to.row &&
+        validMove.to.col === moveObj.to.col
+      );
+
+      if (!isValidMove) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid move",
+        });
+      }
+
+      // Apply move to board
+      const newBoard = makeMove(currentBoard, moveObj);
+      
+      // Check for winner after move
+      const winner = checkWinner(newBoard);
+      
+      // Extract captured pieces from the move (if any)
+      const capturedPieces = moveObj.captures || [];
+      
+      const nextPlayer = game.currentPlayer === "red" ? "black" : "red";
+      const newVersion = game.version + 1;
+
+      // Update game in database with transaction
+      const updatedGame = await ctx.db.$transaction(async (tx) => {
+        // Save the move
+        await tx.gameMove.create({
+          data: {
+            gameId: input.gameId,
+            moveIndex: game.moveCount,
+            fromRow: input.move.from.row,
+            fromCol: input.move.from.col,
+            toRow: input.move.to.row,
+            toCol: input.move.to.col,
+            captures: capturedPieces.length > 0 ? JSON.stringify(capturedPieces) : null,
+          },
+        });
+
+        // Update game state
+        const updated = await tx.game.update({
+          where: { id: input.gameId },
+          data: {
+            board: JSON.stringify(newBoard),
+            currentPlayer: winner ? game.currentPlayer : nextPlayer,
+            moveCount: game.moveCount + 1,
+            winner: winner && typeof winner === 'string' ? winner : undefined,
+            version: newVersion,
+          },
+          include: {
+            player1: {
+              select: { id: true, username: true, name: true },
+            },
+            player2: {
+              select: { id: true, username: true, name: true },
+            },
+          },
+        });
+
+        return updated;
+      });
+
+      // Build updated game state
+      const newGameState = {
+        id: updatedGame.id,
+        board: updatedGame.board,
+        currentPlayer: updatedGame.currentPlayer as "red" | "black",
+        moveCount: updatedGame.moveCount,
+        winner: updatedGame.winner,
+        version: updatedGame.version,
+        players: {
+          player1: {
+            id: updatedGame.player1?.id || null,
+            username: updatedGame.player1?.username || null,
+            isGuest: false,
+            displayName: updatedGame.player1?.name || updatedGame.player1?.username || null,
+          },
+          player2: {
+            id: updatedGame.player2?.id || null,
+            username: updatedGame.player2?.username || null,
+            isGuest: isGuest && !updatedGame.player2Id,
+            displayName: updatedGame.player2?.name || updatedGame.player2?.username || null,
+          },
+        },
+        spectatorCount: 0,
+        lastMove: {
+          from: input.move.from,
+          to: input.move.to,
+          captures: input.move.captures || [],
+          timestamp: new Date(),
+        },
+      };
+
+      // Emit SSE events for real-time synchronization
+      // TODO: Implement SSE emission
+      // await emitSSEEvent(input.gameId, {
+      //   type: 'GAME_MOVE',
+      //   data: {
+      //     move: input.move,
+      //     newGameState,
+      //     playerId: userId,
+      //   }
+      // });
+
+      // If game ended, notify players
+      if (winner) {
+        const winnerName = winner === "red" 
+          ? (updatedGame.player1?.username || "Red Player")
+          : (updatedGame.player2?.username || "Black Player");
+
+        // Notify both players
+        if (updatedGame.player1Id) {
+          await ctx.db.notification.create({
+            data: {
+              userId: updatedGame.player1Id,
+              type: "GAME_INVITE" as NotificationType,
+              title: "Game Finished",
+              message: `Game ended. Winner: ${winnerName}`,
+              metadata: JSON.stringify({
+                gameId: input.gameId,
+                winner,
+                gameMode: "online",
+              }),
+              relatedEntityId: input.gameId,
+            },
+          });
+        }
+
+        if (updatedGame.player2Id) {
+          await ctx.db.notification.create({
+            data: {
+              userId: updatedGame.player2Id,
+              type: "GAME_INVITE" as NotificationType,
+              title: "Game Finished",
+              message: `Game ended. Winner: ${winnerName}`,
+              metadata: JSON.stringify({
+                gameId: input.gameId,
+                winner,
+                gameMode: "online",
+              }),
+              relatedEntityId: input.gameId,
+            },
+          });
+        }
+      }
+
+      return {
+        success: true,
+        newGameState,
+      };
+    }),
+
+  /**
+   * Get current game state for a multiplayer game
+   */
+  getGameState: publicProcedure
+    .input(z.object({ gameId: z.string() }))
+    .output(GameStateSchema)
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          player1: {
+            select: { id: true, username: true, name: true },
+          },
+          player2: {
+            select: { id: true, username: true, name: true },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      // Get last move
+      const lastMove = await ctx.db.gameMove.findFirst({
+        where: { gameId: input.gameId },
+        orderBy: { moveIndex: "desc" },
+      });
+
+      return {
+        id: game.id,
+        board: game.board,
+        currentPlayer: game.currentPlayer as "red" | "black",
+        moveCount: game.moveCount,
+        winner: game.winner,
+        version: game.version,
+        players: {
+          player1: {
+            id: game.player1?.id || null,
+            username: game.player1?.username || null,
+            isGuest: false,
+            displayName: game.player1?.name || game.player1?.username || null,
+          },
+          player2: {
+            id: game.player2?.id || null,
+            username: game.player2?.username || null,
+            isGuest: !game.player2Id,
+            displayName: game.player2?.name || game.player2?.username || null,
+          },
+        },
+        spectatorCount: 0, // TODO: Implement spectator counting
+        lastMove: lastMove
+          ? {
+              from: { row: lastMove.fromRow, col: lastMove.fromCol },
+              to: { row: lastMove.toRow, col: lastMove.toCol },
+              captures: lastMove.captures 
+                ? JSON.parse(lastMove.captures) as Position[]
+                : [],
+              timestamp: lastMove.createdAt,
+            }
+          : null,
+      };
+    }),
+
+  /**
+   * Leave a multiplayer game
+   * Handles clean disconnection and spectator/player management
+   */
+  leaveGame: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        connectionId: z.string(),
+        guestSessionId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        select: { 
+          id: true, 
+          player1Id: true, 
+          player2Id: true,
+          winner: true,
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      const userId = ctx.session?.user?.id;
+      const isGuest = !!input.guestSessionId;
+
+      // TODO: Handle actual disconnection logic
+      // - Remove from spectator count if spectator
+      // - Handle player disconnection for active games
+      // - Emit SSE event for player leaving
+
+      // Emit SSE event
+      // await emitSSEEvent(input.gameId, {
+      //   type: 'PLAYER_LEFT',
+      //   data: { connectionId: input.connectionId, isGuest }
+      // });
+
+      return { success: true };
+    }),
+
+  /**
+   * Synchronize offline moves with server
+   * Used when player reconnects after being offline
+   */
+  syncGameState: protectedProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        clientVersion: z.number(),
+        pendingMoves: z.array(MoveSchema),
+        guestSessionId: z.string().optional(),
+      })
+    )
+    .output(
+      z.object({
+        syncResult: z.enum(["UP_TO_DATE", "SERVER_AHEAD", "CONFLICTS_RESOLVED"]),
+        gameState: GameStateSchema,
+        rejectedMoves: z.array(MoveSchema),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          player1: {
+            select: { id: true, username: true, name: true },
+          },
+          player2: {
+            select: { id: true, username: true, name: true },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      let syncResult: "UP_TO_DATE" | "SERVER_AHEAD" | "CONFLICTS_RESOLVED" = "UP_TO_DATE";
+      const rejectedMoves: Move[] = [];
+
+      if (game.version > input.clientVersion) {
+        syncResult = "SERVER_AHEAD";
+        
+        // If client has pending moves, they need to be validated against current server state
+        if (input.pendingMoves.length > 0) {
+          syncResult = "CONFLICTS_RESOLVED";
+          // For now, reject all pending moves when there's a version conflict
+          // A more sophisticated implementation could try to reconcile moves
+          rejectedMoves.push(...input.pendingMoves);
+        }
+      }
+
+      // Get current game state
+      const lastMove = await ctx.db.gameMove.findFirst({
+        where: { gameId: input.gameId },
+        orderBy: { moveIndex: "desc" },
+      });
+
+      const gameState = {
+        id: game.id,
+        board: game.board,
+        currentPlayer: game.currentPlayer as "red" | "black",
+        moveCount: game.moveCount,
+        winner: game.winner,
+        version: game.version,
+        players: {
+          player1: {
+            id: game.player1?.id || null,
+            username: game.player1?.username || null,
+            isGuest: false,
+            displayName: game.player1?.name || game.player1?.username || null,
+          },
+          player2: {
+            id: game.player2?.id || null,
+            username: game.player2?.username || null,
+            isGuest: !game.player2Id && !!input.guestSessionId,
+            displayName: game.player2?.name || game.player2?.username || null,
+          },
+        },
+        spectatorCount: 0,
+        lastMove: lastMove
+          ? {
+              from: { row: lastMove.fromRow, col: lastMove.fromCol },
+              to: { row: lastMove.toRow, col: lastMove.toCol },
+              captures: lastMove.captures 
+                ? JSON.parse(lastMove.captures) as Position[]
+                : [],
+              timestamp: lastMove.createdAt,
+            }
+          : null,
+      };
+
+      return {
+        syncResult,
+        gameState,
+        rejectedMoves,
+      };
+    }),
+});

@@ -1,22 +1,30 @@
 import { type Metadata } from "next";
-import { GameConfiguration } from "~/app/(checkers)/_components/game/GameConfiguration";
+import { GameInviteScreen } from "~/app/(checkers)/_components/game/GameInviteScreen";
 
 export const metadata: Metadata = {
-  title: "Online Multiplayer",
+  title: "Invite a Friend",
   description:
-    "Challenge friends to online checkers matches. Play in real-time from anywhere in the world.",
+    "Invite friends to online checkers matches. Create invitations or shareable links to play in real-time.",
   openGraph: {
-    title: "Online Multiplayer Checkers - Birdseye Checkers",
-    description: "Challenge friends online in real-time checkers matches.",
+    title: "Invite a Friend to Play Checkers - Birdseye Checkers",
+    description: "Send game invitations or create shareable links for real-time checkers matches.",
   },
 };
 
-export default function FriendGamePage() {
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function FriendGamePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  // Extract query parameters for friend pre-selection
+  const friendId = typeof params.friendId === "string" ? params.friendId : undefined;
+  const username = typeof params.username === "string" ? params.username : undefined;
+
   return (
-    <GameConfiguration
-      gameMode="friend"
-      title="Play with a Friend"
-      description="Configure your online game settings"
+    <GameInviteScreen 
+      preselectedFriendId={friendId}
+      preselectedUsername={username}
     />
   );
 }

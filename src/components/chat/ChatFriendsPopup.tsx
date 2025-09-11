@@ -57,17 +57,17 @@ export function ChatFriendsPopup({
 
   // API queries - reusing existing social endpoints
   const { data: friends, refetch: refetchFriends } =
-    api.user.getFriends.useQuery(undefined, {
+    api.user.getFriends.useQuery({
       enabled: !!session?.user && isOpen,
     });
 
   const { data: pendingRequests, refetch: refetchRequests } =
-    api.user.getPendingFriendRequests.useQuery(undefined, {
+    api.user.getPendingFriendRequests.useQuery({
       enabled: !!session?.user && isOpen,
     });
 
   const { data: blockedUsers, refetch: refetchBlocked } =
-    api.user.getBlockedUsers.useQuery(undefined, {
+    api.user.getBlockedUsers.useQuery({
       enabled: !!session?.user && isOpen,
     });
 

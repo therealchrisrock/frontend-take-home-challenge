@@ -1,15 +1,15 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import {
   type Board as BoardType,
-  type Position,
   type Move,
+  type Position,
 } from "~/lib/game/logic";
-import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
-import { Square } from "./Square.motion";
-import { Piece } from "./Piece";
 import { MoveSequenceArrows } from "./MoveSequenceArrows";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Piece } from "./Piece";
+import { Square } from "./Square.motion";
 
 interface BoardProps {
   board: BoardType;
@@ -22,6 +22,7 @@ interface BoardProps {
   size?: number;
   shouldFlip?: boolean;
   replayMode?: boolean;
+  winner?: "red" | "black" | "draw" | null;
   onSquareClick: (position: Position, event?: React.MouseEvent) => void;
   onDragStart: (position: Position) => void;
   onDragEnd: () => void;
@@ -39,6 +40,7 @@ export function Board({
   size,
   shouldFlip = false,
   replayMode = false,
+  winner,
   onSquareClick,
   onDragStart,
   onDragEnd,
@@ -139,129 +141,136 @@ export function Board({
       className="relative box-border grid h-full w-full gap-0 overflow-hidden rounded-lg border-8 shadow-2xl"
       role="grid"
       aria-label="Checkers board"
+      aria-rowcount={boardSize}
+      aria-colcount={boardSize}
       style={{
         borderColor: "var(--board-border)",
         backgroundColor: "var(--board-border)",
         ...getBoardGridStyleFromSize(boardSize),
       }}
     >
-      {renderBoard.map((row, rowIndex) =>
-        row.map((piece, colIndex) => {
-          // Calculate actual position (accounting for flip)
-          const actualRow = shouldFlip ? board.length - 1 - rowIndex : rowIndex;
-          const actualCol = shouldFlip ? board.length - 1 - colIndex : colIndex;
-          const position = { row: actualRow, col: actualCol };
-          const isBlack = (actualRow + actualCol) % 2 === 1;
-          const isSelected =
-            selectedPosition?.row === actualRow &&
-            selectedPosition?.col === actualCol;
-          const isDragging =
-            draggingPosition?.row === actualRow &&
-            draggingPosition?.col === actualCol;
-          const isKeyboardFocused =
-            keyboardFocusPosition?.row === actualRow &&
-            keyboardFocusPosition?.col === actualCol;
-          const isPossibleMove = validMoves.some(
-            (move) => move.to.row === actualRow && move.to.col === actualCol,
-          );
-          const mustCapture = mustCapturePositions.some(
-            (pos) => pos.row === actualRow && pos.col === actualCol,
-          );
-          const isDraggable = !replayMode && piece?.color === currentPlayer;
-          const key = `${actualRow}-${actualCol}`;
+      {renderBoard.map((row, rowIndex) => (
+        <div key={`row-${rowIndex}`} role="row" className="contents">
+          {row.map((piece, colIndex) => {
+            // Calculate actual position (accounting for flip)
+            const actualRow = shouldFlip ? board.length - 1 - rowIndex : rowIndex;
+            const actualCol = shouldFlip ? board.length - 1 - colIndex : colIndex;
+            const position = { row: actualRow, col: actualCol };
+            const isBlack = (actualRow + actualCol) % 2 === 1;
+            const isSelected =
+              selectedPosition?.row === actualRow &&
+              selectedPosition?.col === actualCol;
+            const isDragging =
+              draggingPosition?.row === actualRow &&
+              draggingPosition?.col === actualCol;
+            const isKeyboardFocused =
+              keyboardFocusPosition?.row === actualRow &&
+              keyboardFocusPosition?.col === actualCol;
+            const isPossibleMove = validMoves.some(
+              (move) => move.to.row === actualRow && move.to.col === actualCol,
+            );
+            const mustCapture = mustCapturePositions.some(
+              (pos) => pos.row === actualRow && pos.col === actualCol,
+            );
+            const isDraggable = !replayMode && !winner && piece?.color === currentPlayer;
+            const key = `${actualRow}-${actualCol}`;
 
-          return (
-            <Square
-              key={`${rowIndex}-${colIndex}`}
-              position={position}
-              isBlack={isBlack}
-              isHighlighted={false}
-              isSelected={isSelected}
-              isPossibleMove={isPossibleMove}
-              isKeyboardFocused={isKeyboardFocused}
-              onKeyDown={(e) => {
-                if (replayMode) return;
-                if (
-                  e.key === "Enter" ||
-                  e.key === " " ||
-                  e.key === "Spacebar" ||
-                  (e).code === "Space"
-                ) {
-                  e.preventDefault();
-                  onSquareClick(position);
-                  return;
-                }
-                if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  const next = moveFocus(position, -1, 0);
-                  focusSquare(next);
-                } else if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  const next = moveFocus(position, 1, 0);
-                  focusSquare(next);
-                } else if (e.key === "ArrowLeft") {
-                  e.preventDefault();
-                  const next = moveFocus(position, 0, -1);
-                  focusSquare(next);
-                } else if (e.key === "ArrowRight") {
-                  e.preventDefault();
-                  const next = moveFocus(position, 0, 1);
-                  focusSquare(next);
-                } else if (e.key === "Tab") {
-                  const next = moveFocusTab(position, e.shiftKey);
-                  if (next) {
+            return (
+              <Square
+                key={`${rowIndex}-${colIndex}`}
+                position={position}
+                isBlack={isBlack}
+                isHighlighted={false}
+                isSelected={isSelected}
+                isPossibleMove={isPossibleMove}
+                isKeyboardFocused={isKeyboardFocused}
+                onClick={() => onSquareClick(position)}
+                onKeyDown={(e) => {
+                  if (replayMode) return;
+                  if (
+                    e.key === "Enter" ||
+                    e.key === " " ||
+                    e.key === "Spacebar" ||
+                    (e).code === "Space"
+                  ) {
                     e.preventDefault();
-                    focusSquare(next);
+                    onSquareClick(position);
+                    return;
                   }
-                }
-              }}
-              onFocus={() => {
-                if (!isKeyboardFocused) setInternalFocus(position);
-              }}
-              tabIndex={isKeyboardFocused ? 0 : -1}
-              role="gridcell"
-              ariaLabel={`Square ${actualRow + 1}, ${actualCol + 1}`}
-              ariaSelected={isSelected}
-              ref={(node) => setSquareRef(key, node)}
-              onDrop={
-                replayMode
-                  ? undefined
-                  : (e) => {
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const next = moveFocus(position, -1, 0);
+                    focusSquare(next);
+                  } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    const next = moveFocus(position, 1, 0);
+                    focusSquare(next);
+                  } else if (e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const next = moveFocus(position, 0, -1);
+                    focusSquare(next);
+                  } else if (e.key === "ArrowRight") {
+                    e.preventDefault();
+                    const next = moveFocus(position, 0, 1);
+                    focusSquare(next);
+                  } else if (e.key === "Tab") {
+                    const next = moveFocusTab(position, e.shiftKey);
+                    if (next) {
+                      e.preventDefault();
+                      focusSquare(next);
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  if (!isKeyboardFocused) setInternalFocus(position);
+                }}
+                tabIndex={isKeyboardFocused ? 0 : -1}
+                role="gridcell"
+                ariaLabel={`Square ${actualRow + 1}, ${actualCol + 1}`}
+                ariaSelected={isSelected}
+                ariaRowIndex={actualRow + 1}
+                ariaColIndex={actualCol + 1}
+                ref={(node) => setSquareRef(key, node)}
+                onDrop={
+                  replayMode
+                    ? undefined
+                    : (e) => {
                       e.preventDefault();
                       onDrop(position);
                     }
-              }
-              onDragOver={replayMode ? undefined : handleDragOver}
-            >
-              {piece && (
-                <Piece
-                  piece={piece}
-                  isDraggable={isDraggable}
-                  isDragging={isDragging}
-                  mustCapture={mustCapture}
-                  hasOtherMustCapture={mustCapturePositions.length > 0}
-                  onDragStart={
-                    replayMode
-                      ? undefined
-                      : (e: React.DragEvent) => {
+                }
+                onDragOver={replayMode ? undefined : handleDragOver}
+              >
+                {piece && (
+                  <Piece
+                    piece={piece}
+                    isDraggable={isDraggable}
+                    isDragging={isDragging}
+                    mustCapture={mustCapture}
+                    hasOtherMustCapture={mustCapturePositions.length > 0}
+                    onDragStart={
+                      replayMode
+                        ? undefined
+                        : (e: React.DragEvent) => {
                           e.dataTransfer.effectAllowed = "move";
                           onDragStart(position);
                         }
-                  }
-                  onDragEnd={
-                    replayMode
-                      ? undefined
-                      : (_e: React.DragEvent) => {
+                    }
+                    onDragEnd={
+                      replayMode
+                        ? undefined
+                        : (_e: React.DragEvent) => {
                           // ignore event, just delegate to parent
                           onDragEnd();
                         }
-                  }
-                />
-              )}
-            </Square>
-          );
-        }),
-      )}
+                    }
+                  />
+                )}
+              </Square>
+            );
+          })}
+        </div>
+      ))}
 
       {/* Arrow overlays for multi-jump sequences */}
       {selectedPosition &&

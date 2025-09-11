@@ -344,10 +344,16 @@ describe("Draw Detection", () => {
       board[0]![1] = { color: "black", type: "regular" };
       board[7]![6] = { color: "red", type: "regular" };
       const state = createDrawState();
-      state.positionCounts.set("test-position", 3);
+      
+      // Use actual serialized position instead of test-position
+      const position = serializeBoard(board, "red");
+      state.positionCounts.set(position, 3);
 
-      const result = checkDrawConditions(board, state, testConfig);
-      expect(result).toBe("draw");
+      // Create fresh config to avoid mutations
+      const config = { ...testConfig };
+      const result = checkDrawConditions(board, state, config);
+      expect(result?.type).toBe("draw");
+      expect(result?.reason).toBe("threefold-repetition");
     });
 
     it("should detect forty-move rule draw", () => {
@@ -360,8 +366,11 @@ describe("Draw Detection", () => {
       state.movesSinceCapture = 80;
       state.movesSincePromotion = 80;
 
-      const result = checkDrawConditions(board, state, testConfig);
-      expect(result).toBe("draw");
+      // Create fresh config to avoid mutations  
+      const config = { ...testConfig };
+      const result = checkDrawConditions(board, state, config);
+      expect(result?.type).toBe("draw");
+      expect(result?.reason).toBe("forty-move-rule");
     });
 
     it("should detect insufficient material draw", () => {
@@ -374,7 +383,8 @@ describe("Draw Detection", () => {
       const state = createDrawState();
 
       const result = checkDrawConditions(board, state, testConfig);
-      expect(result).toBe("draw");
+      expect(result?.type).toBe("draw");
+      expect(result?.reason).toBe("insufficient-material");
     });
 
     it("should return null when no draw conditions met", () => {
@@ -389,16 +399,26 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0]![1] = { color: "black", type: "king" };
-      board[7]![6] = { color: "red", type: "king" };
+      // Add more pieces so insufficient material doesn't trigger
+      board[0]![1] = { color: "black", type: "regular" };
+      board[0]![3] = { color: "black", type: "king" };  
+      board[7]![6] = { color: "red", type: "regular" };
+      board[7]![4] = { color: "red", type: "king" };
 
       const state = createDrawState();
-      // Both repetition and insufficient material conditions
-      state.positionCounts.set("test-position", 3);
+      // Set up repetition condition
+      const position = serializeBoard(board, "red");
+      state.positionCounts.set(position, 3);
+      // Also set forty-move rule condition
+      state.movesSinceCapture = 80;
+      state.movesSincePromotion = 80;
 
-      // Should detect repetition first
-      const result = checkDrawConditions(board, state, testConfig);
-      expect(result).toBe("draw");
+      // Create fresh config to avoid mutations
+      const config = { ...testConfig };
+      // Should detect repetition first (higher priority over forty-move rule)
+      const result = checkDrawConditions(board, state, config);
+      expect(result?.type).toBe("draw");
+      expect(result?.reason).toBe("threefold-repetition");
     });
   });
 
@@ -415,7 +435,8 @@ describe("Draw Detection", () => {
       // Import checkWinner from game-logic using import statement
       const { checkWinner } = await import("./game/logic");
       const result = checkWinner(board, testConfig, state);
-      expect(result).toBe("draw");
+      expect(result?.type).toBe("draw");
+      expect(result?.reason).toBe("insufficient-material");
     });
 
     it("should prioritize win over draw", async () => {

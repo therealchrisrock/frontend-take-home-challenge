@@ -29,14 +29,14 @@ export function NotificationDropdown({
 
   // Queries
   const { data: friendRequestCount, refetch: refetchFriendRequestCount } =
-    api.user.getFriendRequestNotificationCount.useQuery(undefined, {
+    api.user.getFriendRequestNotificationCount.useQuery({
       refetchInterval: 30000,
     });
 
   const {
     data: friendRequestNotifications,
     refetch: refetchFriendRequestNotifications,
-  } = api.user.getFriendRequestNotifications.useQuery(undefined, {
+  } = api.user.getFriendRequestNotifications.useQuery({
     enabled: isOpen,
     refetchInterval: 10000,
   });

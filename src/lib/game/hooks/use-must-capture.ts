@@ -33,6 +33,9 @@ export function useMustCapture() {
 
   const onSquareClick = useCallback(
     (position: Position, event?: React.MouseEvent) => {
+      // Prevent any moves if the game is over
+      if (state.winner) return;
+      
       const piece = state.board[position.row]?.[position.col];
       if (state.selectedPosition) {
         const move = state.validMoves.find(
@@ -96,6 +99,9 @@ export function useMustCapture() {
 
   const onDragStart = useCallback(
     (position: Position) => {
+      // Prevent any dragging if the game is over
+      if (state.winner) return;
+      
       const piece = state.board[position.row]?.[position.col];
       if (piece?.color === state.currentPlayer) {
         const moves = getValidMoves(
@@ -114,6 +120,9 @@ export function useMustCapture() {
 
   const onDrop = useCallback(
     (position: Position) => {
+      // Prevent any drops if the game is over
+      if (state.winner) return;
+      
       if (state.selectedPosition) {
         const move = state.validMoves.find(
           (m) => m.to.row === position.row && m.to.col === position.col,

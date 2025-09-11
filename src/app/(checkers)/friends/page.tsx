@@ -23,15 +23,15 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: friends, refetch: refetchFriends } =
-    api.user.getFriends.useQuery(undefined, { enabled: !!session?.user });
+    api.user.getFriends.useQuery({ enabled: !!session?.user });
 
   const { data: pendingRequests, refetch: refetchRequests } =
-    api.user.getPendingFriendRequests.useQuery(undefined, {
+    api.user.getPendingFriendRequests.useQuery({
       enabled: !!session?.user,
     });
 
   const { data: blockedUsers, refetch: refetchBlocked } =
-    api.user.getBlockedUsers.useQuery(undefined, { enabled: !!session?.user });
+    api.user.getBlockedUsers.useQuery({ enabled: !!session?.user });
 
   const { data: searchResults } = api.user.searchUsers.useQuery(
     { query: searchQuery },

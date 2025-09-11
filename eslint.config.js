@@ -17,13 +17,11 @@ export default tseslint.config(
     ],
   },
   ...compat.extends("next/core-web-vitals"),
+  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
   {
     files: ["**/*.ts", "**/*.tsx"],
-    extends: [
-      ...tseslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-    ],
     rules: {
       // Downgrade common errors to warnings for smoother DX
       "@typescript-eslint/triple-slash-reference": "warn",
@@ -81,8 +79,6 @@ export default tseslint.config(
         },
       ],
     },
-  },
-  {
     linterOptions: {
       reportUnusedDisableDirectives: true,
     },

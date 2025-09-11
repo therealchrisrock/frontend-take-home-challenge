@@ -3,6 +3,9 @@ import { gameRouter } from "~/server/api/routers/game";
 import { authRouter } from "~/server/api/routers/auth";
 import { userRouter } from "~/server/api/routers/user";
 import { messageRouter } from "~/server/api/routers/message";
+import { friendRequestRouter } from "~/server/api/routers/friendRequest";
+import { gameInviteRouter } from "~/server/api/routers/gameInvite";
+import { multiplayerGameRouter } from "~/server/api/routers/multiplayerGame";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +17,9 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   user: userRouter,
   message: messageRouter,
+  friendRequest: friendRequestRouter,
+  gameInvite: gameInviteRouter,
+  multiplayerGame: multiplayerGameRouter,
 });
 
 // export type definition of API
