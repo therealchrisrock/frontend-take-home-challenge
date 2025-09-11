@@ -96,13 +96,11 @@ export default function Home() {
           {/* Game Modes */}
           <div>
             <div className="flex items-center justify-between">
-              <Link href="/profile" className="group">
-                <PlayerCard
-                  player={mapUserToPlayerInfo(session?.user)}
-                  context="profile"
-                  className="mb-4"
-                />
-              </Link>
+              <PlayerCard
+                player={mapUserToPlayerInfo(session?.user)}
+                context="profile"
+                className="mb-4"
+              />
               <div className="hidden items-center gap-6 text-gray-400 sm:flex">
                 <Link href="/friends" aria-label="Friends">
                   <Users className="h-6 w-6 transition-colors hover:text-amber-600" />

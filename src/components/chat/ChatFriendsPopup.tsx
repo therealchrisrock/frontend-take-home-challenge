@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   Dialog,
@@ -218,9 +219,16 @@ export function ChatFriendsPopup({
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">
+                        <Link
+                          href={`/users/${friend.username}`}
+                          className="font-medium hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClose();
+                          }}
+                        >
                           {friend.name ?? friend.username}
-                        </p>
+                        </Link>
                         <p
                           className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
                         >
@@ -324,9 +332,16 @@ export function ChatFriendsPopup({
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">
+                        <Link
+                          href={`/users/${request.sender.username}`}
+                          className="font-medium hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClose();
+                          }}
+                        >
                           {request.sender.name ?? request.sender.username}
-                        </p>
+                        </Link>
                         <p
                           className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
                         >

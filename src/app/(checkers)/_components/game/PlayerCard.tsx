@@ -1,6 +1,7 @@
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Bot, Crown } from "lucide-react";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
 import { type PieceColor } from "~/lib/game/logic";
 import { type PlayerInfo } from "~/lib/game/player-types";
 // PlayerCard is strictly the profile display; timers are handled by containers
@@ -12,6 +13,7 @@ interface PlayerCardProps {
   isActive?: boolean;
   className?: string;
   context?: "game" | "profile";
+  disableInternalLink?: boolean;
 }
 
 const difficultyConfig = {
@@ -26,6 +28,7 @@ export function PlayerCard({
   color,
   isActive = false,
   className = "",
+  disableInternalLink = false,
 }: PlayerCardProps) {
   // Safely calculate stats with fallbacks
   const wins = Math.max(0, player.stats?.wins ?? 0);
@@ -68,11 +71,17 @@ export function PlayerCard({
   const accentColor = getAccentColor(color);
   const activeClasses = isActive ? "" : "";
 
+  const href = !disableInternalLink && !player.isAI && !player.isGuest
+    ? player.isCurrentUser
+      ? "/profile"
+      : player.username
+        ? `/users/${player.username}`
+        : undefined
+    : undefined;
+
   return (
-    <div
-      className={`${activeClasses} transition-all duration-200 ${className}`}
-    >
-      <div className="flex items-center gap-2 px-2">
+    <div className={`${activeClasses} transition-all duration-200 ${className}`}>
+      <div className={href ? "flex items-center gap-2 px-2 group" : "flex items-center gap-2 px-2"}>
         {/* Avatar */}
         <div className="relative flex-shrink-0">
           <Avatar className="h-8 w-8 border border-gray-200">
@@ -100,13 +109,22 @@ export function PlayerCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {/* Show appropriate name based on player type */}
-            <h3 className="truncate text-sm font-medium text-gray-900">
-              {player.isAI
-                ? "AI Player"
-                : player.isGuest
-                  ? "Guest"
-                  : displayName}
-            </h3>
+            {href ? (
+              <Link
+                href={href}
+                className="truncate text-sm font-medium text-gray-900 hover:underline focus-visible:underline outline-none"
+              >
+                {displayName}
+              </Link>
+            ) : (
+              <h3 className="truncate text-sm font-medium text-gray-900">
+                {player.isAI
+                  ? "AI Player"
+                  : player.isGuest
+                    ? "Guest"
+                    : displayName}
+              </h3>
+            )}
 
             {player.isAI && player.aiDifficulty ? (
               <Badge variant="secondary" className="px-1.5 py-0 text-xs">

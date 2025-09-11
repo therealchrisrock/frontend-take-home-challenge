@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { createElement } from "react";
+import { TestProviders } from "~/test/test-utils";
 import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
 import { toast } from "~/hooks/use-toast";
@@ -167,7 +168,7 @@ describe("useNotifications Hook", () => {
   const renderNotificationHook = () => {
     return renderHook(() => useNotifications(), {
       wrapper: ({ children }) => 
-        createElement(NotificationProvider, null, children),
+        createElement(TestProviders, {}, children),
     });
   };
 

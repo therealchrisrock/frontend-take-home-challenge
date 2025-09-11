@@ -1,20 +1,20 @@
-import { z } from "zod";
+import type { NotificationType } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
+  checkWinner,
+  getValidMoves,
+  makeMove,
+  type Board,
+  type Move,
+  type Position,
+} from "~/lib/game/logic";
+import { gameConnectionManager } from "~/lib/sse/game-connection-manager";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import {
-  type Board,
-  type Move,
-  makeMove,
-  getValidMoves,
-  checkWinner,
-  type Position,
-  type PieceColor,
-} from "~/lib/game/logic";
-import type { NotificationType } from "@prisma/client";
 
 const PositionSchema = z.object({
   row: z.number().int().min(0).max(7),
@@ -51,12 +51,14 @@ const GameStateSchema = z.object({
     }),
   }),
   spectatorCount: z.number(),
-  lastMove: z.object({
-    from: PositionSchema,
-    to: PositionSchema,
-    captures: z.array(PositionSchema),
-    timestamp: z.date(),
-  }).nullable(),
+  lastMove: z
+    .object({
+      from: PositionSchema,
+      to: PositionSchema,
+      captures: z.array(PositionSchema),
+      timestamp: z.date(),
+    })
+    .nullable(),
 });
 
 export const multiplayerGameRouter = createTRPCRouter({
@@ -74,14 +76,14 @@ export const multiplayerGameRouter = createTRPCRouter({
             sessionId: z.string().optional(), // For guest session tracking
           })
           .optional(),
-      })
+      }),
     )
     .output(
       z.object({
         playerRole: PlayerRoleSchema,
         gameState: GameStateSchema,
         connectionId: z.string(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.game.findUnique({
@@ -168,7 +170,7 @@ export const multiplayerGameRouter = createTRPCRouter({
             id: game.player2?.id || null,
             username: game.player2?.username || null,
             isGuest: !game.player2Id && playerRole === "PLAYER_2",
-            displayName: 
+            displayName:
               !game.player2Id && playerRole === "PLAYER_2" && isGuest
                 ? input.guestInfo?.displayName || null
                 : game.player2?.name || game.player2?.username || null,
@@ -179,8 +181,8 @@ export const multiplayerGameRouter = createTRPCRouter({
           ? {
               from: { row: lastMove.fromRow, col: lastMove.fromCol },
               to: { row: lastMove.toRow, col: lastMove.toCol },
-              captures: lastMove.captures 
-                ? JSON.parse(lastMove.captures) as Position[]
+              captures: lastMove.captures
+                ? (JSON.parse(lastMove.captures) as Position[])
                 : [],
               timestamp: lastMove.createdAt,
             }
@@ -212,7 +214,7 @@ export const multiplayerGameRouter = createTRPCRouter({
         move: MoveSchema,
         gameVersion: z.number(), // For optimistic locking
         guestSessionId: z.string().optional(), // For guest players
-      })
+      }),
     )
     .output(
       z.object({
@@ -224,7 +226,7 @@ export const multiplayerGameRouter = createTRPCRouter({
             conflictingMoves: z.array(MoveSchema),
           })
           .optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.game.findUnique({
@@ -268,7 +270,7 @@ export const multiplayerGameRouter = createTRPCRouter({
           success: false,
           conflictResolution: {
             serverVersion: game.version,
-            conflictingMoves: conflictingMoves.map(move => ({
+            conflictingMoves: conflictingMoves.map((move) => ({
               from: { row: move.fromRow, col: move.fromCol },
               to: { row: move.toRow, col: move.toCol },
               captures: move.captures ? JSON.parse(move.captures) : [],
@@ -318,20 +320,21 @@ export const multiplayerGameRouter = createTRPCRouter({
       const validMoves = getValidMoves(
         currentBoard,
         input.move.from,
-        playerColor!
+        playerColor!,
       );
-      
+
       const moveObj: Move = {
         from: input.move.from,
         to: input.move.to,
         captures: input.move.captures || [],
       };
 
-      const isValidMove = validMoves.some(validMove => 
-        validMove.from.row === moveObj.from.row &&
-        validMove.from.col === moveObj.from.col &&
-        validMove.to.row === moveObj.to.row &&
-        validMove.to.col === moveObj.to.col
+      const isValidMove = validMoves.some(
+        (validMove) =>
+          validMove.from.row === moveObj.from.row &&
+          validMove.from.col === moveObj.from.col &&
+          validMove.to.row === moveObj.to.row &&
+          validMove.to.col === moveObj.to.col,
       );
 
       if (!isValidMove) {
@@ -343,13 +346,13 @@ export const multiplayerGameRouter = createTRPCRouter({
 
       // Apply move to board
       const newBoard = makeMove(currentBoard, moveObj);
-      
+
       // Check for winner after move
       const winner = checkWinner(newBoard);
-      
+
       // Extract captured pieces from the move (if any)
       const capturedPieces = moveObj.captures || [];
-      
+
       const nextPlayer = game.currentPlayer === "red" ? "black" : "red";
       const newVersion = game.version + 1;
 
@@ -364,7 +367,8 @@ export const multiplayerGameRouter = createTRPCRouter({
             fromCol: input.move.from.col,
             toRow: input.move.to.row,
             toCol: input.move.to.col,
-            captures: capturedPieces.length > 0 ? JSON.stringify(capturedPieces) : null,
+            captures:
+              capturedPieces.length > 0 ? JSON.stringify(capturedPieces) : null,
           },
         });
 
@@ -375,7 +379,7 @@ export const multiplayerGameRouter = createTRPCRouter({
             board: JSON.stringify(newBoard),
             currentPlayer: winner ? game.currentPlayer : nextPlayer,
             moveCount: game.moveCount + 1,
-            winner: winner && typeof winner === 'string' ? winner : undefined,
+            winner: winner && typeof winner === "string" ? winner : undefined,
             version: newVersion,
           },
           include: {
@@ -404,13 +408,19 @@ export const multiplayerGameRouter = createTRPCRouter({
             id: updatedGame.player1?.id || null,
             username: updatedGame.player1?.username || null,
             isGuest: false,
-            displayName: updatedGame.player1?.name || updatedGame.player1?.username || null,
+            displayName:
+              updatedGame.player1?.name ||
+              updatedGame.player1?.username ||
+              null,
           },
           player2: {
             id: updatedGame.player2?.id || null,
             username: updatedGame.player2?.username || null,
             isGuest: isGuest && !updatedGame.player2Id,
-            displayName: updatedGame.player2?.name || updatedGame.player2?.username || null,
+            displayName:
+              updatedGame.player2?.name ||
+              updatedGame.player2?.username ||
+              null,
           },
         },
         spectatorCount: 0,
@@ -422,22 +432,23 @@ export const multiplayerGameRouter = createTRPCRouter({
         },
       };
 
-      // Emit SSE events for real-time synchronization
-      // TODO: Implement SSE emission
-      // await emitSSEEvent(input.gameId, {
-      //   type: 'GAME_MOVE',
-      //   data: {
-      //     move: input.move,
-      //     newGameState,
-      //     playerId: userId,
-      //   }
-      // });
+      // Emit SSE event for real-time synchronization (minimal)
+      gameConnectionManager.broadcast(input.gameId, {
+        type: "GAME_MOVE",
+        data: {
+          move: input.move,
+          gameState: newGameState,
+          playerId: userId,
+          timestamp: Date.now(),
+        },
+      });
 
       // If game ended, notify players
       if (winner) {
-        const winnerName = winner === "red" 
-          ? (updatedGame.player1?.username || "Red Player")
-          : (updatedGame.player2?.username || "Black Player");
+        const winnerName =
+          winner === "red"
+            ? updatedGame.player1?.username || "Red Player"
+            : updatedGame.player2?.username || "Black Player";
 
         // Notify both players
         if (updatedGame.player1Id) {
@@ -539,8 +550,8 @@ export const multiplayerGameRouter = createTRPCRouter({
           ? {
               from: { row: lastMove.fromRow, col: lastMove.fromCol },
               to: { row: lastMove.toRow, col: lastMove.toCol },
-              captures: lastMove.captures 
-                ? JSON.parse(lastMove.captures) as Position[]
+              captures: lastMove.captures
+                ? (JSON.parse(lastMove.captures) as Position[])
                 : [],
               timestamp: lastMove.createdAt,
             }
@@ -558,14 +569,14 @@ export const multiplayerGameRouter = createTRPCRouter({
         gameId: z.string(),
         connectionId: z.string(),
         guestSessionId: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.game.findUnique({
         where: { id: input.gameId },
-        select: { 
-          id: true, 
-          player1Id: true, 
+        select: {
+          id: true,
+          player1Id: true,
           player2Id: true,
           winner: true,
         },
@@ -606,14 +617,18 @@ export const multiplayerGameRouter = createTRPCRouter({
         clientVersion: z.number(),
         pendingMoves: z.array(MoveSchema),
         guestSessionId: z.string().optional(),
-      })
+      }),
     )
     .output(
       z.object({
-        syncResult: z.enum(["UP_TO_DATE", "SERVER_AHEAD", "CONFLICTS_RESOLVED"]),
+        syncResult: z.enum([
+          "UP_TO_DATE",
+          "SERVER_AHEAD",
+          "CONFLICTS_RESOLVED",
+        ]),
         gameState: GameStateSchema,
         rejectedMoves: z.array(MoveSchema),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.game.findUnique({
@@ -635,12 +650,13 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
       }
 
-      let syncResult: "UP_TO_DATE" | "SERVER_AHEAD" | "CONFLICTS_RESOLVED" = "UP_TO_DATE";
+      let syncResult: "UP_TO_DATE" | "SERVER_AHEAD" | "CONFLICTS_RESOLVED" =
+        "UP_TO_DATE";
       const rejectedMoves: Move[] = [];
 
       if (game.version > input.clientVersion) {
         syncResult = "SERVER_AHEAD";
-        
+
         // If client has pending moves, they need to be validated against current server state
         if (input.pendingMoves.length > 0) {
           syncResult = "CONFLICTS_RESOLVED";
@@ -682,8 +698,8 @@ export const multiplayerGameRouter = createTRPCRouter({
           ? {
               from: { row: lastMove.fromRow, col: lastMove.fromCol },
               to: { row: lastMove.toRow, col: lastMove.toCol },
-              captures: lastMove.captures 
-                ? JSON.parse(lastMove.captures) as Position[]
+              captures: lastMove.captures
+                ? (JSON.parse(lastMove.captures) as Position[])
                 : [],
               timestamp: lastMove.createdAt,
             }

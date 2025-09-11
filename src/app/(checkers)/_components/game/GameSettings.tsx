@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
+  animate,
   m,
   useMotionValue,
-  useTransform,
-  animate,
   useMotionValueEvent,
+  useTransform,
 } from "framer-motion";
-import { Settings, Palette } from "lucide-react";
+import { Palette, Settings } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { SkinSelector } from "~/components/SkinSelector";
 import {
   Dialog,
   DialogContent,
@@ -16,24 +17,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
 import { Slider } from "~/components/ui/slider";
 import { Switch } from "~/components/ui/switch";
-import { Label } from "~/components/ui/label";
-import { SkinSelector } from "~/components/SkinSelector";
 import { useSettings } from "~/contexts/settings-context";
 
 interface GameSettingsProps {
-  className?: string;
-  variant?: "icon" | "text-with-icon";
+  children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function GameSettings({
-  className,
-  variant = "icon",
+  children,
+  open: controlledOpen,
+  onOpenChange,
 }: GameSettingsProps) {
   const { settings, updateSettings } = useSettings();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
 
   // Animated number for SFX volume display
   const volumeMotion = useMotionValue(settings.sfxVolume);
@@ -68,18 +73,7 @@ export function GameSettings({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {variant === "text-with-icon" ? (
-          <Button variant="outline" className={className}>
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        ) : (
-          <Button variant="outline" size="icon" className={className}>
-            <Settings className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className="max-w-sm p-4">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-base">

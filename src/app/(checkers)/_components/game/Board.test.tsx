@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithProviders } from "~/test/test-utils";
 import { Board } from "./Board";
 import type { Board as BoardType } from "~/lib/game/logic";
 
@@ -37,7 +38,7 @@ describe("Board Component", () => {
   });
 
   it("should render 64 squares", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     // Squares are divs with the aspect-square class
     const squares = document.querySelectorAll(".aspect-square");
@@ -46,7 +47,7 @@ describe("Board Component", () => {
 
   it("should render pieces at correct positions", () => {
     // Test board already created in defaultProps
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     // Check for draggable pieces (only current player's pieces are draggable)
     const draggablePieces = document.querySelectorAll('[draggable="true"]');
@@ -60,12 +61,14 @@ describe("Board Component", () => {
       selectedPosition: { row: 5, col: 2 },
     };
 
-    render(<Board {...props} />);
+    renderWithProviders(<Board {...props} />);
 
-    // Check if the selected square has the selection class
+    // Check if the selected square has boxShadow style for selection
     const squares = document.querySelectorAll(".aspect-square");
     const selectedSquare = squares[5 * 8 + 2]; // row 5, col 2
-    expect(selectedSquare?.className).toContain("ring-4");
+    const style = selectedSquare?.getAttribute('style');
+    expect(style).toContain('box-shadow');
+    expect(style).toContain('--board-selected-ring');
   });
 
   it("should highlight valid move squares", () => {
@@ -77,10 +80,10 @@ describe("Board Component", () => {
       ],
     };
 
-    render(<Board {...props} />);
+    renderWithProviders(<Board {...props} />);
 
-    // Check for highlighted valid move squares (looking for the green indicator)
-    const indicators = document.querySelectorAll(".before\\:bg-green-400\\/50");
+    // Check for highlighted valid move squares (looking for the pulse animation)
+    const indicators = document.querySelectorAll(".animate-pulse");
     expect(indicators).toHaveLength(2);
   });
 
@@ -96,21 +99,19 @@ describe("Board Component", () => {
       ],
     };
 
-    render(<Board {...props} />);
+    renderWithProviders(<Board {...props} />);
 
-    // Capture moves are shown the same as regular moves (green)
+    // Capture moves are shown the same as regular moves
     const squares = document.querySelectorAll(".aspect-square");
     const targetSquare = squares[3 * 8 + 4];
 
     // Check that the square has a child element (the indicator)
-    const indicator = targetSquare?.querySelector(
-      ".before\\:bg-green-400\\/50",
-    );
+    const indicator = targetSquare?.querySelector(".animate-pulse");
     expect(indicator).toBeTruthy();
   });
 
   it("should call onSquareClick when square is clicked", async () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     const squares = document.querySelectorAll(".aspect-square");
     await userEvent.click(squares[0]!);
@@ -119,7 +120,7 @@ describe("Board Component", () => {
   });
 
   it("should handle drag start on pieces", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     const piece = document.querySelector('[draggable="true"]');
     if (piece) {
@@ -137,7 +138,7 @@ describe("Board Component", () => {
   });
 
   it("should handle drag end", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     const piece = document.querySelector('[draggable="true"]');
     if (piece) {
@@ -152,7 +153,7 @@ describe("Board Component", () => {
       validMoves: [{ from: { row: 5, col: 2 }, to: { row: 4, col: 3 } }],
     };
 
-    render(<Board {...props} />);
+    renderWithProviders(<Board {...props} />);
 
     const squares = document.querySelectorAll(".aspect-square");
     const dropSquare = squares[4 * 8 + 3];
@@ -162,27 +163,28 @@ describe("Board Component", () => {
   });
 
   it("should display correct square colors", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     const squares = document.querySelectorAll(".aspect-square");
 
-    // Check alternating colors
+    // Check alternating colors via CSS variables
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const square = squares[row * 8 + col];
         const isDark = (row + col) % 2 === 1;
+        const style = square?.getAttribute('style') || '';
 
         if (isDark && square) {
-          expect(square.className).toContain("from-amber-800");
+          expect(style).toContain('--board-dark-from');
         } else if (square) {
-          expect(square.className).toContain("from-amber-100");
+          expect(style).toContain('--board-light-from');
         }
       }
     }
   });
 
   it("should render board with correct structure", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     // The Board component doesn't include row/column labels
     // It's just the 8x8 grid of squares
@@ -190,7 +192,7 @@ describe("Board Component", () => {
     expect(grid).toBeInTheDocument();
 
     // Should have border styling
-    expect(grid?.className).toContain("border-amber-950");
+    expect(grid?.className).toContain("border-4");
   });
 
   it("should render king pieces with crown icon", () => {
@@ -202,7 +204,7 @@ describe("Board Component", () => {
       board,
     };
 
-    render(<Board {...props} />);
+    renderWithProviders(<Board {...props} />);
 
     // Check for crown icon (King pieces have Crown component)
     const crowns = document.querySelectorAll("svg"); // Crown is an SVG
@@ -210,7 +212,7 @@ describe("Board Component", () => {
   });
 
   it("should not allow dragging opponent pieces", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     // Find black piece (opponent when current player is red)
     const pieces = document.querySelectorAll("[draggable]");
@@ -222,7 +224,7 @@ describe("Board Component", () => {
   });
 
   it("should have correct board structure", () => {
-    render(<Board {...defaultProps} />);
+    renderWithProviders(<Board {...defaultProps} />);
 
     // Check for the grid container
     const grid = document.querySelector(".grid-cols-8");

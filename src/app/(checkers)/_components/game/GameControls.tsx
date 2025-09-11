@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "~/components/ui/button";
+import { Flag, Handshake } from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { Flag, Handshake } from "lucide-react";
-import { useState } from "react";
+import { Button } from "~/components/ui/button";
 import type { PieceColor } from "~/lib/game/logic";
 
 interface GameControlsProps {

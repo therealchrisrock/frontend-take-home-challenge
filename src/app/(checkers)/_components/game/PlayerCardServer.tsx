@@ -1,9 +1,9 @@
-import { PlayerCard } from "./PlayerCard";
-import { PlayerCardSkeleton } from "./PlayerCardSkeleton";
+import { GameVariantEnum, PlayModeEnum } from "@prisma/client";
 import { type PieceColor } from "~/lib/game/logic";
 import { type PlayerInfo } from "~/lib/game/player-types";
 import { api } from "~/trpc/server";
-import { GameVariantEnum, PlayModeEnum } from "@prisma/client";
+import { PlayerCard } from "./PlayerCard";
+import { PlayerCardSkeleton } from "./PlayerCardSkeleton";
 
 interface PlayerCardServerProps {
   player: PlayerInfo;
@@ -68,6 +68,7 @@ export async function PlayerCardServer({
       ...player,
       ...(profileData && {
         name: profileData.name ?? player.name,
+        username: profileData.username ?? player.username,
         avatar: profileData.image ?? player.avatar,
       }),
       ...(statsData && {

@@ -10,6 +10,7 @@ export interface PlayerStats {
 export interface PlayerInfo {
   id?: string;
   name: string;
+  username?: string;
   avatar?: string;
   stats?: PlayerStats;
   isAI?: boolean;
@@ -172,6 +173,10 @@ export function sanitizePlayerInfo(
       player.name && typeof player.name === "string" && player.name.trim()
         ? player.name.trim()
         : `${color === "red" ? "Red" : "Black"} Player`,
+    username:
+      player.username && typeof player.username === "string"
+        ? player.username
+        : undefined,
     avatar:
       player.avatar && typeof player.avatar === "string"
         ? player.avatar

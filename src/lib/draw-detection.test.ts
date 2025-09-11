@@ -349,9 +349,7 @@ describe("Draw Detection", () => {
       const position = serializeBoard(board, "red");
       state.positionCounts.set(position, 3);
 
-      // Create fresh config to avoid mutations
-      const config = { ...testConfig };
-      const result = checkDrawConditions(board, state, config);
+      const result = checkDrawConditions(board, state, testConfig);
       expect(result?.type).toBe("draw");
       expect(result?.reason).toBe("threefold-repetition");
     });
@@ -366,9 +364,7 @@ describe("Draw Detection", () => {
       state.movesSinceCapture = 80;
       state.movesSincePromotion = 80;
 
-      // Create fresh config to avoid mutations  
-      const config = { ...testConfig };
-      const result = checkDrawConditions(board, state, config);
+      const result = checkDrawConditions(board, state, testConfig);
       expect(result?.type).toBe("draw");
       expect(result?.reason).toBe("forty-move-rule");
     });
@@ -413,10 +409,8 @@ describe("Draw Detection", () => {
       state.movesSinceCapture = 80;
       state.movesSincePromotion = 80;
 
-      // Create fresh config to avoid mutations
-      const config = { ...testConfig };
       // Should detect repetition first (higher priority over forty-move rule)
-      const result = checkDrawConditions(board, state, config);
+      const result = checkDrawConditions(board, state, testConfig);
       expect(result?.type).toBe("draw");
       expect(result?.reason).toBe("threefold-repetition");
     });

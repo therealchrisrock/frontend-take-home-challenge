@@ -1,15 +1,15 @@
 import { useCallback, useMemo } from "react";
 import {
+  checkWinner,
   getMustCapturePositions,
   getValidMoves,
   makeMove,
   type Move,
   type Position,
 } from "~/lib/game/logic";
-import { checkWinner } from "~/lib/game/logic";
 import { useGame } from "../state/game-context";
 
-export function useMustCapture() {
+export function useMustCapture(onMoveApplied?: (move: Move) => void) {
   const { state, dispatch } = useGame();
 
   const mustCapturePositions = useMemo(() => {
@@ -27,15 +27,16 @@ export function useMustCapture() {
       // Note: The draw state will be updated in the reducer after this move
       const winner = checkWinner(newBoard, state.rules, state.drawState);
       dispatch({ type: "APPLY_MOVE", payload: { newBoard, move, winner } });
+      if (onMoveApplied) onMoveApplied(move);
     },
-    [dispatch, state.board, state.rules, state.drawState],
+    [dispatch, state.board, state.rules, state.drawState, onMoveApplied],
   );
 
   const onSquareClick = useCallback(
     (position: Position, event?: React.MouseEvent) => {
       // Prevent any moves if the game is over
       if (state.winner) return;
-      
+
       const piece = state.board[position.row]?.[position.col];
       if (state.selectedPosition) {
         const move = state.validMoves.find(
@@ -101,7 +102,7 @@ export function useMustCapture() {
     (position: Position) => {
       // Prevent any dragging if the game is over
       if (state.winner) return;
-      
+
       const piece = state.board[position.row]?.[position.col];
       if (piece?.color === state.currentPlayer) {
         const moves = getValidMoves(
@@ -122,7 +123,7 @@ export function useMustCapture() {
     (position: Position) => {
       // Prevent any drops if the game is over
       if (state.winner) return;
-      
+
       if (state.selectedPosition) {
         const move = state.validMoves.find(
           (m) => m.to.row === position.row && m.to.col === position.col,

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AvatarUpload } from "~/components/AvatarUpload";
@@ -79,12 +79,19 @@ export default function NewUserPage() {
     setAvatarUrl(newAvatarUrl);
   };
 
+  // Handle navigation when user already has username set up
+  useEffect(() => {
+    if (session?.user?.username && !session.user.needsUsername) {
+      router.push("/");
+    }
+  }, [session?.user?.username, session?.user?.needsUsername, router]);
+
   if (!session?.user) {
     return null;
   }
 
+  // Early return if user already has username (prevent flash of content)
   if (session.user.username && !session.user.needsUsername) {
-    router.push("/");
     return null;
   }
 

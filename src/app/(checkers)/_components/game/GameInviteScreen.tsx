@@ -15,19 +15,17 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { ChevronLeft, Users, Share2, Clock } from "lucide-react";
+import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
 import { type TimeControl } from "~/lib/game/time-control-types";
 import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
 import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { InvitationPanel } from "./InvitationPanel";
-import { FriendInviteList } from "./FriendInviteList";
+import { TypeaheadUserSelect } from "./TypeaheadUserSelect";
 import { InviteStatusIndicator } from "./InviteStatusIndicator";
-import { ShareableInviteDialog } from "~/components/game/ShareableInviteDialog";
 import { ComingSoon } from "~/components/ui/coming-soon";
 import { toast } from "~/hooks/use-toast";
 
 type Variant = "american" | "brazilian" | "international" | "canadian";
-type InvitationStep = "configure-game" | "invitation-ready";
 
 interface GameInviteScreenProps {
   preselectedFriendId?: string;
@@ -43,8 +41,12 @@ export function GameInviteScreen({
   const { data: session } = useSession();
   
   // State management
-  const [currentStep, setCurrentStep] = useState<InvitationStep>("configure-game");
-  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(preselectedFriendId ? [preselectedFriendId] : []);
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    username: string | null;
+    name: string | null;
+    image: string | null;
+  } | null>(null);
   const [variant, setVariant] = useState<Variant>("american");
   const [timeControl, setTimeControl] = useState<TimeControl | null>(null);
   const [timeControlType, setTimeControlType] = useState<"none" | "blitz" | "rapid" | "classical" | "custom">("none");
@@ -56,36 +58,11 @@ export function GameInviteScreen({
     gameMode: string;
     variant: string | null;
   } | null>(null);
-  const [showShareDialog, setShowShareDialog] = useState(false);
 
-  // API to search users by username for pre-selection
-  const { data: usernameSearchResult } = api.user.searchUsers.useQuery(
-    { query: preselectedUsername ?? "" },
-    { 
-      enabled: !!preselectedUsername && preselectedUsername.length > 0,
-    }
-  );
 
   // Extract query parameters for pre-selection
-  useEffect(() => {
-    const friendId = searchParams.get("friendId");
-    const username = searchParams.get("username");
-    
-    if (friendId) {
-      setSelectedFriendIds([friendId]);
-    } else if (username || preselectedUsername) {
-      // Look up friend by username
-      const targetUsername = username || preselectedUsername;
-      if (usernameSearchResult && usernameSearchResult.length > 0) {
-        const foundUser = usernameSearchResult.find(
-          user => user.username?.toLowerCase() === targetUsername?.toLowerCase()
-        );
-        if (foundUser) {
-          setSelectedFriendIds([foundUser.id]);
-        }
-      }
-    }
-  }, [searchParams, preselectedUsername, usernameSearchResult]);
+  const friendIdFromQuery = searchParams.get("friendId");
+  const usernameFromQuery = searchParams.get("username");
 
   // Determine board size based on variant
   const getBoardSize = (gameVariant: Variant) => {
@@ -107,12 +84,11 @@ export function GameInviteScreen({
         gameMode: "online",
         variant: variant,
       });
-      setCurrentStep("invitation-ready");
       toast({
-        title: "Invitation Created",
-        description: selectedFriendIds.length > 0 
-          ? `${selectedFriendIds.length} friend invitation${selectedFriendIds.length !== 1 ? 's' : ''} sent!`
-          : "Shareable link generated!",
+        title: "Game Created",
+        description: selectedUser 
+          ? `Invitation sent to ${selectedUser.username || selectedUser.name}!`
+          : "Game created! Share the link to invite someone.",
       });
     },
     onError: (error) => {
@@ -125,32 +101,23 @@ export function GameInviteScreen({
   });
 
   const handleBack = () => {
-    if (currentStep === "configure-game") {
-      router.push("/game");
+    if (invitation) {
+      setInvitation(null);
     } else {
-      setCurrentStep("configure-game");
+      router.push("/game");
     }
   };
 
-  const handleFriendSelectionChange = (friendIds: string[]) => {
-    setSelectedFriendIds(friendIds);
-  };
 
-  const handleCreateInvitation = () => {
+  const handleCreateGame = () => {
     createInviteMutation.mutate({
       gameConfig: {
         variant: variant,
         boardSize: getBoardSize(variant),
         timeLimit: timeControl ? timeControl.initialMinutes * 60 : undefined,
       },
-      friendIds: selectedFriendIds.length > 0 ? selectedFriendIds : undefined,
+      friendIds: selectedUser ? [selectedUser.id] : undefined,
     });
-  };
-
-  const handleInviteFriends = async (friendIds: string[]) => {
-    // This will be handled by the createInvitation call with friendIds
-    // For now, we just update the selected friends
-    setSelectedFriendIds(friendIds);
   };
 
   const handleGameReady = (gameId: string) => {
@@ -236,14 +203,14 @@ export function GameInviteScreen({
           </Button>
 
           {/* Game Configuration */}
-          {currentStep === "configure-game" && (
+          {!invitation ? (
             <Card className="border-gray-200 bg-white p-4">
               <div className="mb-4">
                 <h2 className="mb-1 text-xl font-bold text-gray-900">
-                  Create Game Invitation
+                  Create New Game
                 </h2>
                 <p className="text-gray-600">
-                  Configure your game settings and invite friends
+                  Configure your game settings
                 </p>
               </div>
 
@@ -365,11 +332,13 @@ export function GameInviteScreen({
                 {/* Friend Selection */}
                 <div>
                   <Label className="mb-3 block text-base text-gray-900">
-                    Invite Friends (Optional)
+                    Invite a Friend (Optional)
                   </Label>
-                  <FriendInviteList
-                    selectedFriends={selectedFriendIds}
-                    onSelectionChange={handleFriendSelectionChange}
+                  <TypeaheadUserSelect
+                    selectedUser={selectedUser}
+                    onUserSelect={setSelectedUser}
+                    preselectedUserId={friendIdFromQuery || preselectedFriendId}
+                    preselectedUsername={usernameFromQuery || preselectedUsername}
                     className="mb-4"
                   />
                 </div>
@@ -377,53 +346,73 @@ export function GameInviteScreen({
                 <div className="flex pt-2">
                   <Button
                     className="w-full bg-amber-600 text-white hover:bg-amber-700"
-                    onClick={handleCreateInvitation}
+                    onClick={handleCreateGame}
                     disabled={createInviteMutation.isPending}
                   >
                     {createInviteMutation.isPending ? (
-                      <>Creating Invitation...</>
+                      <>Creating Game...</>
                     ) : (
                       <>
                         <Users className="mr-2 h-4 w-4" />
-                        Create Game Invitation
+                        {selectedUser ? "Create Game & Send Invitation" : "Create Game"}
                       </>
                     )}
                   </Button>
                 </div>
               </div>
             </Card>
-          )}
-
-          {/* Invitation Ready - Show both URL and Status */}
-          {currentStep === "invitation-ready" && invitation && (
+          ) : (
+            /* Invitation Ready - Show status and share options */
             <div className="space-y-4">
-              <InvitationPanel
-                invitation={invitation}
-                onInviteFriends={handleInviteFriends}
-                onGameReady={handleGameReady}
-              />
+              <Card className="border-gray-200 bg-white p-4">
+                <div className="mb-4">
+                  <h2 className="mb-1 text-xl font-bold text-gray-900">
+                    Game Created!
+                  </h2>
+                  <p className="text-gray-600">
+                    {selectedUser 
+                      ? `Waiting for ${selectedUser.username || selectedUser.name} to join`
+                      : "Share the link below to invite someone to play"}
+                  </p>
+                </div>
+                
+                {/* Share URL */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Invitation Link</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={invitation.inviteUrl}
+                      readOnly
+                      className="flex-1 font-mono text-sm"
+                      onClick={(e) => e.currentTarget.select()}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(invitation.inviteUrl);
+                        toast({
+                          title: "Copied!",
+                          description: "Invitation link copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
               
               <InviteStatusIndicator
                 inviteId={invitation.inviteId}
                 onGameReady={handleGameReady}
-                onCancel={() => {
-                  setInvitation(null);
-                  setCurrentStep("configure-game");
-                }}
+                onCancel={() => setInvitation(null)}
               />
             </div>
           )}
         </div>
       </GameWrapper>
 
-      {/* Share Dialog */}
-      {invitation && (
-        <ShareableInviteDialog
-          open={showShareDialog}
-          onOpenChange={setShowShareDialog}
-          inviteId={invitation.inviteId}
-        />
-      )}
     </div>
   );
 }

@@ -27,12 +27,17 @@ export function useAI() {
         aiColor,
         state.moveCount,
       );
-      if (cancelled || !aiMove) {
-        if (!cancelled) {
-          dispatch({ type: "SET_AI_THINKING", payload: false });
-        }
+      
+      if (cancelled) {
+        return; // Don't dispatch if cancelled
+      }
+      
+      if (!aiMove) {
+        console.warn("AI could not find a valid move");
+        dispatch({ type: "SET_AI_THINKING", payload: false });
         return;
       }
+      
       const newBoard = makeMove(state.board, aiMove, state.rules);
       const winner = checkWinner(newBoard, state.rules, state.drawState);
       dispatch({
@@ -54,12 +59,9 @@ export function useAI() {
     state.winner,
     state.isViewingHistory,
     state.isReviewMode,
-    state.aiDifficulty,
-    state.moveCount,
-    state.rules,
     state.playerColor,
-    state.drawState,
-    state.isAIThinking,
+    // Removed state.isAIThinking to prevent cancellation cycles
+    // Removed state.aiDifficulty, state.moveCount, state.rules, state.drawState to reduce re-renders
     dispatch,
     engine,
   ]);

@@ -1,5 +1,5 @@
-import { type PlayerInfo } from "~/lib/game/player-types";
 import { type PieceColor } from "~/lib/game/logic";
+import { type PlayerInfo } from "~/lib/game/player-types";
 
 export type AppUser = {
   id: string;
@@ -38,6 +38,7 @@ export function mapUserToPlayerInfo(
     return {
       id: "anonymous",
       name: "Player",
+      username: undefined,
       avatar: undefined,
       stats: undefined,
       isAI: false,
@@ -64,6 +65,10 @@ export function mapUserToPlayerInfo(
   return {
     id: user.id,
     name,
+    username:
+      (actualOverrides as { username?: string }).username ??
+      user.username ??
+      undefined,
     avatar: actualOverrides.avatar ?? user.image ?? undefined,
     stats: actualOverrides.stats,
     isAI: actualOverrides.isAI ?? false,

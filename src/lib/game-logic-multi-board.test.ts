@@ -307,15 +307,30 @@ describe("Game Logic - Multiple Board Sizes", () => {
         .map(() => Array(rules.board.size).fill(null));
 
       // Create a scenario where black has no moves:
-      // Black piece in corner at bottom-left, completely blocked
-      const blackRow = rules.board.size - 1;
-      board[blackRow]![0] = { color: "black", type: "regular" };
-      
-      // Block the only possible diagonal move by placing a red piece
-      board[blackRow - 1]![1] = { color: "red", type: "regular" };
-      
-      // Add another red piece that can move to ensure red has moves
-      board[1]![1] = { color: "red", type: "regular" };
+      if (variant === "american") {
+        // For 8x8 board - black piece in corner, blocked by red
+        board[7]![0] = { color: "black", type: "regular" };
+        board[6]![1] = { color: "red", type: "regular" };
+        board[1]![1] = { color: "red", type: "regular" };
+      } else if (variant === "international") {
+        // For 10x10 board - place black piece completely surrounded
+        // Since regular pieces can capture backward in international,
+        // we need to completely surround the black piece
+        board[9]![0] = { color: "black", type: "regular" };
+        // Block forward diagonal
+        board[8]![1] = { color: "red", type: "regular" };
+        // Black can't move to (9,2) as it's not a diagonal
+        // Black can't capture backward as there's nothing behind
+        // Add a red piece that can move
+        board[1]![1] = { color: "red", type: "regular" };
+      } else {
+        // For 12x12 Canadian board - similar to international
+        board[11]![0] = { color: "black", type: "regular" };
+        // Block forward diagonal
+        board[10]![1] = { color: "red", type: "regular" };
+        // Add a red piece that can move
+        board[1]![1] = { color: "red", type: "regular" };
+      }
 
       const winner = checkWinner(board, rules);
       expect(winner).toBe("red");

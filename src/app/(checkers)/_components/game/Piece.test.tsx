@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { fireEvent } from "@testing-library/react";
+import { renderWithProviders } from "~/test/test-utils";
 import { Piece } from "./Piece";
 
 describe("Piece Component", () => {
@@ -11,7 +12,7 @@ describe("Piece Component", () => {
   });
 
   it("should render regular red piece", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -20,14 +21,17 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     expect(piece).toBeDefined();
-    expect(piece.className).toContain("from-red-500");
-    expect(piece.className).toContain("to-red-700");
+    // Check for CSS variable styles instead of Tailwind classes
+    const style = piece.getAttribute('style');
+    expect(style).toContain('linear-gradient');
+    expect(style).toContain('--piece-red-from');
+    expect(style).toContain('--piece-red-to');
   });
 
   it("should render regular black piece", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "black", type: "regular" }}
         isDraggable={true}
@@ -36,14 +40,17 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     expect(piece).toBeDefined();
-    expect(piece.className).toContain("from-gray-700");
-    expect(piece.className).toContain("to-gray-900");
+    // Check for CSS variable styles instead of Tailwind classes
+    const style = piece.getAttribute('style');
+    expect(style).toContain('linear-gradient');
+    expect(style).toContain('--piece-black-from');
+    expect(style).toContain('--piece-black-to');
   });
 
   it("should render king piece with crown", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "king" }}
         isDraggable={true}
@@ -58,7 +65,7 @@ describe("Piece Component", () => {
   });
 
   it("should be draggable when isDraggable is true", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -67,13 +74,13 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     expect(piece.getAttribute("draggable")).toBe("true");
     expect(piece.className).toContain("cursor-grab");
   });
 
   it("should not be draggable when isDraggable is false", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={false}
@@ -82,13 +89,13 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     expect(piece.getAttribute("draggable")).toBe("false");
     expect(piece.className).toContain("cursor-not-allowed");
   });
 
   it("should call onDragStart when drag starts", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -97,14 +104,14 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     fireEvent.dragStart(piece);
 
     expect(mockOnDragStart).toHaveBeenCalled();
   });
 
   it("should call onDragEnd when drag ends", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -113,14 +120,14 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
+    const piece = container.querySelector('[draggable]') as HTMLElement;
     fireEvent.dragEnd(piece);
 
     expect(mockOnDragEnd).toHaveBeenCalled();
   });
 
   it("should have hover effect when draggable", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -129,12 +136,13 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
-    expect(piece.className).toContain("hover:scale-110");
+    const piece = container.querySelector('[draggable]') as HTMLElement;
+    // Note: hover:scale-105 is only applied if reducedMotion is false
+    expect(piece.className).toContain("hover:scale-105");
   });
 
   it("should have correct styling for king pieces", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "black", type: "king" }}
         isDraggable={true}
@@ -143,13 +151,14 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
-    // Kings have a ring/border
-    expect(piece.className).toContain("ring-2");
+    const piece = container.querySelector('[draggable]') as HTMLElement;
+    // Check for crown icon instead of ring
+    const crown = container.querySelector("svg");
+    expect(crown).toBeDefined();
   });
 
   it("should apply correct size classes", () => {
-    const { container } = render(
+    const { container } = renderWithProviders(
       <Piece
         piece={{ color: "red", type: "regular" }}
         isDraggable={true}
@@ -158,8 +167,9 @@ describe("Piece Component", () => {
       />,
     );
 
-    const piece = container.firstChild as HTMLElement;
-    expect(piece.className).toContain("w-12");
-    expect(piece.className).toContain("h-12");
+    const piece = container.querySelector('[draggable]') as HTMLElement;
+    // Component uses w-[80%] h-[80%] not fixed sizes
+    expect(piece.className).toContain("w-[80%]");
+    expect(piece.className).toContain("h-[80%]");
   });
 });

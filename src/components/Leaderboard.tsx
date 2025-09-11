@@ -5,6 +5,7 @@ import { Trophy, TrendingUp, User, Crown, Medal, Award } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Skeleton } from "~/components/ui/skeleton";
 import { api } from "~/trpc/react";
+import Link from "next/link";
 
 interface LeaderboardProps {
   limit?: number;
@@ -81,9 +82,12 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-gray-400" />
-                      <span className="truncate font-medium text-gray-900">
+                      <Link
+                        href={`/profile/${player.username}`}
+                        className="truncate font-medium text-gray-900 hover:text-amber-600 hover:underline transition-colors"
+                      >
                         {player.username}
-                      </span>
+                      </Link>
                     </div>
                     <div className="mt-1 flex items-center gap-4 text-xs text-gray-600">
                       <span>{player.totalGames} games</span>

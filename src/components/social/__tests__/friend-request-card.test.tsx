@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "~/test/test-utils";
 import userEvent from "@testing-library/user-event";
 import { FriendRequestCard, FriendRequestCardSkeleton } from "../friend-request-card";
 
@@ -71,7 +72,7 @@ describe("FriendRequestCard", () => {
 
   describe("rendering", () => {
     it("should render friend request card with sender info", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -85,7 +86,7 @@ describe("FriendRequestCard", () => {
     });
 
     it("should render receiver info when variant is sent", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="sent"
@@ -106,7 +107,7 @@ describe("FriendRequestCard", () => {
         },
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={requestWithoutName}
           variant="received"
@@ -118,7 +119,7 @@ describe("FriendRequestCard", () => {
     });
 
     it("should render user avatar with initials", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -136,7 +137,7 @@ describe("FriendRequestCard", () => {
         message: null,
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={requestWithoutMessage}
           variant="received"
@@ -150,7 +151,7 @@ describe("FriendRequestCard", () => {
 
   describe("status badges", () => {
     it("should show pending badge for pending requests", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -167,7 +168,7 @@ describe("FriendRequestCard", () => {
         status: "ACCEPTED" as const,
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={acceptedRequest}
           variant="received"
@@ -184,7 +185,7 @@ describe("FriendRequestCard", () => {
         status: "DECLINED" as const,
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={declinedRequest}
           variant="received"
@@ -201,7 +202,7 @@ describe("FriendRequestCard", () => {
         status: "CANCELLED" as const,
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={cancelledRequest}
           variant="received"
@@ -215,7 +216,7 @@ describe("FriendRequestCard", () => {
 
   describe("actions for received requests", () => {
     it("should show accept and decline buttons for pending received requests", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -233,7 +234,7 @@ describe("FriendRequestCard", () => {
         status: "ACCEPTED" as const,
       };
 
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={acceptedRequest}
           variant="received"
@@ -248,7 +249,7 @@ describe("FriendRequestCard", () => {
     it("should call respond mutation when accept button is clicked", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -268,7 +269,7 @@ describe("FriendRequestCard", () => {
     it("should call respond mutation when decline button is clicked", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -288,7 +289,7 @@ describe("FriendRequestCard", () => {
     it("should call onUpdate after successful accept", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -307,7 +308,7 @@ describe("FriendRequestCard", () => {
     it("should show success toast after accepting", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -329,7 +330,7 @@ describe("FriendRequestCard", () => {
 
   describe("actions for sent requests", () => {
     it("should show cancel button for pending sent requests", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="sent"
@@ -345,7 +346,7 @@ describe("FriendRequestCard", () => {
     it("should call cancel mutation when cancel button is clicked", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="sent"
@@ -366,7 +367,7 @@ describe("FriendRequestCard", () => {
     it("should disable buttons when mutations are pending", async () => {
       vi.mocked(mockRespondMutation).isPending = true;
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -387,7 +388,7 @@ describe("FriendRequestCard", () => {
       const user = userEvent.setup();
       mockMutateAsync.mockRejectedValueOnce(new Error("Network error"));
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -411,7 +412,7 @@ describe("FriendRequestCard", () => {
       const user = userEvent.setup();
       mockMutateAsync.mockRejectedValueOnce(new Error());
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -434,7 +435,7 @@ describe("FriendRequestCard", () => {
 
   describe("relative time display", () => {
     it("should show relative time for request creation", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -450,7 +451,7 @@ describe("FriendRequestCard", () => {
 
   describe("FriendRequestCardSkeleton", () => {
     it("should render skeleton loading state", () => {
-      render(<FriendRequestCardSkeleton />);
+      renderWithProviders(<FriendRequestCardSkeleton />);
       
       // Check for skeleton elements (they have specific classes)
       const skeletons = document.querySelectorAll(".animate-pulse");
@@ -460,7 +461,7 @@ describe("FriendRequestCard", () => {
 
   describe("accessibility", () => {
     it("should have proper button roles and labels", () => {
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"
@@ -478,7 +479,7 @@ describe("FriendRequestCard", () => {
     it("should support keyboard navigation", async () => {
       const user = userEvent.setup();
       
-      render(
+      renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
           variant="received"

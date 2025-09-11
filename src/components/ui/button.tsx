@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { m } from "framer-motion";
+import * as React from "react";
 import { cn } from "~/lib/utils";
 
 const buttonVariants = cva(
@@ -12,7 +12,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/20",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
@@ -42,10 +42,10 @@ type MotionButtonProps = React.ComponentPropsWithoutRef<typeof m.button>;
 const Button = React.forwardRef<
   HTMLButtonElement,
   MotionButtonProps &
-    VariantProps<typeof buttonVariants> & {
-      asChild?: boolean;
-      animation?: boolean;
-    }
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean;
+    animation?: boolean;
+  }
 >(
   (
     {
@@ -66,10 +66,10 @@ const Button = React.forwardRef<
 
     const motionProps = animation
       ? {
-          whileHover,
-          whileTap,
-          transition,
-        }
+        whileHover,
+        whileTap,
+        transition,
+      }
       : {};
 
     return (

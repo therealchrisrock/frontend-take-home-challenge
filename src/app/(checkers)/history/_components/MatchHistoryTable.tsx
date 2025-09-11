@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -64,14 +65,20 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
   const stats = data?.stats;
 
-  const getOpponentName = (match: (typeof matches)[0]) => {
-    if (match.gameMode === "ai") return "AI Opponent";
-    if (match.gameMode === "local") return "Local Player";
+  const getOpponentInfo = (match: (typeof matches)[0]) => {
+    if (match.gameMode === "ai") return { name: "AI Opponent", username: null };
+    if (match.gameMode === "local") return { name: "Local Player", username: null };
 
     if (match.player1Id === userId) {
-      return match.player2?.name ?? match.player2?.username ?? "Unknown";
+      return {
+        name: match.player2?.name ?? match.player2?.username ?? "Unknown",
+        username: match.player2?.username ?? null
+      };
     } else {
-      return match.player1?.name ?? match.player1?.username ?? "Unknown";
+      return {
+        name: match.player1?.name ?? match.player1?.username ?? "Unknown",
+        username: match.player1?.username ?? null
+      };
     }
   };
 
@@ -310,7 +317,23 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>{getOpponentName(match)}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const opponent = getOpponentInfo(match);
+                              if (opponent.username) {
+                                return (
+                                  <Link
+                                    href={`/users/${opponent.username}`}
+                                    className="hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {opponent.name}
+                                  </Link>
+                                );
+                              }
+                              return opponent.name;
+                            })()}
+                          </TableCell>
                           <TableCell>
                             {getGameModeBadge(match.gameMode)}
                           </TableCell>

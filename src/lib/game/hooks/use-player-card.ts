@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
-import { api } from "~/trpc/react";
 import { type PlayerInfo } from "~/lib/game/player-types";
+import { api } from "~/trpc/react";
 
 interface UsePlayerCardParams {
   player: PlayerInfo;
@@ -57,11 +57,16 @@ export function usePlayerCard({
           session.user.name ??
           (session.user as { username?: string }).username ??
           player.name,
+        username:
+          (session.user as { username?: string }).username ??
+          (session.user as { name?: string | null }).name ??
+          player.username,
         avatar: session.user.image ?? player.avatar ?? undefined,
       }),
     ...(profileData &&
       !isCurrentUser && {
         name: profileData.name ?? player.name,
+        username: profileData.username ?? player.username,
         avatar: profileData.image ?? player.avatar ?? undefined,
       }),
     ...(statsData && {

@@ -3,16 +3,13 @@ import { History } from "lucide-react";
 import { useEffect } from "react";
 import { Board } from "~/app/(checkers)/_components/game/Board";
 import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { GameControls } from "~/app/(checkers)/_components/game/GameControls";
 import { GameControlPanel } from "~/app/(checkers)/_components/game/GameControlPanel";
-import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 import { MoveHistory } from "~/app/(checkers)/_components/game/MoveHistory";
 import { PlayerCardContainer } from "~/app/(checkers)/_components/game/player-card-container";
 import { PostGameAnalysis } from "~/app/(checkers)/_components/game/PostGameAnalysis";
 import { WinnerDialog } from "~/app/(checkers)/_components/game/WinnerDialog.motion";
-import { GameChat } from "~/components/chat/GameChat";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { ResizablePanels } from "~/components/ui/resizable-panels";
 import { useSettings } from "~/contexts/settings-context";
 import { useAudioWarnings } from "~/hooks/useAudioWarnings";
 import { useGameSounds } from "~/hooks/useGameSounds";
@@ -20,14 +17,24 @@ import { useAI } from "~/lib/game/hooks/use-ai";
 import { useAutoSave } from "~/lib/game/hooks/use-auto-save";
 import { useGameTimers } from "~/lib/game/hooks/use-game-timers";
 import { useMustCapture } from "~/lib/game/hooks/use-must-capture";
+import { useOnlineMultiplayer } from "~/lib/game/hooks/use-online-multiplayer";
 import { useOnlineSync } from "~/lib/game/hooks/use-online-sync";
 import { useGame } from "~/lib/game/state/game-context";
 
 export function GameScreen() {
   const { state, dispatch } = useGame();
   const { settings } = useSettings();
+  // Only use online multiplayer hook when in online mode to prevent unnecessary re-renders
+  const { status: mpStatus, sendMove } = useOnlineMultiplayer({
+    gameId: state.gameMode === "online" ? state.gameId : undefined
+  });
   const { mustCapturePositions, onSquareClick, onDragStart, onDrop } =
-    useMustCapture();
+    useMustCapture(async (move) => {
+      if (state.gameMode === "online" && state.gameId) {
+        // Minimal send; server validates
+        await sendMove(move, { gameVersion: state.moveCount });
+      }
+    });
   const { playStartGame } = useGameSounds({
     enabled: settings.soundEffectsEnabled,
     volume: settings.sfxVolume / 100,
@@ -56,68 +63,63 @@ export function GameScreen() {
     timeState: timer.timeState,
   });
 
-  return (
-    <div className="h-[calc(100vh-var(--header-height))] overflow-hidden p-2 md:p-4">
-      <GameWrapper>
-        <div className="board-fit-max flex h-full min-h-0 flex-col items-center justify-between">
-          {/* Mobile/Tablet: Top Player Card */}
-          <div className="flex min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:hidden">
-            <PlayerCardContainer
-              player={
-                state.playerColor === "red"
-                  ? state.players.black
-                  : state.players.red
-              }
-              color={state.playerColor === "red" ? "black" : "red"}
-              position="top"
-              isActive={
-                state.currentPlayer ===
-                (state.playerColor === "red" ? "black" : "red") &&
-                !state.winner
-              }
-              enableServerData={state.gameMode === "online"}
-              showLoadingSkeleton={true}
-              timeState={showTimer ? timer.timeState : null}
-              isAIThinking={
-                state.gameMode === "ai" &&
-                state.isAIThinking &&
-                state.currentPlayer ===
-                (state.playerColor === "red" ? "black" : "red")
-              }
-              className="w-full max-w-md"
-            />
-          </div>
 
-          <div className="flex min-h-0 w-full flex-grow flex-col items-center justify-start">
-            <div className="mx-auto flex h-full w-full flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-white p-4 shadow-lg lg:max-w-[855px]">
-              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:flex">
+
+  return (
+    <div className="h-[calc(100vh-var(--header-height))] overflow-auto lg:overflow-hidden p-2 md:p-4">
+      <GameWrapper>
+        {state.gameMode === "online" && (
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Badge variant={mpStatus.isConnected ? "default" : "secondary"}>
+                {mpStatus.isConnected ? "Online" : "Reconnecting..."}
+              </Badge>
+              {onlineEnabled && !canMoveThisTab && (
+                <Badge variant="outline">Inactive tab</Badge>
+              )}
+            </div>
+          </div>
+        )}
+        <div className="board-fit-max flex min-h-0 flex-col items-center justify-between h-auto lg:h-full">
+          <div className="flex min-h-0 w-full lg:flex-grow flex-col items-center justify-start">
+            <div className="mx-auto flex w-full flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-white p-4 shadow-lg lg:max-w-[855px] lg:h-full">
+              {/* Mobile/Tablet: Top Player Card (now inside container) */}
+              <div className="flex min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:hidden">
                 <PlayerCardContainer
-                  player={
-                    state.playerColor === "red"
-                      ? state.players.black
-                      : state.players.red
-                  }
-                  color={state.playerColor === "red" ? "black" : "red"}
+                  player={state.players.black}
+                  color="black"
                   position="top"
-                  isActive={
-                    state.currentPlayer ===
-                    (state.playerColor === "red" ? "black" : "red") &&
-                    !state.winner
-                  }
+                  isActive={state.currentPlayer === "black" && !state.winner}
                   enableServerData={state.gameMode === "online"}
                   showLoadingSkeleton={true}
                   timeState={showTimer ? timer.timeState : null}
                   isAIThinking={
                     state.gameMode === "ai" &&
                     state.isAIThinking &&
-                    state.currentPlayer ===
-                    (state.playerColor === "red" ? "black" : "red")
+                    state.currentPlayer === "black"
+                  }
+                  className="w-full max-w-md"
+                />
+              </div>
+              <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:flex">
+                <PlayerCardContainer
+                  player={state.players.black}
+                  color="black"
+                  position="top"
+                  isActive={state.currentPlayer === "black" && !state.winner}
+                  enableServerData={state.gameMode === "online"}
+                  showLoadingSkeleton={true}
+                  timeState={showTimer ? timer.timeState : null}
+                  isAIThinking={
+                    state.gameMode === "ai" &&
+                    state.isAIThinking &&
+                    state.currentPlayer === "black"
                   }
                   className="w-full max-w-md"
                 />
               </div>
 
-              <div className="flex min-h-0 w-full flex-grow items-center justify-center py-2">
+              <div className="flex min-h-0 w-full items-center justify-center py-1 lg:flex-grow">
                 <div className="relative aspect-square min-h-0 w-full">
                   {state.isReviewMode && (
                     <div className="absolute top-2 right-12 left-2 z-10 flex items-center justify-between rounded-lg bg-blue-100/90 px-3 py-2 shadow-md backdrop-blur-sm">
@@ -183,7 +185,7 @@ export function GameScreen() {
                       </div>
                     </div>
                   )}
-                  {state.isViewingHistory && !state.isReviewMode && (
+                  {/* {state.isViewingHistory && !state.isReviewMode && (
                     <div className="absolute top-2 right-12 left-2 z-10 flex items-center justify-between rounded-lg bg-amber-100/90 px-3 py-2 shadow-md backdrop-blur-sm">
                       <span className="text-sm font-medium text-amber-900">
                         Viewing move {state.currentMoveIndex + 1} of{" "}
@@ -203,7 +205,7 @@ export function GameScreen() {
                         Return to Game
                       </Button>
                     </div>
-                  )}
+                  )} */}
 
                   <Board
                     board={state.board}
@@ -271,23 +273,17 @@ export function GameScreen() {
               {/* Desktop: Bottom Player Card */}
               <div className="hidden min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:flex">
                 <PlayerCardContainer
-                  player={
-                    state.playerColor === "red"
-                      ? state.players.red
-                      : state.players.black
-                  }
-                  color={state.playerColor === "red" ? "red" : "black"}
+                  player={state.players.red}
+                  color="red"
                   position="bottom"
-                  isActive={
-                    state.currentPlayer === state.playerColor && !state.winner
-                  }
+                  isActive={state.currentPlayer === "red" && !state.winner}
                   enableServerData={state.gameMode === "online"}
                   showLoadingSkeleton={true}
                   timeState={showTimer ? timer.timeState : null}
                   isAIThinking={
                     state.gameMode === "ai" &&
                     state.isAIThinking &&
-                    state.currentPlayer === state.playerColor
+                    state.currentPlayer === "red"
                   }
                   className="w-full max-w-md"
                 />
@@ -296,23 +292,17 @@ export function GameScreen() {
               {/* Mobile/Tablet: Bottom Player Card */}
               <div className="flex min-h-[56px] w-full flex-shrink-0 items-center py-3 lg:hidden">
                 <PlayerCardContainer
-                  player={
-                    state.playerColor === "red"
-                      ? state.players.red
-                      : state.players.black
-                  }
-                  color={state.playerColor === "red" ? "red" : "black"}
+                  player={state.players.red}
+                  color="red"
                   position="bottom"
-                  isActive={
-                    state.currentPlayer === state.playerColor && !state.winner
-                  }
+                  isActive={state.currentPlayer === "red" && !state.winner}
                   enableServerData={state.gameMode === "online"}
                   showLoadingSkeleton={true}
                   timeState={showTimer ? timer.timeState : null}
                   isAIThinking={
                     state.gameMode === "ai" &&
                     state.isAIThinking &&
-                    state.currentPlayer === state.playerColor
+                    state.currentPlayer === "red"
                   }
                   className="w-full max-w-md"
                 />
@@ -322,104 +312,7 @@ export function GameScreen() {
         </div>
 
         <div className="hidden h-full w-full overflow-hidden pb-4 lg:flex">
-          {state.gameMode === "online" ? (
-            <ResizablePanels
-              direction="vertical"
-              defaultSize={60}
-              minSize={20}
-              className="gap-2"
-              panelClassName="min-h-0"
-            >
-              <div className="flex h-full w-full flex-col gap-4 overflow-hidden">
-                {showPostGameAnalysis ? (
-                  <PostGameAnalysis
-                    analysis={state.gameAnalysis}
-                    winner={state.winner}
-                    isAnalyzing={state.isAnalyzing}
-                    analyzeProgress={state.analyzeProgress}
-                    onStartReview={() =>
-                      dispatch({ type: "TOGGLE_REVIEW_MODE", payload: true })
-                    }
-                    onPlayAgain={() => {
-                      /* handled by wrapper with server call */
-                    }}
-                    playerNames={{
-                      red: "Player 1",
-                      black: "Player 2",
-                    }}
-                  />
-                ) : (
-                  <>
-                    <div className="flex-1 overflow-hidden">
-                      <MoveHistory
-                        moves={state.moveHistory}
-                        currentMoveIndex={state.currentMoveIndex}
-                        board={state.board}
-                        boardSize={state.rules.board.size}
-                        currentPlayer={state.currentPlayer}
-                        onNavigateToMove={(i) =>
-                          dispatch({ type: "NAVIGATE_TO_MOVE", payload: i })
-                        }
-                        winner={state.winner}
-                        analysis={state.gameAnalysis}
-                        showAnalysis={state.isReviewMode}
-                      />
-                    </div>
-
-                    {/* Game Control Panel Section */}
-                    <div className="flex-shrink-0 border-t pt-4">
-                      <GameControlPanel
-                        // History navigation props
-                        currentMoveIndex={state.currentMoveIndex + 1}
-                        totalMoves={state.moveHistory.length}
-                        canNavigateHistory={true}
-                        onGoToStart={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: -1 })}
-                        onPreviousMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex - 1 })}
-                        onTogglePlay={() => {
-                          // TODO: Implement auto-play functionality
-                          console.log("Toggle play clicked");
-                        }}
-                        onNextMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex + 1 })}
-                        onGoToEnd={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.moveHistory.length - 1 })}
-                        
-                        // Game action props
-                        currentPlayer={state.currentPlayer}
-                        winner={state.winner}
-                        isViewingHistory={state.isViewingHistory}
-                        isReviewMode={state.isReviewMode}
-                        gameMode={state.gameMode}
-                        playerColor={state.playerColor}
-                        onResign={(player) => dispatch({ type: "RESIGN", payload: player })}
-                        onRequestDraw={() => dispatch({ type: "REQUEST_DRAW" })}
-                        onAcceptDraw={() => dispatch({ type: "ACCEPT_DRAW" })}
-                        onDeclineDraw={() => dispatch({
-                          type: "DIALOGS",
-                          payload: { showDrawDialog: false },
-                        })}
-                        showDrawDialog={state.showDrawDialog}
-                        drawRequestedBy={state.drawRequestedBy}
-                        onOpenSettings={() => {
-                          // TODO: Implement settings dialog
-                          console.log("Settings clicked");
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="h-full overflow-hidden">
-                <GameChat
-                  gameId={state.gameId ?? ""}
-                  opponentName={
-                    state.currentPlayer === "red"
-                      ? (state.players.black.name ?? "Player 2")
-                      : (state.players.red.name ?? "Player 1")
-                  }
-                />
-              </div>
-            </ResizablePanels>
-          ) : (
+          <div className="flex h-full w-full gap-6">
             <div className="flex h-full w-full flex-col gap-4 overflow-hidden">
               {showPostGameAnalysis ? (
                 <PostGameAnalysis
@@ -453,53 +346,82 @@ export function GameScreen() {
                       winner={state.winner}
                       analysis={state.gameAnalysis}
                       showAnalysis={state.isReviewMode}
+                      showChat={state.gameMode === "online"}
+                      chatGameId={state.gameId ?? undefined}
+                      opponentName={
+                        state.currentPlayer === "red"
+                          ? (state.players.black.name ?? "Player 2")
+                          : (state.players.red.name ?? "Player 1")
+                      }
                     />
                   </div>
-
-                  {/* Game Control Panel Section */}
-                  <div className="flex-shrink-0 border-t pt-4">
-                    <GameControlPanel
-                      // History navigation props
-                      currentMoveIndex={state.currentMoveIndex + 1}
-                      totalMoves={state.moveHistory.length}
-                      canNavigateHistory={true}
-                      onGoToStart={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: -1 })}
-                      onPreviousMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex - 1 })}
-                      onTogglePlay={() => {
-                        // TODO: Implement auto-play functionality
-                        console.log("Toggle play clicked");
-                      }}
-                      onNextMove={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex + 1 })}
-                      onGoToEnd={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.moveHistory.length - 1 })}
-                      
-                      // Game action props
-                      currentPlayer={state.currentPlayer}
-                      winner={state.winner}
-                      isViewingHistory={state.isViewingHistory}
-                      isReviewMode={state.isReviewMode}
-                      gameMode={state.gameMode}
-                      playerColor={state.playerColor}
-                      onResign={(player) => dispatch({ type: "RESIGN", payload: player })}
-                      onRequestDraw={() => dispatch({ type: "REQUEST_DRAW" })}
-                      onAcceptDraw={() => dispatch({ type: "ACCEPT_DRAW" })}
-                      onDeclineDraw={() => dispatch({
-                        type: "DIALOGS",
-                        payload: { showDrawDialog: false },
-                      })}
-                      showDrawDialog={state.showDrawDialog}
-                      drawRequestedBy={state.drawRequestedBy}
-                      onOpenSettings={() => {
-                        // TODO: Implement settings dialog or use existing GameSettings
-                        console.log("Settings clicked");
-                      }}
-                    />
+                  <div className="flex-shrink-0 hidden lg:block">
+                    <GameControlPanel />
                   </div>
                 </>
               )}
             </div>
-          )}
+
+            {/* Removed side GameChat; Chat now lives in MoveHistory tabs */}
+          </div>
         </div>
       </GameWrapper>
+
+      {/* Mobile/Tablet controls and history below the board */}
+      <div className="lg:hidden w-full px-2 md:px-4 mt-1 space-y-2">
+        {showPostGameAnalysis ? (
+          <PostGameAnalysis
+            analysis={state.gameAnalysis}
+            winner={state.winner}
+            isAnalyzing={state.isAnalyzing}
+            analyzeProgress={state.analyzeProgress}
+            onStartReview={() =>
+              dispatch({ type: "TOGGLE_REVIEW_MODE", payload: true })
+            }
+            onPlayAgain={() => {
+              /* handled by wrapper with server call */
+            }}
+            playerNames={{
+              red:
+                state.gameMode === "ai"
+                  ? "Player"
+                  : "Player 1",
+              black:
+                state.gameMode === "ai"
+                  ? "AI"
+                  : "Player 2",
+            }}
+          />
+        ) : (
+          <>
+            <div className="border-t pt-2">
+              <GameControlPanel />
+            </div>
+            <div className="overflow-hidden">
+              <MoveHistory
+                moves={state.moveHistory}
+                currentMoveIndex={state.currentMoveIndex}
+                board={state.board}
+                boardSize={state.rules.board.size}
+                currentPlayer={state.currentPlayer}
+                onNavigateToMove={(i) =>
+                  dispatch({ type: "NAVIGATE_TO_MOVE", payload: i })
+                }
+                winner={state.winner}
+                analysis={state.gameAnalysis}
+                showAnalysis={state.isReviewMode}
+                showChat={state.gameMode === "online"}
+                chatGameId={state.gameId ?? undefined}
+                opponentName={
+                  state.currentPlayer === "red"
+                    ? (state.players.black.name ?? "Player 2")
+                    : (state.players.red.name ?? "Player 1")
+                }
+              />
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Winner Dialog */}
       <WinnerDialog
@@ -523,6 +445,7 @@ export function GameScreen() {
         aiDifficulty={state.aiDifficulty}
         timeControl={state.timeControl}
       />
+
     </div>
   );
 }

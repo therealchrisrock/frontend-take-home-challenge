@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { m } from "framer-motion";
+import { ChevronLeft, Clock, Info, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
+import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
+import { MotionColorSelector } from "~/app/(checkers)/_components/game/MotionColorSelector";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { ComingSoon } from "~/components/ui/coming-soon";
 import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -13,19 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { ChevronLeft, Zap, Clock, Info } from "lucide-react";
-import { api } from "~/trpc/react";
-import { type TimeControl } from "~/lib/game/time-control-types";
-import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
-import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { MotionColorSelector } from "~/app/(checkers)/_components/game/MotionColorSelector";
-import { ComingSoon } from "~/components/ui/coming-soon";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { type TimeControl } from "~/lib/game/time-control-types";
+import { api } from "~/trpc/react";
 
 type GameMode = "friend" | "local" | "bot";
 type Variant =
@@ -211,45 +212,51 @@ export function GameConfiguration({
                           id="american"
                           className="sr-only"
                         />
-                        <Label
-                          htmlFor="american"
-                          className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${
-                            variant === "american"
+                        <m.div
+                          className="w-full"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Label
+                            htmlFor="american"
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "american"
                               ? "border-amber-400 bg-amber-50"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-gray-900">
-                            American
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs">
-                              <div className="space-y-1">
-                                <p className="font-semibold">
-                                  American Checkers
-                                </p>
-                                <p className="text-sm">
-                                  • 8×8 board (64 squares)
-                                </p>
-                                <p className="text-sm">
-                                  • 12 pieces per player
-                                </p>
-                                <p className="text-sm">
-                                  • Kings move one square diagonally
-                                </p>
-                                <p className="text-sm">
-                                  • Regular pieces cannot capture backwards
-                                </p>
-                                <p className="text-sm">
-                                  • Mandatory capture rule applies
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
+                              }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              American
+                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <div className="space-y-1">
+                                  <p className="font-semibold">
+                                    American Checkers
+                                  </p>
+                                  <p className="text-sm">
+                                    • 8×8 board (64 squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • 12 pieces per player
+                                  </p>
+                                  <p className="text-sm">
+                                    • Kings move one square diagonally
+                                  </p>
+                                  <p className="text-sm">
+                                    • Regular pieces cannot capture backwards
+                                  </p>
+                                  <p className="text-sm">
+                                    • Mandatory capture rule applies
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                        </m.div>
                       </div>
 
                       <div className="flex items-start gap-2">
@@ -258,45 +265,51 @@ export function GameConfiguration({
                           id="international"
                           className="sr-only"
                         />
-                        <Label
-                          htmlFor="international"
-                          className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${
-                            variant === "international"
+                        <m.div
+                          className="w-full"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Label
+                            htmlFor="international"
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "international"
                               ? "border-amber-400 bg-amber-50"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-gray-900">
-                            International
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs">
-                              <div className="space-y-1">
-                                <p className="font-semibold">
-                                  International Draughts
-                                </p>
-                                <p className="text-sm">
-                                  • 10×10 board (100 squares)
-                                </p>
-                                <p className="text-sm">
-                                  • 20 pieces per player
-                                </p>
-                                <p className="text-sm">
-                                  • Flying kings (move multiple squares)
-                                </p>
-                                <p className="text-sm">
-                                  • Regular pieces can capture backwards
-                                </p>
-                                <p className="text-sm">
-                                  • Mandatory capture rule applies
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
+                              }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              International
+                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <div className="space-y-1">
+                                  <p className="font-semibold">
+                                    International Draughts
+                                  </p>
+                                  <p className="text-sm">
+                                    • 10×10 board (100 squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • 20 pieces per player
+                                  </p>
+                                  <p className="text-sm">
+                                    • Flying kings (move multiple squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • Regular pieces can capture backwards
+                                  </p>
+                                  <p className="text-sm">
+                                    • Mandatory capture rule applies
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                        </m.div>
                       </div>
 
                       <div className="flex items-start gap-2">
@@ -305,45 +318,51 @@ export function GameConfiguration({
                           id="brazilian"
                           className="sr-only"
                         />
-                        <Label
-                          htmlFor="brazilian"
-                          className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${
-                            variant === "brazilian"
+                        <m.div
+                          className="w-full"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Label
+                            htmlFor="brazilian"
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "brazilian"
                               ? "border-amber-400 bg-amber-50"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-gray-900">
-                            Brazilian
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-xs">
-                              <div className="space-y-1">
-                                <p className="font-semibold">
-                                  Brazilian Draughts
-                                </p>
-                                <p className="text-sm">
-                                  • 8×8 board (64 squares)
-                                </p>
-                                <p className="text-sm">
-                                  • 12 pieces per player
-                                </p>
-                                <p className="text-sm">
-                                  • Flying kings (move multiple squares)
-                                </p>
-                                <p className="text-sm">
-                                  • Regular pieces can capture backwards
-                                </p>
-                                <p className="text-sm">
-                                  • Mandatory capture rule applies
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
+                              }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              Brazilian
+                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-xs">
+                                <div className="space-y-1">
+                                  <p className="font-semibold">
+                                    Brazilian Draughts
+                                  </p>
+                                  <p className="text-sm">
+                                    • 8×8 board (64 squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • 12 pieces per player
+                                  </p>
+                                  <p className="text-sm">
+                                    • Flying kings (move multiple squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • Regular pieces can capture backwards
+                                  </p>
+                                  <p className="text-sm">
+                                    • Mandatory capture rule applies
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                        </m.div>
                       </div>
 
                       <div className="flex items-start gap-2">
@@ -352,45 +371,51 @@ export function GameConfiguration({
                           id="canadian"
                           className="sr-only"
                         />
-                        <Label
-                          htmlFor="canadian"
-                          className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${
-                            variant === "canadian"
+                        <m.div
+                          className="w-full"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                          <Label
+                            htmlFor="canadian"
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "canadian"
                               ? "border-amber-400 bg-amber-50"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-gray-900">
-                            Canadian
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-xs">
-                              <div className="space-y-1">
-                                <p className="font-semibold">
-                                  Canadian Checkers
-                                </p>
-                                <p className="text-sm">
-                                  • 12×12 board (144 squares)
-                                </p>
-                                <p className="text-sm">
-                                  • 30 pieces per player
-                                </p>
-                                <p className="text-sm">
-                                  • Flying kings (move multiple squares)
-                                </p>
-                                <p className="text-sm">
-                                  • Regular pieces can capture backwards
-                                </p>
-                                <p className="text-sm">
-                                  • Mandatory capture rule applies
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
+                              }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              Canadian
+                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-gray-500" />
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-xs">
+                                <div className="space-y-1">
+                                  <p className="font-semibold">
+                                    Canadian Checkers
+                                  </p>
+                                  <p className="text-sm">
+                                    • 12×12 board (144 squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • 30 pieces per player
+                                  </p>
+                                  <p className="text-sm">
+                                    • Flying kings (move multiple squares)
+                                  </p>
+                                  <p className="text-sm">
+                                    • Regular pieces can capture backwards
+                                  </p>
+                                  <p className="text-sm">
+                                    • Mandatory capture rule applies
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                        </m.div>
                       </div>
                     </div>
                   </RadioGroup>
@@ -467,7 +492,7 @@ export function GameConfiguration({
                 </Label>
                 <ComingSoon
                   message="Coming Soon"
-                  variant="default"
+                  variant="minimal"
                   icon="clock"
                   className="overflow-hidden rounded-md"
                 >

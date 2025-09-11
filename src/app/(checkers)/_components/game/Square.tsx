@@ -45,10 +45,10 @@ export function Square({
       }
       : isKeyboardFocused
         ? {
-          boxShadow: `inset 0 0 0 5px #1d4ed8, 0 0 0 3px #ffffff, 0 0 18px rgba(29, 78, 216, 0.7)`,
-          outline: "3px solid #1d4ed8",
-          outlineOffset: "3px",
-          transform: "scale(1.06)",
+          boxShadow: `inset 0 0 0 4px var(--board-selected-ring), 0 0 0 3px var(--board-selected-ring), 0 0 18px rgba(250, 204, 21, 0.7)`,
+          outline: "5px solid var(--board-selected-ring)",
+          outlineOffset: "4px",
+          transform: "scale(1.4)",
           zIndex: 10,
         }
         : undefined;

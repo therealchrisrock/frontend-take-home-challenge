@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -137,10 +138,17 @@ export function NotificationDropdown({
                         <div className="mb-1 flex items-center gap-1">
                           <UserPlus className="h-4 w-4 text-blue-500" />
                           <p className="text-sm">
-                            <span className="font-medium">
+                            <Link
+                              href={`/users/${notification.sender.username}`}
+                              className="font-medium hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsOpen(false);
+                              }}
+                            >
                               {notification.sender.name ??
                                 notification.sender.username}
-                            </span>
+                            </Link>
                             {" sent you a friend request"}
                           </p>
                         </div>

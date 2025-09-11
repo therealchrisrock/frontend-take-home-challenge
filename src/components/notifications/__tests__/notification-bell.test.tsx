@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "~/test/test-utils";
 import userEvent from "@testing-library/user-event";
 import { NotificationBell } from "../notification-bell";
 import * as notificationHooks from "../../../hooks/useNotifications";
@@ -60,7 +61,7 @@ describe("NotificationBell", () => {
   });
 
   it("should render bell icon", () => {
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     expect(bellButton).toBeInTheDocument();
@@ -68,7 +69,7 @@ describe("NotificationBell", () => {
   });
 
   it("should show unread count badge when there are unread notifications", () => {
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const badge = screen.getByText("1");
     expect(badge).toBeInTheDocument();
@@ -80,7 +81,7 @@ describe("NotificationBell", () => {
       unreadCount: 0,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     expect(screen.queryByText("1")).not.toBeInTheDocument();
   });
@@ -91,14 +92,14 @@ describe("NotificationBell", () => {
       unreadCount: 150,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const badge = screen.getByText("99+");
     expect(badge).toBeInTheDocument();
   });
 
   it("should show correct connection status indicator", () => {
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     // Connected status should show green indicator
     const indicator = document.querySelector(".bg-green-500");
@@ -115,7 +116,7 @@ describe("NotificationBell", () => {
       },
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const indicator = document.querySelector(".bg-yellow-500");
     expect(indicator).toBeInTheDocument();
@@ -132,7 +133,7 @@ describe("NotificationBell", () => {
       },
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const indicator = document.querySelector(".bg-red-500");
     expect(indicator).toBeInTheDocument();
@@ -140,7 +141,7 @@ describe("NotificationBell", () => {
 
   it("should open dropdown when clicked", async () => {
     const user = userEvent.setup();
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -152,7 +153,7 @@ describe("NotificationBell", () => {
 
   it("should display notifications in dropdown", async () => {
     const user = userEvent.setup();
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -165,7 +166,7 @@ describe("NotificationBell", () => {
 
   it("should show unread count in dropdown header", async () => {
     const user = userEvent.setup();
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -184,7 +185,7 @@ describe("NotificationBell", () => {
       markAllAsRead: mockMarkAllAsRead,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -206,7 +207,7 @@ describe("NotificationBell", () => {
       refetch: mockRefetch,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -228,7 +229,7 @@ describe("NotificationBell", () => {
       unreadCount: 0,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -253,7 +254,7 @@ describe("NotificationBell", () => {
       unreadCount: 7,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -277,7 +278,7 @@ describe("NotificationBell", () => {
       },
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -296,7 +297,7 @@ describe("NotificationBell", () => {
       unreadCount: 0,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);
@@ -315,7 +316,7 @@ describe("NotificationBell", () => {
 
   it("should handle keyboard navigation", async () => {
     const user = userEvent.setup();
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     
@@ -343,7 +344,7 @@ describe("NotificationBell", () => {
       markAllAsRead: mockMarkAllAsRead,
     });
 
-    render(<NotificationBell />);
+    renderWithProviders(<NotificationBell />);
     
     const bellButton = screen.getByRole("button");
     await user.click(bellButton);

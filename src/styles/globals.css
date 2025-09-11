@@ -41,6 +41,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Shimmer animation for loading skeletons */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
 @theme {
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
@@ -172,13 +186,6 @@
 /* Utility class for fitting the board + player cards within viewport */
 .board-fit-max {
   max-width: calc(100vh - var(--board-vertical-offset));
-}
-
-/* Limit height only on tablet/mobile (single-column layouts) */
-@media (max-width: 1023px) {
-  .board-fit-max {
-    max-height: calc(100vh - var(--board-vertical-offset));
-  }
 }
 
 /* 3D Background Animations */

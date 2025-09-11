@@ -26,8 +26,11 @@ describe("Square Component", () => {
     const { container } = render(<Square {...defaultProps} />);
 
     const square = container.firstChild as HTMLElement;
-    expect(square.className).toContain("from-amber-100");
-    expect(square.className).toContain("to-amber-200");
+    // Check for CSS variable styles instead of Tailwind classes
+    const style = square.getAttribute('style') || '';
+    expect(style).toContain('linear-gradient');
+    expect(style).toContain('--board-light-from');
+    expect(style).toContain('--board-light-to');
     expect(square.className).toContain("shadow-inner");
   });
 
@@ -35,8 +38,11 @@ describe("Square Component", () => {
     const { container } = render(<Square {...defaultProps} isBlack={true} />);
 
     const square = container.firstChild as HTMLElement;
-    expect(square.className).toContain("from-amber-800");
-    expect(square.className).toContain("to-amber-900");
+    // Check for CSS variable styles instead of Tailwind classes
+    const style = square.getAttribute('style') || '';
+    expect(style).toContain('linear-gradient');
+    expect(style).toContain('--board-dark-from');
+    expect(style).toContain('--board-dark-to');
   });
 
   it("should show selection ring when selected", () => {
@@ -45,8 +51,10 @@ describe("Square Component", () => {
     );
 
     const square = container.firstChild as HTMLElement;
-    expect(square.className).toContain("ring-4");
-    expect(square.className).toContain("ring-blue-500");
+    // Check for boxShadow style instead of ring classes
+    const style = square.getAttribute('style') || '';
+    expect(style).toContain('box-shadow');
+    expect(style).toContain('--board-selected-ring');
   });
 
   it("should show highlight ring when highlighted", () => {
@@ -55,8 +63,10 @@ describe("Square Component", () => {
     );
 
     const square = container.firstChild as HTMLElement;
-    expect(square.className).toContain("ring-4");
-    expect(square.className).toContain("ring-yellow-400");
+    // Check for boxShadow style instead of ring classes
+    const style = square.getAttribute('style') || '';
+    expect(style).toContain('box-shadow');
+    expect(style).toContain('--board-highlighted-ring');
   });
 
   it("should show move indicator when possible move", () => {
@@ -64,8 +74,8 @@ describe("Square Component", () => {
       <Square {...defaultProps} isPossibleMove={true} />,
     );
 
-    // Check for the move indicator div
-    const indicator = container.querySelector(".before\\:bg-green-400\\/50");
+    // Check for the move indicator div with animate-pulse
+    const indicator = container.querySelector(".animate-pulse");
     expect(indicator).toBeDefined();
 
     const square = container.firstChild as HTMLElement;
@@ -138,7 +148,7 @@ describe("Square Component", () => {
       <Square {...defaultProps} isPossibleMove={true} />,
     );
 
-    const indicator = container.querySelector(".before\\:animate-pulse");
+    const indicator = container.querySelector(".animate-pulse");
     expect(indicator).toBeDefined();
   });
 });

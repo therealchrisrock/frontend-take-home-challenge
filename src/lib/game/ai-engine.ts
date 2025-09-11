@@ -194,6 +194,12 @@ export class CheckersAI {
     console.log(
       `AI evaluated ${this.nodesEvaluated} nodes in ${Date.now() - this.startTime}ms`,
     );
+    
+    // Fallback: if no move found through iterative deepening, try random move
+    if (!bestMove) {
+      bestMove = this.getRandomMove(board, color);
+    }
+    
     return bestMove;
   }
 

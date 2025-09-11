@@ -1,6 +1,6 @@
 import { type Metadata } from "next";
+import SimpleUsersList from "~/app/(checkers)/users/_components/simple-users-list";
 import { getServerAuthSession } from "~/server/auth";
-import UsersBrowser from "~/app/(checkers)/users/_components/UsersBrowser";
 
 export const metadata: Metadata = {
   title: "Player Directory",
@@ -27,7 +27,7 @@ export default async function UsersPage() {
         </p>
       </div>
 
-      <UsersBrowser currentUserId={session?.user?.id} />
+      <SimpleUsersList currentUserId={session?.user?.id} />
     </div>
   );
 }

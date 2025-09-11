@@ -1,5 +1,8 @@
 "use client";
 
+import { Handshake, Trophy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,13 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { Trophy, Handshake } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import type { PieceColor } from "~/lib/game/logic";
 import type { DrawResult } from "~/lib/game/draw-detection";
+import type { PieceColor } from "~/lib/game/logic";
 import { api } from "~/trpc/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 interface WinnerDialogProps {
   winner: PieceColor | "draw" | null;
@@ -69,6 +69,16 @@ export function WinnerDialog({
       aiDifficulty: gameMode === "ai" ? aiDifficulty : undefined,
       timeControl,
     });
+  };
+
+  const handleReturnToConfig = () => {
+    const configPath =
+      gameMode === "ai"
+        ? "/game/bot"
+        : gameMode === "local"
+          ? "/game/local"
+          : "/game/friend";
+    router.push(configPath);
   };
 
   if (!winner) return null;
@@ -168,12 +178,19 @@ export function WinnerDialog({
                 Analyze Game
               </Button>
             )}
+            <Button
+              onClick={handleReturnToConfig}
+              variant="outline"
+              className="flex-1"
+            >
+              Return to Game Config
+            </Button>
             <AlertDialogAction
               onClick={handlePlayAgain}
               className="flex-1"
               disabled={isCreatingGame}
             >
-              {isCreatingGame ? "Creating..." : "Play Again"}
+              {isCreatingGame ? "Creating..." : "Rematch"}
             </AlertDialogAction>
           </div>
         </AlertDialogFooter>

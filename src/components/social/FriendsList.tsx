@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -209,9 +210,12 @@ export function FriendsList() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">
+                      <Link
+                        href={`/users/${friend.username}`}
+                        className="font-medium hover:underline"
+                      >
                         {friend.name ?? friend.username}
-                      </p>
+                      </Link>
                       <p className="text-muted-foreground text-sm">
                         @{friend.username}
                       </p>
@@ -298,9 +302,12 @@ export function FriendsList() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">
+                      <Link
+                        href={`/users/${request.sender.username}`}
+                        className="font-medium hover:underline"
+                      >
                         {request.sender.name ?? request.sender.username}
-                      </p>
+                      </Link>
                       <p className="text-muted-foreground text-sm">
                         @{request.sender.username}
                       </p>
@@ -378,9 +385,12 @@ export function FriendsList() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">
+                        <Link
+                          href={`/users/${user.username}`}
+                          className="font-medium hover:underline"
+                        >
                           {user.name ?? user.username}
-                        </p>
+                        </Link>
                         <p className="text-muted-foreground text-sm">
                           @{user.username}
                         </p>
@@ -435,9 +445,12 @@ export function FriendsList() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">
+                      <Link
+                        href={`/users/${user.username}`}
+                        className="font-medium hover:underline"
+                      >
                         {user.name ?? user.username}
-                      </p>
+                      </Link>
                       <p className="text-muted-foreground text-sm">
                         @{user.username}
                       </p>

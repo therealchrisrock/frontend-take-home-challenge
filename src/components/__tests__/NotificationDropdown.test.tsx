@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithProviders } from "~/test/test-utils";
 import { api } from "~/trpc/react";
 import { toast } from "~/hooks/use-toast";
 import { NotificationDropdown } from "~/components/NotificationDropdown";
@@ -85,7 +86,7 @@ describe("NotificationDropdown", () => {
   });
 
   it("renders notification bell with correct badge count", () => {
-    render(<NotificationDropdown messageCount={1} />);
+    renderWithProviders(<NotificationDropdown messageCount={1} />);
 
     const bell = screen.getByRole("button");
     expect(bell).toBeInTheDocument();
@@ -100,7 +101,7 @@ describe("NotificationDropdown", () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     expect(bell).toBeInTheDocument();
@@ -114,14 +115,14 @@ describe("NotificationDropdown", () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<NotificationDropdown messageCount={10} />);
+    renderWithProviders(<NotificationDropdown messageCount={10} />);
     
     expect(screen.getByText("99+")).toBeInTheDocument();
   });
 
   it("opens dropdown when bell is clicked", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={1} />);
+    renderWithProviders(<NotificationDropdown messageCount={1} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -131,7 +132,7 @@ describe("NotificationDropdown", () => {
 
   it("displays friend request notifications when dropdown is open", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -145,7 +146,7 @@ describe("NotificationDropdown", () => {
 
   it("displays user avatars correctly", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -174,7 +175,7 @@ describe("NotificationDropdown", () => {
       refetch: mockRefetch,
     } as any);
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -194,7 +195,7 @@ describe("NotificationDropdown", () => {
 
   it("handles decline friend request", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -230,7 +231,7 @@ describe("NotificationDropdown", () => {
       return mockMutation as any;
     });
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     expect(toast).toHaveBeenCalledWith({
       title: "Success",
@@ -256,7 +257,7 @@ describe("NotificationDropdown", () => {
       return mockMutation as any;
     });
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     expect(toast).toHaveBeenCalledWith({
       title: "Error",
@@ -273,7 +274,7 @@ describe("NotificationDropdown", () => {
       isPending: true,
     } as any);
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -294,7 +295,7 @@ describe("NotificationDropdown", () => {
 
   it("displays message notifications", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={3} />);
+    renderWithProviders(<NotificationDropdown messageCount={3} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -308,7 +309,7 @@ describe("NotificationDropdown", () => {
 
   it("displays singular message text for one message", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={1} />);
+    renderWithProviders(<NotificationDropdown messageCount={1} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -331,7 +332,7 @@ describe("NotificationDropdown", () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -343,7 +344,7 @@ describe("NotificationDropdown", () => {
 
   it("shows 'View all notifications' link when there are notifications", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={1} />);
+    renderWithProviders(<NotificationDropdown messageCount={1} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -366,7 +367,7 @@ describe("NotificationDropdown", () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -377,7 +378,7 @@ describe("NotificationDropdown", () => {
   });
 
   it("listens for friend request events and refetches data", () => {
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     expect(global.addEventListener).toHaveBeenCalledWith(
       "friendRequestSent",
@@ -386,7 +387,7 @@ describe("NotificationDropdown", () => {
   });
 
   it("cleans up event listener on unmount", () => {
-    const { unmount } = render(<NotificationDropdown messageCount={0} />);
+    const { unmount } = renderWithProviders(<NotificationDropdown messageCount={0} />);
     
     unmount();
 
@@ -398,7 +399,7 @@ describe("NotificationDropdown", () => {
 
   it("formats timestamps correctly", async () => {
     const user = userEvent.setup();
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const bell = screen.getByRole("button");
     await user.click(bell);
@@ -410,7 +411,7 @@ describe("NotificationDropdown", () => {
   });
 
   it("only fetches notifications when dropdown is open", () => {
-    render(<NotificationDropdown messageCount={0} />);
+    renderWithProviders(<NotificationDropdown messageCount={0} />);
 
     const friendRequestQuery = vi.mocked(api.user.getFriendRequestNotifications.useQuery);
     
@@ -433,7 +434,7 @@ describe("NotificationDropdown", () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<NotificationDropdown messageCount={2} />);
+    renderWithProviders(<NotificationDropdown messageCount={2} />);
 
     // Should show message count even when friend request count is loading
     expect(screen.getByText("2")).toBeInTheDocument();

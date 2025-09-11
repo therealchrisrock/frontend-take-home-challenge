@@ -11,7 +11,8 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,208 +24,230 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import type { PieceColor } from "~/lib/game/logic";
+import { useGame } from "~/lib/game/state/game-context";
 
-interface GameControlPanelProps {
-  // History navigation props
-  currentMoveIndex: number;
-  totalMoves: number;
-  isPlaying?: boolean;
-  canNavigateHistory?: boolean;
-  onGoToStart: () => void;
-  onPreviousMove: () => void;
-  onTogglePlay: () => void;
-  onNextMove: () => void;
-  onGoToEnd: () => void;
-  
-  // Game action props
-  currentPlayer?: PieceColor;
-  winner?: PieceColor | "draw" | null;
-  isViewingHistory?: boolean;
-  isReviewMode?: boolean;
-  gameMode?: "ai" | "local" | "online";
-  playerColor?: PieceColor;
-  onResign?: (player: PieceColor) => void;
-  onRequestDraw?: () => void;
-  onAcceptDraw?: () => void;
-  onDeclineDraw?: () => void;
-  showDrawDialog?: boolean;
-  drawRequestedBy?: PieceColor | null;
-  onOpenSettings?: () => void;
-}
+interface GameControlPanelProps { }
 
-export function GameControlPanel({
-  // History navigation props
-  currentMoveIndex,
-  totalMoves,
-  isPlaying = false,
-  canNavigateHistory = true,
-  onGoToStart,
-  onPreviousMove,
-  onTogglePlay,
-  onNextMove,
-  onGoToEnd,
-  
-  // Game action props
-  currentPlayer,
-  winner,
-  isViewingHistory = false,
-  isReviewMode = false,
-  gameMode = "local",
-  playerColor = "red",
-  onResign,
-  onRequestDraw,
-  onAcceptDraw,
-  onDeclineDraw,
-  showDrawDialog = false,
-  drawRequestedBy = null,
-  onOpenSettings,
-}: GameControlPanelProps) {
+export function GameControlPanel({ }: GameControlPanelProps) {
+  const { state, dispatch } = useGame();
   const [showResignDialog, setShowResignDialog] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-play functionality (history review)
+  useEffect(() => {
+    if (isPlaying && state.moveHistory.length > 0) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+
+      intervalRef.current = setInterval(() => {
+        const nextMove = state.currentMoveIndex + 1;
+        if (nextMove >= state.moveHistory.length) {
+          setIsPlaying(false);
+        } else {
+          dispatch({ type: "NAVIGATE_TO_MOVE", payload: nextMove });
+        }
+      }, 1000);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+  }, [isPlaying, state.currentMoveIndex, state.moveHistory.length, dispatch]);
 
   // Game controls state
-  const canInteract = !winner && !isViewingHistory && !isReviewMode;
-  const canRequestDraw = canInteract && gameMode === "local" && onRequestDraw;
+  const canInteract = !state.winner && !state.isViewingHistory && !state.isReviewMode;
+  const canRequestDraw = canInteract && state.gameMode === "online";
   const canResign =
     canInteract &&
-    onResign &&
-    currentPlayer &&
-    (gameMode === "local" ||
-      (gameMode === "ai" && currentPlayer === playerColor));
+    !!state.currentPlayer &&
+    (state.gameMode === "local" ||
+      (state.gameMode === "ai" && state.currentPlayer === state.playerColor));
 
   const handleResign = () => {
-    if (!onResign || !currentPlayer) return;
-    
-    if (gameMode === "local") {
-      onResign(currentPlayer);
-    } else if (gameMode === "ai") {
-      onResign(playerColor);
+    if (!state.currentPlayer) return;
+    if (state.gameMode === "local") {
+      dispatch({ type: "RESIGN", payload: state.currentPlayer });
+    } else if (state.gameMode === "ai") {
+      dispatch({ type: "RESIGN", payload: state.playerColor as PieceColor });
     }
     setShowResignDialog(false);
   };
 
   const handleDrawRequest = () => {
-    if (onRequestDraw) {
-      onRequestDraw();
-    }
+    dispatch({ type: "REQUEST_DRAW" });
   };
 
   return (
     <>
       {/* Hardware-Style Control Grid */}
-      <div className="relative inline-block overflow-hidden rounded-lg bg-gray-200 shadow-inner dark:bg-gray-700">
-        {/* Top Row - Playback Controls (5 buttons) */}
-        {canNavigateHistory && (
-          <div className="flex">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onGoToStart}
-              disabled={currentMoveIndex === 0}
-              className="h-12 w-12 rounded-none border-0 border-r border-gray-300 hover:bg-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Go to start"
-            >
-              <SkipBack className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onPreviousMove}
-              disabled={currentMoveIndex === 0}
-              className="h-12 w-12 rounded-none border-0 border-r border-gray-300 hover:bg-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Previous move"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onTogglePlay}
-              disabled={currentMoveIndex >= totalMoves}
-              className="h-12 w-12 rounded-none border-0 border-r border-gray-300 hover:bg-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
+      <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        {/* Move Counter Overlay */}
+        {state.moveHistory.length > 0 && (
+          <div className="flex justify-between items-center p-2 border-b">
+            <div>
+              {state.currentMoveIndex !== state.moveHistory.length - 1 && (
+                <button className="text-xs text-gray-500  cursor-pointer underline" onClick={() =>
+                  dispatch({
+                    type: "NAVIGATE_TO_MOVE",
+                    payload: state.moveHistory.length - 1,
+                  })
+                }>Return to Game</button>
               )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNextMove}
-              disabled={currentMoveIndex >= totalMoves}
-              className="h-12 w-12 rounded-none border-0 border-r border-gray-300 hover:bg-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Next move"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onGoToEnd}
-              disabled={currentMoveIndex >= totalMoves}
-              className="h-12 w-12 rounded-none border-0 hover:bg-gray-300 dark:hover:bg-gray-600"
-              title="Go to end"
-            >
-              <SkipForward className="h-5 w-5" />
-            </Button>
+            </div>
+            <span className="text-xs text-gray-500"> Move {Math.max(0, state.currentMoveIndex + 1)} of {state.moveHistory.length}</span>
+          </div>
+        )}
+        {/* Top Row - Playback Controls (5 buttons) */}
+        {true && (
+          <div className="flex">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: -1 })}
+                  disabled={state.currentMoveIndex <= -1 || state.moveHistory.length === 0}
+                  className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:opacity-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                >
+                  <SkipBack className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Go to start</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex - 1 })}
+                  disabled={state.currentMoveIndex <= -1 || state.moveHistory.length === 0}
+                  className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:opacity-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Previous move</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  disabled={state.moveHistory.length === 0 || state.currentMoveIndex >= state.moveHistory.length - 1}
+                  className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:opacity-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                >
+                  {isPlaying ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isPlaying ? "Pause" : "Play"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.currentMoveIndex + 1 })}
+                  disabled={state.moveHistory.length === 0 || state.currentMoveIndex >= state.moveHistory.length - 1}
+                  className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:opacity-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Next move</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => dispatch({ type: "NAVIGATE_TO_MOVE", payload: state.moveHistory.length - 1 })}
+                  disabled={state.moveHistory.length === 0 || state.currentMoveIndex >= state.moveHistory.length - 1}
+                  className="h-12 flex-1 rounded-none border-0 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 disabled:opacity-100 disabled:cursor-not-allowed dark:hover:bg-gray-700 dark:disabled:bg-gray-900 dark:disabled:text-gray-600"
+                >
+                  <SkipForward className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Go to end</TooltipContent>
+            </Tooltip>
           </div>
         )}
 
         {/* Bottom Row - Game Actions (flexible width) */}
-        <div className="flex border-t border-gray-300 dark:border-gray-600">
-          {canRequestDraw && (
-            <Button
-              onClick={handleDrawRequest}
-              variant="ghost"
-              size="icon"
-              className="h-12 flex-1 rounded-none border-0 border-r border-gray-300 hover:bg-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              title="Request draw"
-            >
-              <Handshake className="h-5 w-5" />
-            </Button>
-          )}
+        <div className="flex border-t border-gray-200 dark:border-gray-700">
 
-          {canResign && (
-            <Button
-              onClick={() => setShowResignDialog(true)}
-              variant="ghost"
-              size="icon"
-              className={`h-12 flex-1 rounded-none border-0 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950 ${
-                canRequestDraw && onOpenSettings ? "border-r border-gray-300 dark:border-gray-600" : 
-                onOpenSettings ? "border-r border-gray-300 dark:border-gray-600" : ""
-              }`}
-              title="Resign"
-            >
-              <Flag className="h-5 w-5" />
-            </Button>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleDrawRequest}
+                variant="ghost"
+                size="icon"
+                disabled={!canRequestDraw}
+                className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700"
+              >
+                <Handshake className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Request draw</TooltipContent>
+          </Tooltip>
 
-          {onOpenSettings && (
-            <Button
-              onClick={onOpenSettings}
-              variant="ghost"
-              size="icon"
-              className="h-12 flex-1 rounded-none border-0 hover:bg-gray-300 dark:hover:bg-gray-600"
-              title="Settings"
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          )}
+
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowResignDialog(true)}
+                variant="ghost"
+                size="icon"
+                disabled={!canResign}
+                className={`h-12 flex-1 rounded-none border-0 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed dark:hover:bg-red-950 border-r border-gray-200 dark:border-gray-700`}
+              >
+                <Flag className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Resign</TooltipContent>
+          </Tooltip>
+
+
+          <GameSettings>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 flex-1 rounded-none border-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Settings</TooltipContent>
+            </Tooltip>
+          </GameSettings>
         </div>
 
-        {/* Move Counter Overlay */}
-        {canNavigateHistory && totalMoves > 0 && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rounded bg-gray-800 px-1 py-0.5 text-xs text-white dark:bg-gray-200 dark:text-gray-800">
-            {currentMoveIndex}/{totalMoves}
-          </div>
-        )}
+
       </div>
 
       {/* Resign Confirmation Dialog */}
-      {onResign && (
+      {canResign && (
         <AlertDialog open={showResignDialog} onOpenChange={setShowResignDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -232,8 +255,8 @@ export function GameControlPanel({
               <AlertDialogDescription>
                 Are you sure you want to resign? This will end the game and
                 declare{" "}
-                {gameMode === "local"
-                  ? `${currentPlayer === "red" ? "Black" : "Red"}`
+                {state.gameMode === "local"
+                  ? `${state.currentPlayer === "red" ? "Black" : "Red"}`
                   : "your opponent"}{" "}
                 as the winner.
               </AlertDialogDescription>
@@ -251,24 +274,24 @@ export function GameControlPanel({
         </AlertDialog>
       )}
 
-      {/* Draw Request Dialog (for local play) */}
-      {gameMode === "local" && onAcceptDraw && onDeclineDraw && (
-        <AlertDialog open={showDrawDialog} onOpenChange={() => onDeclineDraw()}>
+      {/* Draw Request Dialog (for online play only) */}
+      {state.gameMode === "online" && (
+        <AlertDialog open={state.showDrawDialog} onOpenChange={() => dispatch({ type: "DIALOGS", payload: { showDrawDialog: false } })}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Draw Requested</AlertDialogTitle>
               <AlertDialogDescription>
-                {drawRequestedBy === currentPlayer
+                {state.drawRequestedBy === state.currentPlayer
                   ? "Waiting for opponent to accept draw..."
-                  : `${drawRequestedBy === "red" ? "Red" : "Black"} has requested a draw. Do you accept?`}
+                  : `${state.drawRequestedBy === "red" ? "Red" : "Black"} has requested a draw. Do you accept?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {drawRequestedBy !== currentPlayer && (
+            {state.drawRequestedBy !== state.currentPlayer && (
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={onDeclineDraw}>
+                <AlertDialogCancel onClick={() => dispatch({ type: "DIALOGS", payload: { showDrawDialog: false } })}>
                   Decline
                 </AlertDialogCancel>
-                <AlertDialogAction onClick={onAcceptDraw}>
+                <AlertDialogAction onClick={() => dispatch({ type: "ACCEPT_DRAW" })}>
                   Accept Draw
                 </AlertDialogAction>
               </AlertDialogFooter>
