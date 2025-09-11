@@ -247,7 +247,7 @@ export default function GameReplayController({
     return gameData.player2?.name ?? gameData.player2?.username ?? "Player 2";
   };
 
-  const mustCapturePositions = getMustCapturePositions(board, currentPlayer);
+  // Remove unused mustCapturePositions variable
 
   return (
     <div className="space-y-6">
@@ -293,7 +293,7 @@ export default function GameReplayController({
                   <Board
                     board={board}
                     currentPlayer={currentPlayer}
-                    onSquareClick={analysisMode ? handleSquareClick : () => {}}
+                    onSquareClick={analysisMode ? handleSquareClick : () => undefined}
                     selectedPosition={analysisMode ? selectedPosition : null}
                     validMoves={analysisMode ? validMoves : []}
                     onDragStart={() => {

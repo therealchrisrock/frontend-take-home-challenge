@@ -233,17 +233,17 @@ describe("Game Engine Integration Tests", () => {
       const moves2 = game2.findValidMoves(board2, "red");
       const moves3 = game3.findValidMoves(board3, "red");
 
-      if (moves1.length > 0) {
+      if (moves1.length > 0 && moves1[0]) {
         const newBoard1 = game1.makeMove(board1, moves1[0]);
         expect(newBoard1).not.toBe(board1); // Should be a new board
       }
 
-      if (moves2.length > 0) {
+      if (moves2.length > 0 && moves2[0]) {
         const newBoard2 = game2.makeMove(board2, moves2[0]);
         expect(newBoard2).not.toBe(board2);
       }
 
-      if (moves3.length > 0) {
+      if (moves3.length > 0 && moves3[0]) {
         const newBoard3 = game3.makeMove(board3, moves3[0]);
         expect(newBoard3).not.toBe(board3);
       }
@@ -370,10 +370,12 @@ describe("Game Engine Integration Tests", () => {
       const config = GameConfigLoader.loadVariant("american");
 
       // In tournament mode with 3-move restriction
-      if (config.tournament?.threeMove?.enabled) {
-        // Should have specific opening sequences defined
-        expect(config.tournament.threeMove.sequences).toBeDefined();
-        expect(config.tournament.threeMove.sequences.length).toBeGreaterThan(0);
+      if (config.openingRestrictions?.threeMove) {
+        // Should have specific opening positions defined
+        expect(config.openingRestrictions.customPositions).toBeDefined();
+        if (config.openingRestrictions.customPositions) {
+          expect(config.openingRestrictions.customPositions.length).toBeGreaterThan(0);
+        }
       }
     });
   });
@@ -414,8 +416,11 @@ describe("Game Engine Integration Tests", () => {
       const moveHistory: Move[] = [];
 
       for (let i = 0; i < 3 && i < moves.length; i++) {
-        currentBoard = rules.makeMove(currentBoard, moves[i]);
-        moveHistory.push(moves[i]);
+        const move = moves[i];
+        if (move) {
+          currentBoard = rules.makeMove(currentBoard, move);
+          moveHistory.push(move);
+        }
       }
 
       // Serialize state

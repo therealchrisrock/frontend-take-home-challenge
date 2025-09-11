@@ -206,7 +206,7 @@ export function useAudioWarnings({
 
   const isSupported =
     typeof window !== "undefined" &&
-    (window.AudioContext ||
+    !!(window.AudioContext ||
       (window as { webkitAudioContext?: typeof AudioContext })
         .webkitAudioContext);
 

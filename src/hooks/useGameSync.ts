@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { OptimisticUpdateManager } from "~/lib/optimistic-updates";
 import { api } from "~/trpc/react";
 import type { Move, Board, PieceColor } from "~/lib/game/logic";
+import { MultiTabSyncManager } from "~/lib/multi-tab/sync-manager";
 
 export interface GameSyncState {
   isConnected: boolean;
@@ -57,9 +58,11 @@ export function useGameSync(
   const optimisticManagerRef = useRef<OptimisticUpdateManager | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const syncManager = useMemo(() => new MultiTabSyncManager(), []);
+  const tabId = syncManager.getTabId;
 
   // tRPC mutations
-  const makeMoveApi = api.simplifiedGame.makeMove.useMutation();
+  const makeMoveApi = api.game.makeMove.useMutation();
 
   // Initialize optimistic update manager
   useEffect(() => {
@@ -220,6 +223,7 @@ export function useGameSync(
         // Send move to server
         const result = await makeMoveApi.mutateAsync({
           gameId,
+          tabId,
           move,
           optimisticMoveId: optimisticId,
         });
@@ -259,6 +263,7 @@ export function useGameSync(
       try {
         await makeMoveApi.mutateAsync({
           gameId: gameId!,
+          tabId,
           move,
         });
       } catch (error) {

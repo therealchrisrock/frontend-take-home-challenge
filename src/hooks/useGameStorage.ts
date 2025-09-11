@@ -70,27 +70,6 @@ export function useGameStorage({
   const storageRef = useRef<GameStorageAdapter | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize storage adapter
-  useEffect(() => {
-    storageRef.current ??= createStorageAdapter({
-      type: storageType,
-      autoSaveInterval,
-    });
-
-    // Check for saved game on mount
-    void checkForSavedGame();
-
-    return () => {
-      // Cleanup
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-      if (storageRef.current && "destroy" in storageRef.current) {
-        (storageRef.current as { destroy: () => void }).destroy();
-      }
-    };
-  }, [storageType, autoSaveInterval, checkForSavedGame]);
-
   const checkForSavedGame = useCallback(async (): Promise<boolean> => {
     if (!storageRef.current) return false;
 
@@ -129,6 +108,27 @@ export function useGameStorage({
       return false;
     }
   }, [gameId]);
+
+  // Initialize storage adapter
+  useEffect(() => {
+    storageRef.current ??= createStorageAdapter({
+      type: storageType,
+      autoSaveInterval,
+    });
+
+    // Check for saved game on mount
+    void checkForSavedGame();
+
+    return () => {
+      // Cleanup
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      if (storageRef.current && "destroy" in storageRef.current) {
+        (storageRef.current as { destroy: () => void }).destroy();
+      }
+    };
+  }, [storageType, autoSaveInterval, checkForSavedGame]);
 
   const saveGame = useCallback(
     async (state: GameState): Promise<void> => {

@@ -101,13 +101,13 @@ export function MotionPiece({
             damping: 25,
           },
         }}
-        exit={pieceCapture.exit}
+        exit={pieceCapture.exit as any}
         className={`relative ${getColorClasses()} flex items-center justify-center rounded-full transition-all duration-200 ${isDragging ? "z-50 cursor-grabbing" : "cursor-grab"} ${pieceStyle === "minimal" ? "h-[80%] w-[80%]" : "h-[85%] w-[85%]"} `}
         style={{
           aspectRatio: "1",
         }}
       >
-        {piece.isKing && (
+        {piece.type === 'king' && (
           <m.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{

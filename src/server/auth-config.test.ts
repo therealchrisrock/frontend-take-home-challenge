@@ -324,8 +324,8 @@ describe("NextAuth Configuration Tests", () => {
       ];
 
       expect(providers).toHaveLength(2);
-      expect(providers[0].id).toBe("discord");
-      expect(providers[1].id).toBe("credentials");
+      expect(providers[0]!.id).toBe("discord");
+      expect(providers[1]!.id).toBe("credentials");
     });
   });
 });

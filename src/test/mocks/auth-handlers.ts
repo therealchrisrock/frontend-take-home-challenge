@@ -8,7 +8,7 @@ import { createMockUser, createMockSession } from "~/test/auth-utils";
 
 // Create tRPC MSW instance
 export const trpcMsw = createTRPCMsw<AppRouter>({
-  transformer: superjson,
+  transformer: superjson as any,
 });
 
 // Store for mock data
@@ -131,8 +131,8 @@ export const nextAuthHandlers = [
     const oauthUser = createMockUser({
       email: "oauth@example.com",
       name: "OAuth User",
-      username: null,
-      password: null,
+      username: undefined,
+      password: undefined,
       image: "https://cdn.discordapp.com/avatar.png",
     });
 

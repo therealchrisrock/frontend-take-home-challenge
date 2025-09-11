@@ -446,7 +446,7 @@ describe("Edge Cases and Complex Scenarios", () => {
 
         // Find and make a move
         const moves = rules.findValidMoves(originalBoard, "red");
-        if (moves.length > 0) {
+        if (moves.length > 0 && moves[0]) {
           const newBoard = rules.makeMove(originalBoard, moves[0]);
 
           // Original board should be unchanged
@@ -491,7 +491,7 @@ describe("Edge Cases and Complex Scenarios", () => {
         "red",
       );
 
-      if (americanMoves.length > 0) {
+      if (americanMoves.length > 0 && americanMoves[0]) {
         americanRules.makeMove(americanBoard, americanMoves[0]);
       }
 

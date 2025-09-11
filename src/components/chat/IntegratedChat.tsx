@@ -47,7 +47,7 @@ export function IntegratedChat({}: IntegratedChatProps) {
       id: "2",
       title: "Game Invite",
       message: "Sarah invited you to play",
-      type: "game_invite",
+      type: "system" as const,
       timestamp: new Date(),
       read: false,
       actionData: { gameId: "game456" },

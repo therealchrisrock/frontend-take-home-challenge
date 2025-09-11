@@ -68,19 +68,19 @@ describe("Variant Rules Configuration System", () => {
   describe("getBoardGridStyle", () => {
     it("should generate correct CSS for 8x8 board", () => {
       const style = getBoardGridStyleFromSize(8);
-      expect(style["--board-size"]).toBe("8");
+      expect((style as any)["--board-size"]).toBe("8");
       expect(style.gridTemplateColumns).toBe("repeat(8, minmax(0, 1fr))");
     });
 
     it("should generate correct CSS for 10x10 board", () => {
       const style = getBoardGridStyleFromSize(10);
-      expect(style["--board-size"]).toBe("10");
+      expect((style as any)["--board-size"]).toBe("10");
       expect(style.gridTemplateColumns).toBe("repeat(10, minmax(0, 1fr))");
     });
 
     it("should generate correct CSS for 12x12 board", () => {
       const style = getBoardGridStyleFromSize(12);
-      expect(style["--board-size"]).toBe("12");
+      expect((style as any)["--board-size"]).toBe("12");
       expect(style.gridTemplateColumns).toBe("repeat(12, minmax(0, 1fr))");
     });
   });

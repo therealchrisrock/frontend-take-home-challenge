@@ -132,7 +132,7 @@ export function TimeControlSelector({
     if (!selectedPreset) {
       handleCustomChange();
     }
-  }, []);
+  }, [selectedPreset, handleCustomChange]);
 
   const handleApply = () => {
     if (selectedPreset) {

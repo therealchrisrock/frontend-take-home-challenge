@@ -22,8 +22,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "regular" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "regular" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const serialized = serializeBoard(board, "red");
       expect(serialized).toContain("br");
@@ -35,12 +35,12 @@ describe("Draw Detection", () => {
       const board1: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board1[0][1] = { color: "black", type: "regular" };
+      board1[0]![1] = { color: "black", type: "regular" };
 
       const board2: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board2[0][3] = { color: "black", type: "regular" };
+      board2[0]![3] = { color: "black", type: "regular" };
 
       const serial1 = serializeBoard(board1, "red");
       const serial2 = serializeBoard(board2, "red");
@@ -229,8 +229,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const state = createDrawState();
       state.movesSinceCapture = 50;
@@ -243,9 +243,9 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
-      board[3][4] = { color: "red", type: "regular" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
+      board[3]![4] = { color: "red", type: "regular" };
 
       const state = createDrawState();
       state.movesSinceCapture = 50;
@@ -258,8 +258,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const state = createDrawState();
       state.movesSinceCapture = 49;
@@ -274,8 +274,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const result = checkInsufficientMaterial(board, testConfig);
       expect(result).toBe(true);
@@ -285,9 +285,9 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
-      board[4][3] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
+      board[4]![3] = { color: "red", type: "king" };
 
       const result = checkInsufficientMaterial(board, testConfig);
       expect(result).toBe(true);
@@ -297,9 +297,9 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[0][3] = { color: "black", type: "regular" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[0]![3] = { color: "black", type: "regular" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const result = checkInsufficientMaterial(board, testConfig);
       expect(result).toBe(false);
@@ -309,10 +309,10 @@ describe("Draw Detection", () => {
       const board: Board = Array(10)
         .fill(null)
         .map(() => Array(10).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[9][8] = { color: "red", type: "king" };
-      board[5][4] = { color: "red", type: "king" };
-      board[6][5] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[9]![8] = { color: "red", type: "king" };
+      board[5]![4] = { color: "red", type: "king" };
+      board[6]![5] = { color: "red", type: "king" };
 
       const config = { ...testConfig };
       config.board.size = 10;
@@ -325,10 +325,10 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
-      board[5][4] = { color: "red", type: "king" };
-      board[6][5] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
+      board[5]![4] = { color: "red", type: "king" };
+      board[6]![5] = { color: "red", type: "king" };
 
       // Three vs one is actually insufficient on 8x8
       const result = checkInsufficientMaterial(board, testConfig);
@@ -341,8 +341,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "regular" };
-      board[7][6] = { color: "red", type: "regular" };
+      board[0]![1] = { color: "black", type: "regular" };
+      board[7]![6] = { color: "red", type: "regular" };
       const state = createDrawState();
       state.positionCounts.set("test-position", 3);
 
@@ -354,8 +354,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "regular" };
-      board[7][6] = { color: "red", type: "regular" };
+      board[0]![1] = { color: "black", type: "regular" };
+      board[7]![6] = { color: "red", type: "regular" };
       const state = createDrawState();
       state.movesSinceCapture = 80;
       state.movesSincePromotion = 80;
@@ -368,8 +368,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const state = createDrawState();
 
@@ -389,8 +389,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const state = createDrawState();
       // Both repetition and insufficient material conditions
@@ -407,8 +407,8 @@ describe("Draw Detection", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][1] = { color: "black", type: "king" };
-      board[7][6] = { color: "red", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
+      board[7]![6] = { color: "red", type: "king" };
 
       const state = createDrawState();
 
@@ -423,7 +423,7 @@ describe("Draw Detection", () => {
         .fill(null)
         .map(() => Array(8).fill(null));
       // Red has no pieces
-      board[0][1] = { color: "black", type: "king" };
+      board[0]![1] = { color: "black", type: "king" };
 
       const state = createDrawState();
       state.movesSinceCapture = 80; // Would be draw by forty-move rule

@@ -65,7 +65,7 @@ export function MotionColorSelector({
                 whileTap={{ scale: 0.98 }}
               >
                 <AnimatePresence mode="wait">
-                  {color.icon ? (
+                  {'icon' in color ? (
                     <m.div
                       key="random-icon"
                       initial={{ scale: 0, rotate: -180 }}
@@ -104,7 +104,7 @@ export function MotionColorSelector({
                       }}
                     >
                       <m.div
-                        className={`h-5 w-5 rounded-full ${color.color} border-2 ${color.border}`}
+                        className={`h-5 w-5 rounded-full ${'color' in color ? color.color : ''} border-2 ${'border' in color ? color.border : ''}`}
                         animate={{
                           scale:
                             isHovering === color.id
@@ -122,7 +122,7 @@ export function MotionColorSelector({
                       />
                       {value === color.id && (
                         <m.div
-                          className={`absolute inset-0 rounded-full ${color.color} opacity-30`}
+                          className={`absolute inset-0 rounded-full ${'color' in color ? color.color : ''} opacity-30`}
                           initial={{ scale: 0.8 }}
                           animate={{
                             scale: [1, 1.5, 1],

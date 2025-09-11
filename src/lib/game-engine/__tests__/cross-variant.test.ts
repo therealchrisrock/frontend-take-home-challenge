@@ -553,7 +553,7 @@ describe("Cross-Variant Tests", () => {
 
           // Make a few moves
           const moves = rules.findValidMoves(board, "red");
-          if (moves.length > 0) {
+          if (moves.length > 0 && moves[0]) {
             rules.makeMove(board, moves[0]);
           }
         }

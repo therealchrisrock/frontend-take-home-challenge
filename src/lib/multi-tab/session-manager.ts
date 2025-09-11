@@ -144,7 +144,7 @@ export class GameSessionManager {
 
   isActiveTab(gameId: GameId, tabId: TabId): boolean {
     const gameSession = this.sessions.get(gameId);
-    return gameSession?.activeTabId === tabId ?? false;
+    return gameSession ? gameSession.activeTabId === tabId : false;
   }
 
   getSession(gameId: GameId): GameSession | undefined {

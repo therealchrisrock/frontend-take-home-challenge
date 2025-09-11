@@ -37,9 +37,9 @@ describe("Game Logic - Multiple Board Sizes", () => {
 
       for (let row = 0; row < pieceRows; row++) {
         for (let col = 0; col < rules.board.size; col++) {
-          if (board[row][col]?.color === "black") {
+          if (board[row]![col]?.color === "black") {
             blackPieces++;
-            expect(board[row][col]?.type).toBe("regular");
+            expect(board[row]![col]?.type).toBe("regular");
             // Should only be on dark squares
             expect((row + col) % 2).toBe(1);
           }
@@ -64,9 +64,9 @@ describe("Game Logic - Multiple Board Sizes", () => {
         row++
       ) {
         for (let col = 0; col < rules.board.size; col++) {
-          if (board[row][col]?.color === "red") {
+          if (board[row]![col]?.color === "red") {
             redPieces++;
-            expect(board[row][col]?.type).toBe("regular");
+            expect(board[row]![col]?.type).toBe("regular");
             // Should only be on dark squares
             expect((row + col) % 2).toBe(1);
           }
@@ -87,7 +87,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
 
       for (let row = startEmptyRow; row < endEmptyRow; row++) {
         for (let col = 0; col < rules.board.size; col++) {
-          expect(board[row][col]).toBeNull();
+          expect(board[row]![col]).toBeNull();
         }
       }
     });
@@ -135,7 +135,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
       // Find a red piece
       let redPosition: Position | null = null;
       for (let col = 0; col < rules.board.size; col++) {
-        if (board[redRow][col]?.color === "red") {
+        if (board[redRow]![col]?.color === "red") {
           redPosition = { row: redRow, col };
           break;
         }
@@ -165,7 +165,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
       ];
 
       corners.forEach((corner) => {
-        const piece = board[corner.row][corner.col];
+        const piece = board[corner.row]![corner.col];
         if (piece) {
           const moves = getValidMoves(board, corner, piece.color, rules);
           moves.forEach((move) => {
@@ -186,10 +186,10 @@ describe("Game Logic - Multiple Board Sizes", () => {
       const redKingRow = rules.promotion.customRows?.red?.[0] ?? 0;
       const testRow = redKingRow + 1;
       const testCol = 0;
-      board[testRow][testCol] = { color: "red", type: "regular" };
+      board[testRow]![testCol] = { color: "red", type: "regular" };
 
       // Clear the destination
-      board[redKingRow][testCol + 1] = null;
+      board[redKingRow]![testCol + 1] = null;
 
       const move = {
         from: { row: testRow, col: testCol },
@@ -197,7 +197,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
       };
 
       const newBoard = makeMove(board, move, rules);
-      const movedPiece = newBoard[redKingRow][testCol + 1];
+      const movedPiece = newBoard[redKingRow]![testCol + 1];
 
       expect(movedPiece).not.toBeNull();
       expect(movedPiece?.type).toBe("king");
@@ -212,10 +212,10 @@ describe("Game Logic - Multiple Board Sizes", () => {
         rules.promotion.customRows?.black?.[0] ?? rules.board.size - 1;
       const testRow = blackKingRow - 1;
       const testCol = 0;
-      board[testRow][testCol] = { color: "black", type: "regular" };
+      board[testRow]![testCol] = { color: "black", type: "regular" };
 
       // Clear the destination
-      board[blackKingRow][testCol + 1] = null;
+      board[blackKingRow]![testCol + 1] = null;
 
       const move = {
         from: { row: testRow, col: testCol },
@@ -223,7 +223,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
       };
 
       const newBoard = makeMove(board, move, rules);
-      const movedPiece = newBoard[blackKingRow][testCol + 1];
+      const movedPiece = newBoard[blackKingRow]![testCol + 1];
 
       expect(movedPiece).not.toBeNull();
       expect(movedPiece?.type).toBe("king");
@@ -243,20 +243,20 @@ describe("Game Logic - Multiple Board Sizes", () => {
       const midRow = Math.floor(rules.board.size / 2);
       const midCol = Math.floor(rules.board.size / 2);
 
-      board[midRow][midCol] = { color: "red", type: "regular" };
-      board[midRow - 1][midCol + 1] = { color: "black", type: "regular" };
+      board[midRow]![midCol] = { color: "red", type: "regular" };
+      board[midRow - 1]![midCol + 1] = { color: "black", type: "regular" };
 
       const captures = getCaptureMoves(
         board,
         { row: midRow, col: midCol },
-        board[midRow][midCol],
+        board[midRow]![midCol],
         rules,
       );
 
       if (captures.length > 0) {
-        expect(captures[0].to.row).toBe(midRow - 2);
-        expect(captures[0].to.col).toBe(midCol + 2);
-        expect(captures[0].captures).toEqual([
+        expect(captures[0]!.to.row).toBe(midRow - 2);
+        expect(captures[0]!.to.col).toBe(midCol + 2);
+        expect(captures[0]!.captures).toEqual([
           { row: midRow - 1, col: midCol + 1 },
         ]);
       }
@@ -271,9 +271,9 @@ describe("Game Logic - Multiple Board Sizes", () => {
       const midRow = Math.floor(rules.board.size / 2);
       const midCol = Math.floor(rules.board.size / 2);
 
-      board[midRow][midCol] = { color: "red", type: "regular" };
-      board[midRow - 1][midCol + 1] = { color: "black", type: "regular" };
-      board[midRow][midCol + 2] = { color: "red", type: "regular" }; // Another red piece
+      board[midRow]![midCol] = { color: "red", type: "regular" };
+      board[midRow - 1]![midCol + 1] = { color: "black", type: "regular" };
+      board[midRow]![midCol + 2] = { color: "red", type: "regular" }; // Another red piece
 
       const mustCapture = getMustCapturePositions(board, "red", rules);
       expect(mustCapture.length).toBeGreaterThan(0);
@@ -295,7 +295,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
         .map(() => Array(rules.board.size).fill(null));
 
       // Only red pieces on the board
-      board[rules.board.size - 2][1] = { color: "red", type: "regular" };
+      board[rules.board.size - 2]![1] = { color: "red", type: "regular" };
 
       const winner = checkWinner(board, rules);
       expect(winner).toBe("red");
@@ -307,10 +307,10 @@ describe("Game Logic - Multiple Board Sizes", () => {
         .map(() => Array(rules.board.size).fill(null));
 
       // Black piece completely blocked (cannot move forward)
-      board[rules.board.size - 1][1] = { color: "black", type: "regular" };
+      board[rules.board.size - 1]![1] = { color: "black", type: "regular" };
       // Add red pieces to ensure red can move
-      board[rules.board.size - 2][0] = { color: "red", type: "regular" };
-      board[rules.board.size - 2][2] = { color: "red", type: "regular" };
+      board[rules.board.size - 2]![0] = { color: "red", type: "regular" };
+      board[rules.board.size - 2]![2] = { color: "red", type: "regular" };
 
       const winner = checkWinner(board, rules);
       expect(winner).toBe("red");
@@ -338,7 +338,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
         expect(isValidSquare(aiMove.to.row, aiMove.to.col, rules)).toBe(true);
 
         // Verify the piece exists and belongs to AI
-        const piece = board[aiMove.from.row][aiMove.from.col];
+        const piece = board[aiMove.from.row]![aiMove.from.col];
         expect(piece).not.toBeNull();
         expect(piece?.color).toBe("red");
       }
@@ -353,8 +353,8 @@ describe("Game Logic - Multiple Board Sizes", () => {
       const midRow = Math.floor(rules.board.size / 2);
       const midCol = Math.floor(rules.board.size / 2);
 
-      board[midRow][midCol] = { color: "red", type: "regular" };
-      board[midRow - 1][midCol + 1] = { color: "black", type: "regular" };
+      board[midRow]![midCol] = { color: "red", type: "regular" };
+      board[midRow - 1]![midCol + 1] = { color: "black", type: "regular" };
 
       const aiMove = getRandomAIMove(board, "red", rules);
 
@@ -369,7 +369,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
   // Test specific piece counts for each variant
   describe("Piece counts per variant", () => {
     it("American checkers should have 12 pieces per side", () => {
-      const config = getBoardConfig("american");
+      const config = GameConfigLoader.exportVariant("american")!;
       const board = createInitialBoard(config);
       const pieces = board.flat().filter((p) => p !== null);
       const redPieces = pieces.filter((p) => p?.color === "red");
@@ -380,7 +380,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
     });
 
     it("International draughts should have 20 pieces per side", () => {
-      const config = getBoardConfig("international");
+      const config = GameConfigLoader.exportVariant("international")!;
       const board = createInitialBoard(config);
       const pieces = board.flat().filter((p) => p !== null);
       const redPieces = pieces.filter((p) => p?.color === "red");
@@ -391,7 +391,7 @@ describe("Game Logic - Multiple Board Sizes", () => {
     });
 
     it("Canadian checkers should have 30 pieces per side", () => {
-      const config = getBoardConfig("canadian");
+      const config = GameConfigLoader.exportVariant("canadian")!;
       const board = createInitialBoard(config);
       const pieces = board.flat().filter((p) => p !== null);
       const redPieces = pieces.filter((p) => p?.color === "red");

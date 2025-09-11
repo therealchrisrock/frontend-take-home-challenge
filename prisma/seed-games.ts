@@ -14,18 +14,18 @@ function generateBoardState(moveCount: number, winner: string | null) {
     // End game state - winner has more pieces
     if (winner === "red") {
       // Red wins - place more red pieces
-      board[0][1] = { type: "king", color: "red" };
-      board[0][3] = { type: "king", color: "red" };
-      board[1][2] = { type: "regular", color: "red" };
-      board[2][3] = { type: "regular", color: "red" };
-      board[7][6] = { type: "regular", color: "black" };
+      board[0]![1] = { type: "king", color: "red" };
+      board[0]![3] = { type: "king", color: "red" };
+      board[1]![2] = { type: "regular", color: "red" };
+      board[2]![3] = { type: "regular", color: "red" };
+      board[7]![6] = { type: "regular", color: "black" };
     } else if (winner === "black") {
       // Black wins - place more black pieces
-      board[7][2] = { type: "king", color: "black" };
-      board[7][4] = { type: "king", color: "black" };
-      board[6][3] = { type: "regular", color: "black" };
-      board[5][2] = { type: "regular", color: "black" };
-      board[0][1] = { type: "regular", color: "red" };
+      board[7]![2] = { type: "king", color: "black" };
+      board[7]![4] = { type: "king", color: "black" };
+      board[6]![3] = { type: "regular", color: "black" };
+      board[5]![2] = { type: "regular", color: "black" };
+      board[0]![1] = { type: "regular", color: "red" };
     }
   } else if (moveCount < 10) {
     // Early game - most pieces still on board
@@ -33,7 +33,7 @@ function generateBoardState(moveCount: number, winner: string | null) {
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          board[row][col] = { type: "regular", color: "red" };
+          board[row]![col] = { type: "regular", color: "red" };
         }
       }
     }
@@ -41,7 +41,7 @@ function generateBoardState(moveCount: number, winner: string | null) {
     for (let row = 5; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          board[row][col] = { type: "regular", color: "black" };
+          board[row]![col] = { type: "regular", color: "black" };
         }
       }
     }
@@ -63,7 +63,7 @@ function generateBoardState(moveCount: number, winner: string | null) {
     for (let i = 0; i < Math.min(piecesToPlace, positions.length); i++) {
       const pos = positions[i];
       if (pos) {
-        board[pos.row][pos.col] = pos.piece;
+        board[pos.row]![pos.col] = pos.piece;
       }
     }
   }

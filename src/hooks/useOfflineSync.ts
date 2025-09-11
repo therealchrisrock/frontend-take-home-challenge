@@ -45,30 +45,6 @@ export function useOfflineSync(
   const createGameMutation = api.game.create.useMutation();
   const saveGameMutation = api.game.save.useMutation();
 
-  // Monitor online status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setSyncError(null);
-      // Trigger sync when coming back online
-      if (enabled && pendingUpdatesRef.current.length > 0) {
-        void syncToServer();
-      }
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [enabled, syncToServer]);
-
   // Sync function to send pending updates to server
   const syncToServer = useCallback(async () => {
     if (
@@ -137,6 +113,30 @@ export function useOfflineSync(
     createGameMutation,
     saveGameMutation,
   ]);
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setSyncError(null);
+      // Trigger sync when coming back online
+      if (enabled && pendingUpdatesRef.current.length > 0) {
+        void syncToServer();
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [enabled, syncToServer]);
 
   // Queue a game update for syncing
   const queueGameUpdate = useCallback(

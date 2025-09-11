@@ -244,6 +244,8 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                   <ChatMessages
                     messages={[]}
                     currentUserId={session?.user?.id ?? ""}
+                    theme="light"
+                    fontSize="medium"
                   />
                 </div>
 
@@ -290,12 +292,11 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
           <ChatFriendsPopup
             isOpen={showFriends}
             onClose={() => setShowFriends(false)}
-            onSelectChannel={(channel) => {
-              setCurrentChannel(channel);
+            onOpenDM={(userId, userName) => {
+              // Handle opening a DM
               setShowFriends(false);
             }}
-            friends={[]}
-            channels={[currentChannel]}
+            theme="light"
           />
         )}
 
@@ -304,7 +305,10 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
             isOpen={showNotifications}
             onClose={() => setShowNotifications(false)}
             notifications={[]}
-            onClearAll={() => {}}
+            onNotificationRead={(id) => {
+              // Handle marking notification as read
+            }}
+            theme="light"
           />
         )}
 
@@ -313,11 +317,12 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
             isOpen={showSettings}
             onClose={() => setShowSettings(false)}
             settings={{
-              notifications: true,
-              soundEnabled: true,
               theme: "light",
+              chatOpacity: 1,
+              fontSize: "medium",
+              soundEnabled: true,
             }}
-            onSave={() => setShowSettings(false)}
+            onSettingsChange={() => setShowSettings(false)}
           />
         )}
       </AnimatePresence>

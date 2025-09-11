@@ -40,7 +40,7 @@ describe("Auth Router", () => {
   const createCaller = createCallerFactory(authRouter);
 
   const createMockContext = (session?: any) => ({
-    db: mockDb,
+    db: mockDb as any,
     session,
     headers: new Headers(),
   });
@@ -93,7 +93,7 @@ describe("Auth Router", () => {
       const caller = createCaller(createMockContext());
       await caller.register(validInput);
 
-      const createCall = mockDb.user.create.mock.calls[0][0];
+      const createCall = mockDb.user.create.mock.calls[0]![0];
       const hashedPassword = createCall.data.password;
       const isValidHash = await bcrypt.compare(
         validInput.password,
@@ -346,7 +346,7 @@ describe("Auth Router", () => {
       const caller = createCaller(createMockContext());
       await caller.resetPassword({ token: validToken, password: newPassword });
 
-      const updateCall = mockDb.user.update.mock.calls[0][0];
+      const updateCall = mockDb.user.update.mock.calls[0]![0];
       const hashedPassword = updateCall.data.password;
       const isValidHash = await bcrypt.compare(newPassword, hashedPassword);
 

@@ -33,7 +33,7 @@ export function useAutoSave() {
     saveTimeoutRef.current = setTimeout(() => {
       saveMutation.mutate(
         {
-          id: state.gameId,
+          id: state.gameId ?? "",
           board: state.board,
           currentPlayer: state.currentPlayer,
           moveCount: state.moveCount,

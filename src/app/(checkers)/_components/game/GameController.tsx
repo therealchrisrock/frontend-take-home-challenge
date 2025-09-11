@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { GameProvider } from "~/lib/game/state/game-context";
 import { GameScreen } from "~/app/(checkers)/_components/game/GameScreen";
 import { api } from "~/trpc/react";
@@ -49,14 +50,14 @@ export function GameController({ gameId }: GameControllerProps) {
             Game Not Found
           </h2>
           <p className="text-gray-600">
-            The game you're looking for doesn't exist or has been deleted.
+            The game you&apos;re looking for doesn&apos;t exist or has been deleted.
           </p>
-          <a
+          <Link
             href="/game"
             className="mt-4 inline-block text-amber-600 hover:text-amber-700"
           >
             Return to Game Menu
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -52,7 +52,7 @@ export function GameSettings({
       ease: "easeOut",
     });
     return () => controls.stop();
-  }, [settings.sfxVolume]);
+  }, [settings.sfxVolume, volumeMotion]);
 
   const handleSoundToggle = (enabled: boolean) => {
     updateSettings({ soundEffectsEnabled: enabled });

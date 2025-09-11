@@ -56,6 +56,9 @@ describe("NextAuth Configuration", () => {
       it("should properly format session with user data from token", () => {
         const mockSession = {
           user: {
+            id: "",
+            username: "",
+            needsUsername: false,
             email: "test@example.com",
             name: "Test User",
             image: null,
@@ -77,7 +80,7 @@ describe("NextAuth Configuration", () => {
           session: mockSession,
           token: mockToken,
           user: {} as any,
-        });
+        }) as any;
 
         expect(result.user.id).toBe("user-123");
         expect(result.user.username).toBe("testuser");
@@ -96,19 +99,22 @@ describe("NextAuth Configuration", () => {
         };
 
         const mockToken = {
+          userId: "" as any,
+          username: "" as any,
+          needsUsername: false as any,
           email: "test@example.com",
           name: "Test User",
           picture: null,
           sub: "user-123",
-        };
+        } as any;
 
         const result = await authOptions.callbacks!.jwt!({
           token: mockToken,
-          user: mockUser,
+          user: mockUser as any,
           account: null,
           profile: undefined,
-          trigger: undefined,
-        });
+          trigger: undefined as any,
+        } as any);
 
         expect(result.userId).toBe("user-123");
         expect(result.username).toBe("testuser");
@@ -125,19 +131,22 @@ describe("NextAuth Configuration", () => {
         };
 
         const mockToken = {
+          userId: "" as any,
+          username: "" as any,
+          needsUsername: false as any,
           email: "test@example.com",
           name: "Test User",
           picture: null,
           sub: "user-123",
-        };
+        } as any;
 
         const result = await authOptions.callbacks!.jwt!({
           token: mockToken,
-          user: mockUser,
+          user: mockUser as any,
           account: null,
           profile: undefined,
-          trigger: undefined,
-        });
+          trigger: undefined as any,
+        } as any);
 
         expect(result.needsUsername).toBe(true);
       });
@@ -292,7 +301,7 @@ describe("NextAuth Configuration", () => {
   describe("Events", () => {
     it("should update user with null username on createUser event", async () => {
       // Use mockDb directly
-      const mockUser = createMockUser({ username: null });
+      const mockUser = createMockUser({ username: undefined });
 
       await authOptions.events?.createUser?.({ user: mockUser });
 

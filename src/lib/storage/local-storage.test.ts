@@ -49,8 +49,8 @@ describe("LocalStorageAdapter", () => {
         moveCount: 10,
         moveHistory: [],
         gameMode: "ai",
-        gameStartTime: new Date(),
-        lastUpdated: Date.now(),
+        gameStartTime: new Date().toISOString(),
+        lastSaved: new Date().toISOString(),
         winner: null,
         version: 1,
       };
@@ -100,8 +100,8 @@ describe("LocalStorageAdapter", () => {
         moveCount: 10,
         moveHistory: [],
         gameMode: "ai",
-        gameStartTime: new Date(),
-        lastUpdated: Date.now(),
+        gameStartTime: new Date().toISOString(),
+        lastSaved: new Date().toISOString(),
         winner: null,
         version: 1,
       };
@@ -110,16 +110,20 @@ describe("LocalStorageAdapter", () => {
       const result = await adapter.loadGame("test-id");
 
       expect(result.success).toBe(true);
-      expect(result.data?.id).toBe("test-id");
-      expect(result.data?.currentPlayer).toBe("red");
-      expect(result.data?.moveCount).toBe(10);
+      if (result.success) {
+        expect(result.data?.id).toBe("test-id");
+        expect(result.data?.currentPlayer).toBe("red");
+        expect(result.data?.moveCount).toBe(10);
+      }
     });
 
     it("should return null if no game exists", async () => {
       const result = await adapter.loadGame("nonexistent");
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeNull();
+      if (result.success) {
+        expect(result.data).toBeNull();
+      }
       expect(mockStorage.getItem).toHaveBeenCalledWith(
         "checkers_game_nonexistent",
       );
@@ -133,7 +137,9 @@ describe("LocalStorageAdapter", () => {
 
       // Corrupted data should return an error
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe("INVALID_DATA");
+      if (!result.success) {
+        expect(result.error?.code).toBe("INVALID_DATA");
+      }
     });
 
     it("should handle partial data", async () => {
@@ -150,7 +156,9 @@ describe("LocalStorageAdapter", () => {
       // Partial data will still parse but might not have all fields
       // The adapter doesn't validate schema, just parses JSON
       expect(result.success).toBe(true);
-      expect(result.data?.id).toBe("test-id");
+      if (result.success) {
+        expect(result.data?.id).toBe("test-id");
+      }
     });
   });
 
@@ -165,8 +173,8 @@ describe("LocalStorageAdapter", () => {
         moveCount: 10,
         moveHistory: [],
         gameMode: "ai",
-        gameStartTime: new Date(),
-        lastUpdated: Date.now(),
+        gameStartTime: new Date().toISOString(),
+        lastSaved: new Date().toISOString(),
         winner: null,
         version: 1,
       };
@@ -201,8 +209,8 @@ describe("LocalStorageAdapter", () => {
         moveCount: 10,
         moveHistory: [],
         gameMode: "ai",
-        gameStartTime: new Date(),
-        lastUpdated: Date.now(),
+        gameStartTime: new Date().toISOString(),
+        lastSaved: new Date().toISOString(),
         winner: null,
         version: 1,
       };
@@ -211,20 +219,24 @@ describe("LocalStorageAdapter", () => {
       const result = await adapter.listGames();
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
-      expect(result.data?.[0]).toMatchObject({
-        id: "test-id",
-        moveCount: 10,
-        gameMode: "ai",
-        currentPlayer: "red",
-      });
+      if (result.success) {
+        expect(result.data).toHaveLength(1);
+        expect(result.data?.[0]).toMatchObject({
+          id: "test-id",
+          moveCount: 10,
+          gameMode: "ai",
+          currentPlayer: "red",
+        });
+      }
     });
 
     it("should return empty array if no games", async () => {
       const result = await adapter.listGames();
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+      if (result.success) {
+        expect(result.data).toEqual([]);
+      }
     });
   });
 
@@ -239,8 +251,8 @@ describe("LocalStorageAdapter", () => {
         moveCount: 10,
         moveHistory: [],
         gameMode: "ai",
-        gameStartTime: new Date(),
-        lastUpdated: Date.now(),
+        gameStartTime: new Date().toISOString(),
+        lastSaved: new Date().toISOString(),
         winner: null,
         version: 1,
       };
@@ -306,7 +318,9 @@ describe("LocalStorageAdapter", () => {
 
       // Should still load but might need migration
       expect(result.success).toBe(true);
-      expect(result.data?.id).toBe("test-id");
+      if (result.success) {
+        expect(result.data?.id).toBe("test-id");
+      }
     });
   });
 });

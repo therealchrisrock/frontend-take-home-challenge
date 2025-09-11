@@ -25,9 +25,9 @@ describe("Game Logic", () => {
 
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 8; col++) {
-          if (board[row][col]?.color === "black") {
+          if (board[row]![col]?.color === "black") {
             blackPieces++;
-            expect(board[row][col]?.type).toBe("regular");
+            expect(board[row]![col]?.type).toBe("regular");
           }
         }
       }
@@ -41,9 +41,9 @@ describe("Game Logic", () => {
 
       for (let row = 5; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
-          if (board[row][col]?.color === "red") {
+          if (board[row]![col]?.color === "red") {
             redPieces++;
-            expect(board[row][col]?.type).toBe("regular");
+            expect(board[row]![col]?.type).toBe("regular");
           }
         }
       }
@@ -58,7 +58,7 @@ describe("Game Logic", () => {
         for (let col = 0; col < 8; col++) {
           if ((row + col) % 2 === 0) {
             // Light squares should be empty
-            expect(board[row][col]).toBeNull();
+            expect(board[row]![col]).toBeNull();
           }
         }
       }
@@ -69,7 +69,7 @@ describe("Game Logic", () => {
 
       for (let row = 3; row < 5; row++) {
         for (let col = 0; col < 8; col++) {
-          expect(board[row][col]).toBeNull();
+          expect(board[row]![col]).toBeNull();
         }
       }
     });
@@ -96,7 +96,7 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
 
       const moves = getValidMoves(board, { row: 5, col: 2 }, "red");
 
@@ -115,7 +115,7 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[2][3] = { color: "black", type: "regular" };
+      board[2]![3] = { color: "black", type: "regular" };
 
       const moves = getValidMoves(board, { row: 2, col: 3 }, "black");
 
@@ -134,7 +134,7 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[4][4] = { color: "red", type: "king" };
+      board[4]![4] = { color: "red", type: "king" };
 
       const moves = getValidMoves(board, { row: 4, col: 4 }, "red");
 
@@ -161,8 +161,8 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][1] = { color: "red", type: "regular" }; // Block one move
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![1] = { color: "red", type: "regular" }; // Block one move
 
       const moves = getValidMoves(board, { row: 5, col: 2 }, "red");
 
@@ -177,8 +177,8 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
       // Empty at [3][4] for landing
 
       const moves = getValidMoves(board, { row: 5, col: 2 }, "red");
@@ -200,7 +200,7 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[0][0] = { color: "black", type: "regular" };
+      board[0]![0] = { color: "black", type: "regular" };
 
       const moves = getValidMoves(board, { row: 0, col: 0 }, "black");
 
@@ -217,10 +217,10 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
 
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5]![2]);
 
       expect(captures).toHaveLength(1);
       expect(captures[0]).toEqual({
@@ -238,11 +238,11 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][4] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
-      board[4][5] = { color: "black", type: "regular" };
+      board[5]![4] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
+      board[4]![5] = { color: "black", type: "regular" };
 
-      const captures = getCaptureMoves(board, { row: 5, col: 4 }, board[5][4]);
+      const captures = getCaptureMoves(board, { row: 5, col: 4 }, board[5]![4]);
 
       expect(captures).toHaveLength(2);
     });
@@ -251,11 +251,11 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[7][0] = { color: "red", type: "regular" };
-      board[6][1] = { color: "black", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
+      board[7]![0] = { color: "red", type: "regular" };
+      board[6]![1] = { color: "black", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
 
-      const captures = getCaptureMoves(board, { row: 7, col: 0 }, board[7][0]);
+      const captures = getCaptureMoves(board, { row: 7, col: 0 }, board[7]![0]);
 
       // Should detect the double jump
       const multiJump = captures.find((m) => m.captures?.length === 2);
@@ -269,11 +269,11 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[3][4] = { color: "red", type: "king" };
-      board[4][3] = { color: "black", type: "regular" };
-      board[2][3] = { color: "black", type: "regular" };
+      board[3]![4] = { color: "red", type: "king" };
+      board[4]![3] = { color: "black", type: "regular" };
+      board[2]![3] = { color: "black", type: "regular" };
 
-      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3][4]);
+      const captures = getCaptureMoves(board, { row: 3, col: 4 }, board[3]![4]);
 
       // King should be able to capture in both directions
       expect(captures.length).toBeGreaterThanOrEqual(2);
@@ -289,10 +289,10 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "red", type: "regular" }; // Friendly piece
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "red", type: "regular" }; // Friendly piece
 
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5]![2]);
 
       expect(captures).toHaveLength(0);
     });
@@ -301,11 +301,11 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
-      board[3][4] = { color: "black", type: "regular" }; // Block landing
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
+      board[3]![4] = { color: "black", type: "regular" }; // Block landing
 
-      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5][2]);
+      const captures = getCaptureMoves(board, { row: 5, col: 2 }, board[5]![2]);
 
       expect(captures).toHaveLength(0);
     });
@@ -324,9 +324,9 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
-      board[5][6] = { color: "red", type: "regular" }; // No capture available
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
+      board[5]![6] = { color: "red", type: "regular" }; // No capture available
 
       const positions = getMustCapturePositions(board, "red");
 
@@ -338,10 +338,10 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
-      board[5][6] = { color: "red", type: "regular" };
-      board[4][5] = { color: "black", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
+      board[5]![6] = { color: "red", type: "regular" };
+      board[4]![5] = { color: "black", type: "regular" };
 
       const positions = getMustCapturePositions(board, "red");
 
@@ -356,23 +356,23 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
 
       const newBoard = makeMove(board, {
         from: { row: 5, col: 2 },
         to: { row: 4, col: 3 },
       });
 
-      expect(newBoard[5][2]).toBeNull();
-      expect(newBoard[4][3]).toEqual({ color: "red", type: "regular" });
+      expect(newBoard[5]![2]).toBeNull();
+      expect(newBoard[4]![3]).toEqual({ color: "red", type: "regular" });
     });
 
     it("should remove captured pieces", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
 
       const newBoard = makeMove(board, {
         from: { row: 5, col: 2 },
@@ -380,18 +380,18 @@ describe("Game Logic", () => {
         captures: [{ row: 4, col: 3 }],
       });
 
-      expect(newBoard[5][2]).toBeNull();
-      expect(newBoard[4][3]).toBeNull(); // Captured piece removed
-      expect(newBoard[3][4]).toEqual({ color: "red", type: "regular" });
+      expect(newBoard[5]![2]).toBeNull();
+      expect(newBoard[4]![3]).toBeNull(); // Captured piece removed
+      expect(newBoard[3]![4]).toEqual({ color: "red", type: "regular" });
     });
 
     it("should remove multiple captured pieces", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[7][0] = { color: "red", type: "regular" };
-      board[6][1] = { color: "black", type: "regular" };
-      board[4][3] = { color: "black", type: "regular" };
+      board[7]![0] = { color: "red", type: "regular" };
+      board[6]![1] = { color: "black", type: "regular" };
+      board[4]![3] = { color: "black", type: "regular" };
 
       const newBoard = makeMove(board, {
         from: { row: 7, col: 0 },
@@ -402,66 +402,66 @@ describe("Game Logic", () => {
         ],
       });
 
-      expect(newBoard[6][1]).toBeNull();
-      expect(newBoard[4][3]).toBeNull();
-      expect(newBoard[3][4]).toEqual({ color: "red", type: "regular" });
+      expect(newBoard[6]![1]).toBeNull();
+      expect(newBoard[4]![3]).toBeNull();
+      expect(newBoard[3]![4]).toEqual({ color: "red", type: "regular" });
     });
 
     it("should promote red piece to king when reaching row 0", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[1][2] = { color: "red", type: "regular" };
+      board[1]![2] = { color: "red", type: "regular" };
 
       const newBoard = makeMove(board, {
         from: { row: 1, col: 2 },
         to: { row: 0, col: 3 },
       });
 
-      expect(newBoard[0][3]).toEqual({ color: "red", type: "king" });
+      expect(newBoard[0]![3]).toEqual({ color: "red", type: "king" });
     });
 
     it("should promote black piece to king when reaching row 7", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[6][3] = { color: "black", type: "regular" };
+      board[6]![3] = { color: "black", type: "regular" };
 
       const newBoard = makeMove(board, {
         from: { row: 6, col: 3 },
         to: { row: 7, col: 4 },
       });
 
-      expect(newBoard[7][4]).toEqual({ color: "black", type: "king" });
+      expect(newBoard[7]![4]).toEqual({ color: "black", type: "king" });
     });
 
     it("should not promote king pieces again", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[1][2] = { color: "red", type: "king" };
+      board[1]![2] = { color: "red", type: "king" };
 
       const newBoard = makeMove(board, {
         from: { row: 1, col: 2 },
         to: { row: 0, col: 3 },
       });
 
-      expect(newBoard[0][3]).toEqual({ color: "red", type: "king" });
+      expect(newBoard[0]![3]).toEqual({ color: "red", type: "king" });
     });
 
     it("should not modify original board", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      const originalPiece = board[5][2];
+      board[5]![2] = { color: "red", type: "regular" };
+      const originalPiece = board[5]![2];
 
       makeMove(board, {
         from: { row: 5, col: 2 },
         to: { row: 4, col: 3 },
       });
 
-      expect(board[5][2]).toBe(originalPiece);
+      expect(board[5]![2]).toBe(originalPiece);
     });
   });
 
@@ -476,8 +476,8 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[5][2] = { color: "red", type: "regular" };
-      board[5][4] = { color: "red", type: "regular" };
+      board[5]![2] = { color: "red", type: "regular" };
+      board[5]![4] = { color: "red", type: "regular" };
 
       expect(checkWinner(board)).toBe("red");
     });
@@ -486,8 +486,8 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[2][3] = { color: "black", type: "regular" };
-      board[2][5] = { color: "black", type: "regular" };
+      board[2]![3] = { color: "black", type: "regular" };
+      board[2]![5] = { color: "black", type: "regular" };
 
       expect(checkWinner(board)).toBe("black");
     });
@@ -499,7 +499,7 @@ describe("Game Logic", () => {
         .fill(null)
         .map(() => Array(8).fill(null));
       // Just add a black piece, no red pieces
-      board[0][0] = { color: "black", type: "regular" };
+      board[0]![0] = { color: "black", type: "regular" };
 
       const winner = checkWinner(board);
       expect(winner).toBe("black"); // Black wins because red has no pieces
@@ -510,8 +510,8 @@ describe("Game Logic", () => {
         .fill(null)
         .map(() => Array(8).fill(null));
       // Create a blocked situation where neither can move
-      board[0][1] = { color: "black", type: "regular" };
-      board[1][0] = { color: "red", type: "regular" };
+      board[0]![1] = { color: "black", type: "regular" };
+      board[1]![0] = { color: "red", type: "regular" };
 
       // Mock a situation where both are blocked
       const winner = checkWinner(board);
@@ -538,7 +538,7 @@ describe("Game Logic", () => {
 
       expect(move).not.toBeNull();
       if (move) {
-        expect(board[move.from.row][move.from.col]?.color).toBe("black");
+        expect(board[move.from.row]![move.from.col]?.color).toBe("black");
         // Verify it's a valid move
         const validMoves = getValidMoves(board, move.from, "black");
         expect(validMoves).toContainEqual(move);
@@ -549,8 +549,8 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[3][2] = { color: "black", type: "regular" };
-      board[4][3] = { color: "red", type: "regular" };
+      board[3]![2] = { color: "black", type: "regular" };
+      board[4]![3] = { color: "red", type: "regular" };
 
       const move = getRandomAIMove(board, "black");
 
@@ -566,7 +566,7 @@ describe("Game Logic", () => {
       // Black regular piece at row 7 can still capture backwards!
       // Let's place it where it truly can't move
       // Put a black regular piece with no valid moves
-      board[7][7] = { color: "black", type: "regular" };
+      board[7]![7] = { color: "black", type: "regular" };
       // At corner [7][7], it can't move anywhere as regular piece
 
       const move = getRandomAIMove(board, "black");
@@ -579,7 +579,7 @@ describe("Game Logic", () => {
       const board: Board = Array(8)
         .fill(null)
         .map(() => Array(8).fill(null));
-      board[4][3] = { color: "black", type: "king" };
+      board[4]![3] = { color: "black", type: "king" };
 
       const move = getRandomAIMove(board, "black");
 

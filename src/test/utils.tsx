@@ -29,7 +29,7 @@ export function renderWithProviders(
 
 // Create tRPC MSW instance for mocking API calls
 export const trpcMsw = createTRPCMsw<AppRouter>({
-  transformer: superjson,
+  transformer: superjson as any,
 });
 
 // Test data factories
@@ -42,7 +42,7 @@ export const createTestBoard = () => {
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 8; col++) {
       if ((row + col) % 2 === 1) {
-        board[row][col] = { color: "black", type: "regular" };
+        board[row]![col] = { color: "black", type: "regular" };
       }
     }
   }
@@ -51,7 +51,7 @@ export const createTestBoard = () => {
   for (let row = 5; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       if ((row + col) % 2 === 1) {
-        board[row][col] = { color: "red", type: "regular" };
+        board[row]![col] = { color: "red", type: "regular" };
       }
     }
   }
@@ -66,7 +66,7 @@ export const createEmptyBoard = () =>
 
 export const createBoardWithPiece = (row: number, col: number, piece: any) => {
   const board = createEmptyBoard();
-  board[row][col] = piece;
+  board[row]![col] = piece;
   return board;
 };
 

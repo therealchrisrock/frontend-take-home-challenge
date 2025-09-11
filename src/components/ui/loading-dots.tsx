@@ -42,10 +42,10 @@ const dotVariants = {
   },
 };
 
-const dotTransition = {
+const dotTransition: any = {
   duration: 0.5,
   repeat: Infinity,
-  repeatType: "reverse" as const,
+  repeatType: "reverse",
   ease: "easeInOut",
 };
 

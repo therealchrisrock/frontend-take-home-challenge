@@ -54,7 +54,7 @@ export function MustCaptureArrow({
     } else {
       setArrowPath(null);
     }
-  }, [show, fromPosition, toPosition]);
+  }, [show, fromPosition, toPosition, boardSize]);
 
   if (!show || !arrowPath) return null;
 
