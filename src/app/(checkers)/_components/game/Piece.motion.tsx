@@ -1,6 +1,6 @@
 "use client";
 
-import { type Piece as PieceType } from "~/lib/game-logic";
+import { type Piece as PieceType } from "~/lib/game/logic";
 import { m, AnimatePresence } from "framer-motion";
 import { pieceCapture } from "~/lib/motion/variants";
 import { Crown, Shield } from "lucide-react";

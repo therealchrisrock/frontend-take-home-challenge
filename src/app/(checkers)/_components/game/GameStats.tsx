@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Clock, Trophy, Target } from "lucide-react";
-import { type Board, type PieceColor } from "~/lib/game-logic";
+import { type Board, type PieceColor } from "~/lib/game/logic";
 import { useEffect, useState } from "react";
 
 interface GameStatsProps {

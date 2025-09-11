@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "~/lib/utils";
-import { type Position } from "~/lib/game-logic";
+import { type Position } from "~/lib/game/logic";
 
 interface MustCaptureArrowProps {
   show: boolean;

@@ -9,7 +9,7 @@ import type {
   TabStatusUpdatePayload,
   ConnectionStatus,
 } from "~/lib/multi-tab/types";
-import type { Move, Board, PieceColor } from "~/lib/game-logic";
+import type { Move, Board, PieceColor } from "~/lib/game/logic";
 
 export interface MultiTabSyncState {
   isConnected: boolean;

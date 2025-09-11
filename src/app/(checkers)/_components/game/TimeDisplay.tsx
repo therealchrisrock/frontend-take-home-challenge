@@ -11,7 +11,7 @@ import {
   type PieceColor,
   type TimeWarning,
   DEFAULT_TIME_WARNINGS,
-} from "~/lib/time-control-types";
+} from "~/lib/game/time-control-types";
 
 interface TimeDisplayProps {
   /** Time state for both players */

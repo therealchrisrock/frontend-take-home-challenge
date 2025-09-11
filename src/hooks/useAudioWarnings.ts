@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { type TimeState, type PieceColor } from "~/lib/time-control-types";
+import { type TimeState, type PieceColor } from "~/lib/game/time-control-types";
 
 interface UseAudioWarningsOptions {
   /** Whether audio warnings are enabled */

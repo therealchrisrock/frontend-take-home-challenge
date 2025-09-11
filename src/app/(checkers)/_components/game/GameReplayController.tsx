@@ -21,13 +21,13 @@ import type {
   Move,
   Position,
   PieceColor,
-} from "~/lib/game-logic";
+} from "~/lib/game/logic";
 import {
   createInitialBoard,
   getValidMoves,
   makeMove as applyMove,
   getMustCapturePositions,
-} from "~/lib/game-logic";
+} from "~/lib/game/logic";
 import {
   Play,
   Pause,

@@ -12,7 +12,7 @@ import {
   Pause,
   Copy,
 } from "lucide-react";
-import type { Move, Board, PieceColor } from "~/lib/game-logic";
+import type { Move, Board, PieceColor } from "~/lib/game/logic";
 import type { GameAnalysis } from "~/lib/types/move-analysis";
 import { MOVE_INDICATORS } from "~/lib/types/move-analysis";
 import {
@@ -20,7 +20,7 @@ import {
   formatGameHistory,
   historyToString,
   type NotatedMove,
-} from "~/lib/checkers-notation";
+} from "~/lib/game/checkers-notation";
 import { cn } from "~/lib/utils";
 
 interface MoveHistoryProps {

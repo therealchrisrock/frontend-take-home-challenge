@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { GameStats } from "./GameStats";
-import type { Board, Piece } from "~/lib/game-logic";
+import type { Board, Piece } from "~/lib/game/logic";
 
 describe("GameStats Component", () => {
   const createTestBoard = (): Board => {

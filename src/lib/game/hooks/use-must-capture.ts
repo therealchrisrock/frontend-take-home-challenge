@@ -5,8 +5,8 @@ import {
   makeMove,
   type Move,
   type Position,
-} from "~/lib/game-logic";
-import { checkWinner } from "~/lib/game-logic";
+} from "~/lib/game/logic";
+import { checkWinner } from "~/lib/game/logic";
 import { useGame } from "../state/game-context";
 
 export function useMustCapture() {

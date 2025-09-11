@@ -12,7 +12,7 @@ import {
   type TimeWarning,
   DEFAULT_TIME_WARNINGS,
   timeControlToString,
-} from "~/lib/time-control-types";
+} from "~/lib/game/time-control-types";
 
 interface TimeControlPanelProps {
   /** Current time state */

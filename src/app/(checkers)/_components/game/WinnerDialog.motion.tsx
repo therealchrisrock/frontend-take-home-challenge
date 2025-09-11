@@ -12,8 +12,8 @@ import {
 import { Trophy, Handshake } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { m } from "framer-motion";
-import type { PieceColor } from "~/lib/game-logic";
-import type { DrawResult } from "~/lib/draw-detection";
+import type { PieceColor } from "~/lib/game/logic";
+import type { DrawResult } from "~/lib/game/draw-detection";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

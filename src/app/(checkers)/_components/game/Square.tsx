@@ -1,6 +1,6 @@
 "use client";
 
-import { type Position } from "~/lib/game-logic";
+import { type Position } from "~/lib/game/logic";
 import { cn } from "~/lib/utils";
 
 interface SquareProps {

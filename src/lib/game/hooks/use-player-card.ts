@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
-import { type PlayerInfo } from "~/lib/player-types";
+import { type PlayerInfo } from "~/lib/game/player-types";
 
 interface UsePlayerCardParams {
   player: PlayerInfo;

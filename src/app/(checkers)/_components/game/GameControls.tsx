@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Flag, Handshake } from "lucide-react";
 import { useState } from "react";
-import type { PieceColor } from "~/lib/game-logic";
+import type { PieceColor } from "~/lib/game/logic";
 
 interface GameControlsProps {
   currentPlayer: PieceColor;

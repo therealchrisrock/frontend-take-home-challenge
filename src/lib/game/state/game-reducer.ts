@@ -1,6 +1,6 @@
-import { createInitialBoard } from "~/lib/game-logic";
+import { createInitialBoard } from "~/lib/game/logic";
 import type { GameAction, GameState } from "./game-types";
-import { createDrawState, updateDrawState } from "~/lib/draw-detection";
+import { createDrawState, updateDrawState } from "~/lib/game/draw-detection";
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {

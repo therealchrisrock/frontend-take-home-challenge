@@ -32,7 +32,7 @@ import {
   validateTimeControl,
   timeControlToString,
   getTimeControlPreset,
-} from "~/lib/time-control-types";
+} from "~/lib/game/time-control-types";
 
 interface TimeControlSelectorProps {
   /** Current time control */

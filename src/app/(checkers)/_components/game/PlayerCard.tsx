@@ -1,8 +1,8 @@
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Bot, Crown } from "lucide-react";
-import { type PieceColor } from "~/lib/game-logic";
-import { type PlayerInfo } from "~/lib/player-types";
+import { type PieceColor } from "~/lib/game/logic";
+import { type PlayerInfo } from "~/lib/game/player-types";
 // PlayerCard is strictly the profile display; timers are handled by containers
 
 interface PlayerCardProps {

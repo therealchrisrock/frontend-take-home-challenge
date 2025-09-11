@@ -7,7 +7,7 @@ import {
   type PieceColor,
   createInitialTimeState,
   isTimeExpired,
-} from "~/lib/time-control-types";
+} from "~/lib/game/time-control-types";
 
 interface UseTimerOptions {
   /** Time control configuration */

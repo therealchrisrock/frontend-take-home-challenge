@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "~/trpc/react";
-import type { Board, PieceColor, Move } from "~/lib/game-logic";
+import type { Board, PieceColor, Move } from "~/lib/game/logic";
 
 export interface GameState {
   board: Board;

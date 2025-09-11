@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { OptimisticUpdateManager } from "~/lib/optimistic-updates";
 import { api } from "~/trpc/react";
-import type { Move, Board, PieceColor } from "~/lib/game-logic";
+import type { Move, Board, PieceColor } from "~/lib/game/logic";
 
 export interface GameSyncState {
   isConnected: boolean;

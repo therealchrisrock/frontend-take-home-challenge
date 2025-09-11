@@ -1,6 +1,6 @@
 "use client";
 
-import { type Position } from "~/lib/game-logic";
+import { type Position } from "~/lib/game/logic";
 import { MoveArrow } from "./MoveArrow";
 
 // Feature flag to enable/disable moving arrows globally

@@ -1,5 +1,5 @@
-import { type PlayerInfo } from "~/lib/player-types";
-import { type PieceColor } from "~/lib/game-logic";
+import { type PlayerInfo } from "~/lib/game/player-types";
+import { type PieceColor } from "~/lib/game/logic";
 
 export type AppUser = {
   id: string;

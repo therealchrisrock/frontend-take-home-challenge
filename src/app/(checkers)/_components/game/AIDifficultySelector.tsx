@@ -1,6 +1,6 @@
 "use client";
 
-import { type AIDifficulty } from "~/lib/ai-engine";
+import { type AIDifficulty } from "~/lib/game/ai-engine";
 import {
   Select,
   SelectContent,

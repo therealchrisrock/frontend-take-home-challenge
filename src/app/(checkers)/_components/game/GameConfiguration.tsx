@@ -15,7 +15,7 @@ import {
 } from "~/components/ui/select";
 import { ChevronLeft, Zap, Clock, Info } from "lucide-react";
 import { api } from "~/trpc/react";
-import { type TimeControl } from "~/lib/time-control-types";
+import { type TimeControl } from "~/lib/game/time-control-types";
 import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
 import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
 import { MotionColorSelector } from "~/app/(checkers)/_components/game/MotionColorSelector";

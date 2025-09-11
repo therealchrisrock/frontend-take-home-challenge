@@ -10,10 +10,10 @@ import {
   type Move,
   createInitialBoard,
   makeMove,
-} from "~/lib/game-logic";
-import type { BoardVariant } from "~/lib/variants";
+} from "~/lib/game/logic";
+import type { BoardVariant } from "~/lib/game/variants";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
-import type { TimeControl } from "~/lib/time-control-types";
+import type { TimeControl } from "~/lib/game/time-control-types";
 import { STORAGE_VERSION } from "~/lib/storage/types";
 import { gameSessionManager } from "~/lib/multi-tab/session-manager";
 import type {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { OptimisticUpdateManager } from "./optimistic-updates";
-import type { Move, Board } from "~/lib/game-logic";
-import { createInitialBoard } from "~/lib/game-logic";
+import type { Move, Board } from "~/lib/game/logic";
+import { createInitialBoard } from "~/lib/game/logic";
 
 describe("OptimisticUpdateManager", () => {
   let manager: OptimisticUpdateManager;

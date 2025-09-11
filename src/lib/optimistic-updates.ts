@@ -1,5 +1,5 @@
-import type { Move, Board } from "~/lib/game-logic";
-import { makeMove } from "~/lib/game-logic";
+import type { Move, Board } from "~/lib/game/logic";
+import { makeMove } from "~/lib/game/logic";
 
 export type OptimisticUpdateId = string;
 

@@ -1,5 +1,5 @@
 import { Skeleton } from "~/components/ui/skeleton";
-import { type PieceColor } from "~/lib/game-logic";
+import { type PieceColor } from "~/lib/game/logic";
 
 interface PlayerCardSkeletonProps {
   color: PieceColor;

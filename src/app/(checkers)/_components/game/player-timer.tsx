@@ -4,8 +4,8 @@ import {
   type TimeState,
   formatTime,
   getTimeWarningLevel,
-} from "~/lib/time-control-types";
-import { type PieceColor } from "~/lib/game-logic";
+} from "~/lib/game/time-control-types";
+import { type PieceColor } from "~/lib/game/logic";
 
 interface PlayerTimerProps {
   timeState: TimeState;

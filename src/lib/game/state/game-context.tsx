@@ -6,21 +6,21 @@ import React, {
   useReducer,
   useCallback,
 } from "react";
-import type { BoardVariant } from "~/lib/variants";
-import { createInitialBoard, makeMove } from "~/lib/game-logic";
+import type { BoardVariant } from "~/lib/game/variants";
+import { createInitialBoard, makeMove } from "~/lib/game/logic";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 import { gameReducer } from "./game-reducer";
 import type { GameState, GameAction, GameMode } from "./game-types";
 import {
   createAIGamePlayers,
   createLocalGamePlayers,
-} from "~/lib/player-types";
+} from "~/lib/game/player-types";
 import type { VariantConfig } from "~/lib/game-engine/rule-schema";
-import type { TimeControl } from "~/lib/time-control-types";
-import type { AIDifficulty } from "~/lib/ai-engine";
+import type { TimeControl } from "~/lib/game/time-control-types";
+import type { AIDifficulty } from "~/lib/game/ai-engine";
 import { useGameSounds } from "~/hooks/useGameSounds";
 import { useSettings } from "~/contexts/settings-context";
-import { createDrawState } from "~/lib/draw-detection";
+import { createDrawState } from "~/lib/game/draw-detection";
 
 const GameContext = createContext<{
   state: GameState;

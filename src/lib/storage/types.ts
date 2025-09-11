@@ -1,4 +1,4 @@
-import { type Board, type PieceColor, type Move } from "~/lib/game-logic";
+import { type Board, type PieceColor, type Move } from "~/lib/game/logic";
 
 export interface PersistedGameState {
   id: string;

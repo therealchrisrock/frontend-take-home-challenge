@@ -3,14 +3,14 @@ import type {
   Position,
   PieceColor,
   Move,
-} from "~/lib/game-logic";
-import type { BoardVariant } from "~/lib/variants";
+} from "~/lib/game/logic";
+import type { BoardVariant } from "~/lib/game/variants";
 import type { VariantConfig } from "~/lib/game-engine/rule-schema";
-import type { TimeControl } from "~/lib/time-control-types";
-import type { GamePlayers } from "~/lib/player-types";
+import type { TimeControl } from "~/lib/game/time-control-types";
+import type { GamePlayers } from "~/lib/game/player-types";
 import type { GameAnalysis } from "~/lib/types/move-analysis";
-import type { AIDifficulty } from "~/lib/ai-engine";
-import type { DrawState, DrawResult } from "~/lib/draw-detection";
+import type { AIDifficulty } from "~/lib/game/ai-engine";
+import type { DrawState, DrawResult } from "~/lib/game/draw-detection";
 
 export type GameMode = "ai" | "local" | "online";
 

@@ -9,7 +9,7 @@ import type {
   MoveAppliedPayload,
   TabStatusUpdatePayload,
 } from "./types";
-import type { Move } from "~/lib/game-logic";
+import type { Move } from "~/lib/game/logic";
 
 export class MultiTabSyncManager {
   private gameId: GameId;

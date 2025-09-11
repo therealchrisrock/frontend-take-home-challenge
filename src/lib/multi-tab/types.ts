@@ -1,4 +1,4 @@
-import type { Move } from "~/lib/game-logic";
+import type { Move } from "~/lib/game/logic";
 
 export type TabId = string;
 export type GameId = string;

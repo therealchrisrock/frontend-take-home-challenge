@@ -5,7 +5,7 @@ import type {
   InitialStatePayload,
   MoveAppliedPayload,
 } from "~/lib/multi-tab/types";
-import type { Board } from "~/lib/game-logic";
+import type { Board } from "~/lib/game/logic";
 
 export function useOnlineSync() {
   const { state, dispatch } = useGame();

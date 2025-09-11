@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
-import type { BoardVariant } from "~/lib/variants";
+import type { BoardVariant } from "~/lib/game/variants";
 
 export function useVariantConfig(variant: BoardVariant) {
   const result = useMemo(() => {

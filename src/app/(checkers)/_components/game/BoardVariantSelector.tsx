@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
-import { type BoardVariant, getBoardVariants } from "~/lib/variants";
+import { type BoardVariant, getBoardVariants } from "~/lib/game/variants";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 
 interface BoardVariantSelectorProps {

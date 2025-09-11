@@ -1,7 +1,7 @@
 import { PlayerCard } from "./PlayerCard";
 import { PlayerCardSkeleton } from "./PlayerCardSkeleton";
-import { type PieceColor } from "~/lib/game-logic";
-import { type PlayerInfo } from "~/lib/player-types";
+import { type PieceColor } from "~/lib/game/logic";
+import { type PlayerInfo } from "~/lib/game/player-types";
 import { api } from "~/trpc/server";
 import { GameVariantEnum, PlayModeEnum } from "@prisma/client";
 

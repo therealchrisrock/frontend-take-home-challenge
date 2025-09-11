@@ -1,7 +1,7 @@
 "use client";
 
 import { m, AnimatePresence } from "framer-motion";
-import { type Position } from "~/lib/game-logic";
+import { type Position } from "~/lib/game/logic";
 import { cn } from "~/lib/utils";
 import { useState, forwardRef } from "react";
 import { useSettings } from "~/contexts/settings-context";

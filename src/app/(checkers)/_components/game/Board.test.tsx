@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Board } from "./Board";
-import type { Board as BoardType } from "~/lib/game-logic";
+import type { Board as BoardType } from "~/lib/game/logic";
 
 describe("Board Component", () => {
   const mockOnSquareClick = vi.fn();

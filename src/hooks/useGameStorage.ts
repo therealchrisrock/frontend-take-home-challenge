@@ -9,8 +9,8 @@ import {
   DEFAULT_GAME_ID,
   STORAGE_VERSION,
 } from "~/lib/storage";
-import { type Board, type PieceColor, type Move } from "~/lib/game-logic";
-import { type TimeControl, type TimeState } from "~/lib/time-control-types";
+import { type Board, type PieceColor, type Move } from "~/lib/game/logic";
+import { type TimeControl, type TimeState } from "~/lib/game/time-control-types";
 
 interface UseGameStorageProps {
   storageType?: StorageType;

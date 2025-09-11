@@ -7,7 +7,7 @@ import {
   createLocalGamePlayers,
   createAIGamePlayers,
   getPlayerByColor,
-} from "~/lib/player-types";
+} from "~/lib/game/player-types";
 
 interface BoardPreviewProps {
   size: number;

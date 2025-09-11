@@ -1,6 +1,6 @@
 "use client";
 
-import { type Piece as PieceType } from "~/lib/game-logic";
+import { type Piece as PieceType } from "~/lib/game/logic";
 import { cn } from "~/lib/utils";
 import { Crown } from "lucide-react";
 import { useSettings } from "~/contexts/settings-context";

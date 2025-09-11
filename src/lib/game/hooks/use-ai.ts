@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { CheckersAI } from "~/lib/ai-engine";
-import { makeMove, checkWinner } from "~/lib/game-logic";
+import { CheckersAI } from "~/lib/game/ai-engine";
+import { makeMove, checkWinner } from "~/lib/game/logic";
 import { useGame } from "../state/game-context";
 
 export function useAI() {

@@ -8,7 +8,7 @@ import { Separator } from "~/components/ui/separator";
 import { Brain, Play } from "lucide-react";
 import type { GameAnalysis } from "~/lib/types/move-analysis";
 import { cn } from "~/lib/utils";
-import type { PieceColor } from "~/lib/game-logic";
+import type { PieceColor } from "~/lib/game/logic";
 
 interface PostGameAnalysisProps {
   analysis: GameAnalysis | null;

@@ -1,5 +1,5 @@
-import type { Move, Board } from "~/lib/game-logic";
-import { makeMove, checkWinner } from "~/lib/game-logic";
+import type { Move, Board } from "~/lib/game/logic";
+import { makeMove, checkWinner } from "~/lib/game/logic";
 import type { OptimisticUpdate } from "./optimistic-updates";
 
 export type ConflictResolutionStrategy =
