@@ -1,15 +1,15 @@
+import { AmericanConfig } from "../game-engine/rule-configs/american";
+import type { VariantConfig } from "../game-engine/rule-schema";
 import {
   type Board,
   type Move,
+  type Piece,
   type PieceColor,
   type Position,
-  type Piece,
+  checkWinner,
   getValidMoves,
   makeMove,
-  checkWinner,
 } from "./logic";
-import type { VariantConfig } from "../game-engine/rule-schema";
-import { AmericanConfig } from "../game-engine/rule-configs/american";
 
 export type AIDifficulty = "easy" | "medium" | "hard" | "expert";
 

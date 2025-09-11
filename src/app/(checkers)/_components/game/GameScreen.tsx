@@ -12,7 +12,7 @@ import { GameChat } from "~/components/chat/GameChat";
 import { Button } from "~/components/ui/button";
 import { ResizablePanels } from "~/components/ui/resizable-panels";
 import { useSettings } from "~/contexts/settings-context";
-import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
+import { PlayerCardContainer } from "~/app/(checkers)/_components/game/player-card-container";
 import { useAudioWarnings } from "~/hooks/useAudioWarnings";
 import { useGameSounds } from "~/hooks/useGameSounds";
 import { useAI } from "~/lib/game/hooks/use-ai";

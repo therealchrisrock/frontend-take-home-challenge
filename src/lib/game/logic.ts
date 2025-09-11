@@ -1,9 +1,9 @@
-import type { VariantConfig } from "../game-engine/rule-schema";
 import { AmericanConfig } from "../game-engine/rule-configs/american";
+import type { VariantConfig } from "../game-engine/rule-schema";
 import {
   checkDrawConditions,
-  type DrawState,
   type DrawResult,
+  type DrawState,
 } from "./draw-detection";
 
 export type PieceColor = "red" | "black";
