@@ -150,7 +150,7 @@ export function useGameSync(
           setState((prev) => ({ ...prev, isReconnecting: true }));
 
           reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
+            void connect();
           }, delay);
         }
       };
@@ -280,19 +280,19 @@ export function useGameSync(
   // Auto-connect when gameId is available
   useEffect(() => {
     if (gameId && enabled) {
-      connect();
+      void connect();
     }
 
     return () => {
       disconnect();
     };
-  }, [gameId, enabled]);
+  }, [gameId, enabled, connect, disconnect]);
 
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
       if (gameId && enabled && !state.isConnected) {
-        connect();
+        void connect();
       }
     };
 

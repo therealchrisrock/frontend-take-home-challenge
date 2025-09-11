@@ -38,14 +38,13 @@ interface PlayerStats {
 
 export function PostGameAnalysis({
   analysis,
-  winner,
   isAnalyzing = false,
   analyzeProgress = 0,
   onStartReview,
   onPlayAgain,
   playerNames = { red: "Player 1", black: "Player 2" },
 }: PostGameAnalysisProps) {
-  const [showGraph, setShowGraph] = useState(true);
+  const [showGraph] = useState(true);
 
   // Calculate player statistics
   const getPlayerStats = (player: "red" | "black"): PlayerStats => {

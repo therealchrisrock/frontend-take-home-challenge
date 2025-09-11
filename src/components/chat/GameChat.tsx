@@ -20,7 +20,7 @@ interface GameMessage {
   timestamp: Date;
 }
 
-export function GameChat({ gameId, opponentName = "Opponent" }: GameChatProps) {
+export function GameChat({ opponentName = "Opponent" }: GameChatProps) {
   const { data: session } = useSession();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<GameMessage[]>([]);

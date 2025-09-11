@@ -18,7 +18,6 @@ export default function AuthLayout({
   reverse = false,
   children,
   brandName = "",
-  brandHref = "/",
 }: AuthLayoutProps) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">

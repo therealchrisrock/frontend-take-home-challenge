@@ -24,17 +24,15 @@ const difficultyConfig = {
 export function PlayerCard({
   player,
   color,
-  position,
   isActive = false,
   className = "",
-  context,
 }: PlayerCardProps) {
   // Safely calculate stats with fallbacks
   const wins = Math.max(0, player.stats?.wins ?? 0);
   const draws = Math.max(0, player.stats?.draws ?? 0);
   const losses = Math.max(0, player.stats?.losses ?? 0);
   const totalGames = wins + draws + losses;
-  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+  // Remove unused winRate variable
 
   // Sanitize player name - use generic fallback when no color context
   const displayName = player.name?.trim()

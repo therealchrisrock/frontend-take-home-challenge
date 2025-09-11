@@ -45,7 +45,7 @@ export function Board({
   onDrop,
 }: BoardProps) {
   const boardSize = size ?? board.length;
-  const [internalFocus, setInternalFocus] = useState<Position | null>(
+  const [, setInternalFocus] = useState<Position | null>(
     keyboardFocusPosition ?? selectedPosition ?? { row: 0, col: 0 },
   );
   // Remove unused effectiveFocus variable
@@ -185,7 +185,7 @@ export function Board({
                   e.key === "Enter" ||
                   e.key === " " ||
                   e.key === "Spacebar" ||
-                  (e as React.KeyboardEvent).code === "Space"
+                  (e).code === "Space"
                 ) {
                   e.preventDefault();
                   onSquareClick(position);

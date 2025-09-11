@@ -37,7 +37,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
   const y = useMotionValue(initialPosition?.y ?? window.innerHeight - 100);
 
   const [message, setMessage] = useState("");
-  const [currentChannel, setCurrentChannel] = useState<ChatChannel>({
+  const [currentChannel] = useState<ChatChannel>({
     id: "general",
     name: "General",
     type: "general",
@@ -292,7 +292,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
           <ChatFriendsPopup
             isOpen={showFriends}
             onClose={() => setShowFriends(false)}
-            onOpenDM={(userId, userName) => {
+            onOpenDM={() => {
               // Handle opening a DM
               setShowFriends(false);
             }}
@@ -305,7 +305,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
             isOpen={showNotifications}
             onClose={() => setShowNotifications(false)}
             notifications={[]}
-            onNotificationRead={(id) => {
+            onNotificationRead={() => {
               // Handle marking notification as read
             }}
             theme="light"

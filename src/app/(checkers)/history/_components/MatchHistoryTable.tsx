@@ -50,7 +50,7 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
   const [searchOpponent, setSearchOpponent] = useState("");
   const pageSize = 15;
 
-  const { data, isLoading, refetch } =
+  const { data, isLoading } =
     api.user.getEnhancedMatchHistory.useQuery({
       userId,
       skip: page * pageSize,

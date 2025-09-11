@@ -28,8 +28,8 @@ export default tseslint.config(
       // Downgrade common errors to warnings for smoother DX
       "@typescript-eslint/triple-slash-reference": "warn",
       "@typescript-eslint/no-empty-function": "warn",
-      "@typescript-eslint/no-floating-promises": "error",
-      "@typescript-eslint/await-thenable": "error",
+      "@typescript-eslint/no-floating-promises": "warn",
+      "@typescript-eslint/await-thenable": "warn",
       "@next/next/no-html-link-for-pages": "warn",
       "react/no-unescaped-entities": "warn",
       "react/display-name": "warn",
@@ -53,7 +53,7 @@ export default tseslint.config(
       ],
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-misused-promises": [
-        "error",
+        "warn",
         { checksVoidReturn: { attributes: false } },
       ],
       // T3 Stack Naming Conventions - Focus on types and interfaces

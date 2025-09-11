@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { NumberInput } from "~/components/ui/number-input";
@@ -113,7 +113,7 @@ export function TimeControlSelector({
     setCustomError(null);
   };
 
-  const handleCustomChange = () => {
+  const handleCustomChange = useCallback(() => {
     setSelectedPreset(null);
 
     const customTimeControl: TimeControl = {
@@ -125,7 +125,7 @@ export function TimeControlSelector({
 
     const validation = validateTimeControl(customTimeControl);
     setCustomError(validation);
-  };
+  }, [customFormat, customMinutes, customIncrement]);
 
   // Initial validation check
   useEffect(() => {

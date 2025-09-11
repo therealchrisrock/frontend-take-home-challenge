@@ -38,7 +38,6 @@ interface MoveHistoryProps {
 export function MoveHistory({
   moves,
   currentMoveIndex,
-  board,
   boardSize,
   currentPlayer,
   onNavigateToMove,
@@ -61,10 +60,10 @@ export function MoveHistory({
   // Convert moves to notated format (memoize to prevent recalculation)
   const notatedMoves: NotatedMove[] = useMemo(() => {
     // We pass an empty board since moveToNotation only uses it for piece info which we don't need for basic notation
-    const emptyBoard: Board = Array(boardSize)
+    const emptyBoard = Array(boardSize)
       .fill(null)
-      .map(() => Array(boardSize).fill(null));
-    return moves.map((move, index) => {
+      .map(() => Array(boardSize).fill(null)) as Board;
+    return moves.map((move) => {
       // For simplicity, we're not tracking kinging in this implementation
       // You could enhance this by comparing board states before/after each move
       return moveToNotation(move, emptyBoard, boardSize, false);

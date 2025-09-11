@@ -1,7 +1,7 @@
 "use client";
 
 import { type Piece as PieceType } from "~/lib/game/logic";
-import { m, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence, type MotionProps } from "framer-motion";
 import { pieceCapture } from "~/lib/motion/variants";
 import { Crown, Shield } from "lucide-react";
 
@@ -101,7 +101,7 @@ export function MotionPiece({
             damping: 25,
           },
         }}
-        exit={pieceCapture.exit as any}
+        exit={pieceCapture.exit as MotionProps["exit"]}
         className={`relative ${getColorClasses()} flex items-center justify-center rounded-full transition-all duration-200 ${isDragging ? "z-50 cursor-grabbing" : "cursor-grab"} ${pieceStyle === "minimal" ? "h-[80%] w-[80%]" : "h-[85%] w-[85%]"} `}
         style={{
           aspectRatio: "1",

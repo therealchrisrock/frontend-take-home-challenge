@@ -9,7 +9,6 @@ interface PlayerCardSkeletonProps {
 
 export function PlayerCardSkeleton({
   color,
-  position,
   className = "",
 }: PlayerCardSkeletonProps) {
   const getAccentColor = (color: PieceColor) => {

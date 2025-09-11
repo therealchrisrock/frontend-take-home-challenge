@@ -1,16 +1,16 @@
-import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import bcrypt from "bcryptjs";
+import { describe, expect, it } from "vitest";
 import {
-  createMockSession,
-  createMockUser,
+  authErrorScenarios,
   AuthTestProvider,
+  createAuthHeaders,
   createMockPrismaClient,
   createMockResendClient,
-  authErrorScenarios,
-  mockAuthApiResponse,
-  createAuthHeaders,
+  createMockSession,
+  createMockUser,
   createTestJWT,
+  mockAuthApiResponse,
 } from "./auth-utils";
 
 describe("Auth Test Utilities", () => {
@@ -225,7 +225,11 @@ describe("Auth Test Utilities", () => {
 
       expect(parts).toHaveLength(3);
 
-      const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+      const payloadSegment = parts[1];
+      if (payloadSegment === undefined) {
+        throw new Error("JWT payload segment missing");
+      }
+      const payload = JSON.parse(Buffer.from(payloadSegment, "base64url").toString());
       expect(payload).toMatchObject({
         userId: "test-user-id",
         email: "test@example.com",
@@ -244,7 +248,11 @@ describe("Auth Test Utilities", () => {
       });
 
       const parts = token.split(".");
-      const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+      const payloadSegment = parts[1];
+      if (payloadSegment === undefined) {
+        throw new Error("JWT payload segment missing");
+      }
+      const payload = JSON.parse(Buffer.from(payloadSegment, "base64url").toString());
 
       expect(payload.userId).toBe("custom-id");
       expect(payload.email).toBe("custom@example.com");
@@ -255,7 +263,11 @@ describe("Auth Test Utilities", () => {
       const token = createTestJWT();
       const parts = token.split(".");
 
-      const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
+      const headerSegment = parts[0];
+      if (headerSegment === undefined) {
+        throw new Error("JWT header segment missing");
+      }
+      const header = JSON.parse(Buffer.from(headerSegment, "base64url").toString());
       expect(header).toEqual({
         alg: "HS256",
         typ: "JWT",

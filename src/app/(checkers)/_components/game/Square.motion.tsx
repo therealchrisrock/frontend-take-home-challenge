@@ -102,7 +102,7 @@ export const Square = forwardRef<HTMLDivElement, SquareProps>(function Square(
       role={role ?? "button"}
       aria-label={ariaLabel}
       aria-selected={ariaSelected}
-      ref={ref as any}
+      ref={ref as React.Ref<HTMLDivElement>}
       {...(!settings.reducedMotion && {
         animate: {
           scale: isPossibleMove ? 1.02 : 1,

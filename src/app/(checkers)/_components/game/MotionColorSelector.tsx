@@ -31,7 +31,7 @@ export function MotionColorSelector({
     { id: "random", label: "Random", icon: true },
   ] as const;
 
-  const selectedIndex = colors.findIndex((c) => c.id === value);
+  // Remove unused selectedIndex variable
 
   return (
     <div>

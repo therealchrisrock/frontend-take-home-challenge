@@ -16,7 +16,7 @@ interface UsersBrowserProps {
   currentUserId?: string;
 }
 
-export default function UsersBrowser({ currentUserId }: UsersBrowserProps) {
+export default function UsersBrowser({}: UsersBrowserProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: users, isLoading } = api.user.searchUsers.useQuery(

@@ -21,7 +21,7 @@ export function MoveArrow({ from, to, boardSize = 8 }: MoveArrowProps) {
   const dx = toCenterX - fromCenterX;
   const dy = toCenterY - fromCenterY;
   const length = Math.sqrt(dx * dx + dy * dy);
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+  // Remove unused angle variable
 
   // Normalize direction vector
   const unitX = dx / length;

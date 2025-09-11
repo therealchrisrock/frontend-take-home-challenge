@@ -41,7 +41,6 @@ export function WinnerDialog({
   drawReason,
   open,
   onOpenChange,
-  onPlayAgain,
   onStartAnalysis,
   gameMode,
   playerColor = "red",
@@ -78,7 +77,7 @@ export function WinnerDialog({
     if (winner === "draw") {
       // Use the draw reason explanation if available
       const description =
-        drawReason?.explanation || "The game has ended in a draw.";
+        drawReason?.explanation ?? "The game has ended in a draw.";
 
       // Create a more specific title based on the draw reason
       let title = "Game Drawn!";

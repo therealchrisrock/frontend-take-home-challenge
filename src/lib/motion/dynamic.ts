@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
+import type { JSX } from "react";
 
 /**
  * Utility functions for dynamically importing Framer Motion components
@@ -58,7 +59,7 @@ export function createDynamicMotion<T extends keyof JSX.IntrinsicElements>(
   return dynamic(
     () =>
       import("framer-motion").then((mod) => ({
-        default: mod.motion[element] as ComponentType<any>,
+        default: (mod.motion as any)[element] as ComponentType<any>,
       })),
     {
       ssr: false,

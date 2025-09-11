@@ -17,7 +17,6 @@ interface SquareProps {
 }
 
 export function Square({
-  position,
   isBlack,
   isHighlighted,
   isSelected,

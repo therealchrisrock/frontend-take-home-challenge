@@ -21,7 +21,7 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "friend_request" | "message" | "system";
+  type: "friend_request" | "message" | "system" | "game_invite";
   timestamp: Date;
   read: boolean;
   actionData?: { userId?: string; gameId?: string };

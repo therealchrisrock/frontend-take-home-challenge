@@ -24,7 +24,7 @@ interface UserMenuClientProps {
 export function UserMenuClient({ initialSession }: UserMenuClientProps) {
   const { data: liveSession } = useSession();
   const session = liveSession ?? initialSession ?? undefined;
-  const { data: unreadCount } = api.message.getUnreadCount.useQuery(undefined, {
+  const { } = api.message.getUnreadCount.useQuery(undefined, {
     enabled: !!session?.user,
     refetchInterval: 30000, // Refetch every 30 seconds
   });

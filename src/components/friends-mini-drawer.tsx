@@ -171,7 +171,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                           </div>
                         ))
                       : (reorderableFriends ?? []).map((f) => {
-                          const loaded = avatarLoadedMap[f.id] || !f.image;
+                          const loaded = avatarLoadedMap[f.id] ?? !f.image;
                           return (
                             <div
                               key={f.id}
@@ -243,29 +243,38 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
   );
 }
 
-type Friend = NonNullable<
-  ReturnType<typeof useMemo> extends infer T
-    ? T extends any[]
-      ? T[number]
-      : never
-    : never
->;
+interface Friend {
+  id: string;
+  username: string;
+  image?: string | null;
+  name?: string | null;
+  online?: boolean;
+  lastMessage?: string;
+  timestamp?: Date;
+}
+
+interface Conversation {
+  id: string;
+  username: string;
+  image?: string | null;
+  name?: string | null;
+  lastMessage?: string;
+  timestamp?: Date;
+}
 
 function ExpandedContent({
   friends,
   setFriends,
   conversations,
-  isOpen,
   activeTab,
   friendsLoading,
   conversationsLoading,
   avatarLoadedMap = {},
   markAvatarLoaded,
 }: {
-  friends: any[];
-  setFriends: (friends: any[]) => void;
-  conversations: any[];
-  isOpen: boolean;
+  friends: Friend[];
+  setFriends: (friends: Friend[]) => void;
+  conversations: Conversation[];
   activeTab: "friends" | "notifications";
   friendsLoading?: boolean;
   conversationsLoading?: boolean;
@@ -311,7 +320,7 @@ function ExpandedContent({
                 className="list-none space-y-2"
               >
                 {friends.map((f, idx) => {
-                  const loaded = avatarLoadedMap?.[f.id] || !f.image;
+                  const loaded = avatarLoadedMap?.[f.id] ?? !f.image;
                   return (
                     <Reorder.Item
                       key={f.id}
