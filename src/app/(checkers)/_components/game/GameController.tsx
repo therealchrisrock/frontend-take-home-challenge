@@ -1,6 +1,6 @@
 "use client";
 import { GameProvider } from "~/lib/game/state/game-context";
-import { GameScreen } from "~/lib/game/ui/GameScreen";
+import { GameScreen } from "~/features/game/ui/GameScreen";
 import { api } from "~/trpc/react";
 import TextSpinnerLoader from "~/components/ui/text-spinner-loader";
 

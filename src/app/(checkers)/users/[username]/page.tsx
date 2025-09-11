@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { api } from "~/trpc/server";
-import GameProfileView from "~/app/(checkers)/profile/_components/GameProfileView";
+import GameProfileView from "~/app/(checkers)/users/_components/GameProfileView";
 import { getServerAuthSession } from "~/server/auth";
 
 interface PageProps {
