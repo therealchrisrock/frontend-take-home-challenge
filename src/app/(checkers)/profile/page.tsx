@@ -1,9 +1,9 @@
 import { type Metadata } from "next";
 import { getServerAuthSession } from "~/server/auth";
 import { redirect } from "next/navigation";
-import ProfileManagement from "~/components/profile/ProfileManagement";
-import StatsSection from "~/components/profile/StatsSection";
-import MatchHistory from "~/components/profile/MatchHistory";
+import ProfileManagement from "~/app/(checkers)/profile/_components/ProfileManagement";
+import StatsSection from "~/app/(checkers)/profile/_components/StatsSection";
+import MatchHistory from "~/app/(checkers)/profile/_components/MatchHistory";
 
 export const metadata: Metadata = {
   title: "Your Profile",

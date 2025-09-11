@@ -1,6 +1,6 @@
 import { type Metadata } from "next";
 import { getServerAuthSession } from "~/server/auth";
-import UsersBrowser from "~/components/profile/UsersBrowser";
+import UsersBrowser from "~/app/(checkers)/profile/_components/UsersBrowser";
 
 export const metadata: Metadata = {
   title: "Player Directory",

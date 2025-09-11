@@ -1,7 +1,7 @@
 import { type Metadata } from "next";
 import { getServerAuthSession } from "~/server/auth";
 import { redirect } from "next/navigation";
-import MatchHistoryTable from "~/components/history/MatchHistoryTable";
+import MatchHistoryTable from "~/app/(checkers)/history/_components/MatchHistoryTable";
 
 export const metadata: Metadata = {
   title: "Match History",
