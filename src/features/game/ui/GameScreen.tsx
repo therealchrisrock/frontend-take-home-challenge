@@ -1,26 +1,26 @@
 "use client";
+import { History } from "lucide-react";
 import { useEffect } from "react";
 import { Board } from "~/app/(checkers)/_components/game/Board";
-import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
+import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
+import { GameControls } from "~/app/(checkers)/_components/game/GameControls";
+import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 import { MoveHistory } from "~/app/(checkers)/_components/game/MoveHistory";
 import { PostGameAnalysis } from "~/app/(checkers)/_components/game/PostGameAnalysis";
-import { GameChat } from "~/components/chat/GameChat";
-import { GameControls } from "~/app/(checkers)/_components/game/GameControls";
-import { Button } from "~/components/ui/button";
-import { History } from "lucide-react";
-import { useGame } from "../state/game-context";
-import { useMustCapture } from "../hooks/use-must-capture";
-import { useAI } from "../hooks/use-ai";
-import { useOnlineSync } from "../hooks/use-online-sync";
-import { useGameTimers } from "../hooks/use-game-timers";
-import { useAutoSave } from "../hooks/use-auto-save";
-import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { useAudioWarnings } from "~/hooks/useAudioWarnings";
-import { ResizablePanels } from "~/components/ui/resizable-panels";
 import { WinnerDialog } from "~/app/(checkers)/_components/game/WinnerDialog.motion";
-import { useGameSounds } from "~/hooks/useGameSounds";
-import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
+import { GameChat } from "~/components/chat/GameChat";
+import { Button } from "~/components/ui/button";
+import { ResizablePanels } from "~/components/ui/resizable-panels";
 import { useSettings } from "~/contexts/settings-context";
+import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
+import { useAudioWarnings } from "~/hooks/useAudioWarnings";
+import { useGameSounds } from "~/hooks/useGameSounds";
+import { useAI } from "~/lib/game/hooks/use-ai";
+import { useAutoSave } from "~/lib/game/hooks/use-auto-save";
+import { useGameTimers } from "~/lib/game/hooks/use-game-timers";
+import { useMustCapture } from "~/lib/game/hooks/use-must-capture";
+import { useOnlineSync } from "~/lib/game/hooks/use-online-sync";
+import { useGame } from "~/lib/game/state/game-context";
 
 export function GameScreen() {
   const { state, dispatch } = useGame();
@@ -91,7 +91,7 @@ export function GameScreen() {
                   position="top"
                   isActive={
                     state.currentPlayer ===
-                      (state.playerColor === "red" ? "black" : "red") &&
+                    (state.playerColor === "red" ? "black" : "red") &&
                     !state.winner
                   }
                   enableServerData={state.gameMode === "online"}
@@ -101,7 +101,7 @@ export function GameScreen() {
                     state.gameMode === "ai" &&
                     state.isAIThinking &&
                     state.currentPlayer ===
-                      (state.playerColor === "red" ? "black" : "red")
+                    (state.playerColor === "red" ? "black" : "red")
                   }
                   className="w-full max-w-md"
                 />
