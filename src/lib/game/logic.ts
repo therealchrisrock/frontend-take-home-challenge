@@ -1,5 +1,5 @@
-import type { VariantConfig } from "./game-engine/rule-schema";
-import { AmericanConfig } from "./game-engine/rule-configs/american";
+import type { VariantConfig } from "../game-engine/rule-schema";
+import { AmericanConfig } from "../game-engine/rule-configs/american";
 import {
   checkDrawConditions,
   type DrawState,

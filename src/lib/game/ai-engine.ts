@@ -7,9 +7,9 @@ import {
   getValidMoves,
   makeMove,
   checkWinner,
-} from "./game-logic";
-import type { VariantConfig } from "./game-engine/rule-schema";
-import { AmericanConfig } from "./game-engine/rule-configs/american";
+} from "./logic";
+import type { VariantConfig } from "../game-engine/rule-schema";
+import { AmericanConfig } from "../game-engine/rule-configs/american";
 
 export type AIDifficulty = "easy" | "medium" | "hard" | "expert";
 
