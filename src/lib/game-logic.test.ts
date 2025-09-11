@@ -9,7 +9,7 @@ import {
   checkWinner,
   getRandomAIMove,
   type Board,
-} from "./game-logic";
+} from "./game/logic";
 
 describe("Game Logic", () => {
   describe("createInitialBoard", () => {

@@ -11,7 +11,7 @@ import type {
   Position,
   Move,
   Piece,
-} from "../game-logic";
+} from "../game/logic";
 import { GameConfigLoader } from "./config-loader";
 import { getPromotionRows } from "./config-utils";
 

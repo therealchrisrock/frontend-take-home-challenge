@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { getCaptureMoves, type Board, type Piece } from "../game-logic";
+import { getCaptureMoves, type Board, type Piece } from "../game/logic";
 
 describe("Backward Capture Prevention", () => {
   it("regular black pieces should NOT be able to capture backward (upward)", () => {

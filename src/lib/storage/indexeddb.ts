@@ -1,9 +1,10 @@
 import {
   type GameStorageAdapter,
-  type PersistedGameState,
   type GameSummary,
-  type StorageResult,
+  type PersistedGameState,
   type StorageConfig,
+  type StorageError,
+  type StorageResult,
   DEFAULT_GAME_ID,
   STORAGE_VERSION,
 } from "./types";
@@ -98,6 +99,14 @@ export class IndexedDBAdapter implements GameStorageAdapter {
     return this.db;
   }
 
+  private mapIdbErrorToCode(error: unknown): StorageError["code"] {
+    const name = (error as { name?: string } | null)?.name;
+    if (name === "QuotaExceededError") return "QUOTA_EXCEEDED";
+    if (name === "DataError" || name === "ConstraintError")
+      return "INVALID_DATA";
+    return "UNKNOWN";
+  }
+
   async saveGame(gameState: PersistedGameState): Promise<StorageResult<void>> {
     try {
       const db = await this.ensureDB();
@@ -122,7 +131,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
           resolve({
             success: false,
             error: {
-              code: "SAVE_FAILED",
+              code: this.mapIdbErrorToCode(request.error),
               message: "Failed to save game to IndexedDB",
               originalError: request.error,
             },
@@ -133,7 +142,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
       return {
         success: false,
         error: {
-          code: "DB_ERROR",
+          code: this.mapIdbErrorToCode(error),
           message: "Database operation failed",
           originalError: error,
         },
@@ -177,7 +186,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
           resolve({
             success: false,
             error: {
-              code: "LOAD_FAILED",
+              code: this.mapIdbErrorToCode(request.error),
               message: "Failed to load game from IndexedDB",
               originalError: request.error,
             },
@@ -188,7 +197,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
       return {
         success: false,
         error: {
-          code: "DB_ERROR",
+          code: this.mapIdbErrorToCode(error),
           message: "Database operation failed",
           originalError: error,
         },
@@ -218,7 +227,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
           resolve({
             success: false,
             error: {
-              code: "DELETE_FAILED",
+              code: this.mapIdbErrorToCode(request.error),
               message: "Failed to delete game from IndexedDB",
               originalError: request.error,
             },
@@ -229,7 +238,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
       return {
         success: false,
         error: {
-          code: "DB_ERROR",
+          code: this.mapIdbErrorToCode(error),
           message: "Database operation failed",
           originalError: error,
         },
@@ -272,7 +281,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
           resolve({
             success: false,
             error: {
-              code: "LIST_FAILED",
+              code: this.mapIdbErrorToCode(request.error),
               message: "Failed to list games from IndexedDB",
               originalError: request.error,
             },
@@ -283,7 +292,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
       return {
         success: false,
         error: {
-          code: "DB_ERROR",
+          code: this.mapIdbErrorToCode(error),
           message: "Database operation failed",
           originalError: error,
         },
@@ -326,7 +335,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
           resolve({
             success: false,
             error: {
-              code: "CLEAR_FAILED",
+              code: this.mapIdbErrorToCode(transaction.error),
               message: "Failed to clear IndexedDB",
               originalError: transaction.error,
             },
@@ -337,7 +346,7 @@ export class IndexedDBAdapter implements GameStorageAdapter {
       return {
         success: false,
         error: {
-          code: "DB_ERROR",
+          code: this.mapIdbErrorToCode(error),
           message: "Database operation failed",
           originalError: error,
         },

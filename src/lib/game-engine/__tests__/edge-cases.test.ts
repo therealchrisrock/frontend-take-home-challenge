@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { GameRules } from "../game-rules";
 import { GameConfigLoader } from "../config-loader";
-import type { Board, Move } from "../../game-logic";
+import type { Board, Move } from "../../game/logic";
 
 describe("Edge Cases and Complex Scenarios", () => {
   const variants = ["american", "brazilian", "international"] as const;
@@ -447,7 +447,7 @@ describe("Edge Cases and Complex Scenarios", () => {
         // Find and make a move
         const moves = rules.findValidMoves(originalBoard, "red");
         if (moves.length > 0) {
-          const newBoard = rules.makeMove(originalBoard, moves[0]!);
+          const newBoard = rules.makeMove(originalBoard, moves[0]);
 
           // Original board should be unchanged
           for (let i = 0; i < originalBoard.length; i++) {
@@ -492,7 +492,7 @@ describe("Edge Cases and Complex Scenarios", () => {
       );
 
       if (americanMoves.length > 0) {
-        americanRules.makeMove(americanBoard, americanMoves[0]!);
+        americanRules.makeMove(americanBoard, americanMoves[0]);
       }
 
       // International board should still be initial state

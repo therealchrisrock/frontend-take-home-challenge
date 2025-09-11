@@ -1,4 +1,4 @@
-import { type PieceColor } from "./game-logic";
+import { type PieceColor } from "./logic";
 
 export interface PlayerStats {
   wins: number;

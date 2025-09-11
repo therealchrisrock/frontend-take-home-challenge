@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { GameRules } from "../game-rules";
 import { GameConfigLoader } from "../config-loader";
 import { validateConfigWithErrors } from "../rule-schema";
-import type { Board, Move, PieceColor } from "../../game-logic";
+import type { Board, Move, PieceColor } from "../../game/logic";
 import type { VariantConfig } from "../rule-schema";
 
 describe("Game Engine Integration Tests", () => {
@@ -234,17 +234,17 @@ describe("Game Engine Integration Tests", () => {
       const moves3 = game3.findValidMoves(board3, "red");
 
       if (moves1.length > 0) {
-        const newBoard1 = game1.makeMove(board1, moves1[0]!);
+        const newBoard1 = game1.makeMove(board1, moves1[0]);
         expect(newBoard1).not.toBe(board1); // Should be a new board
       }
 
       if (moves2.length > 0) {
-        const newBoard2 = game2.makeMove(board2, moves2[0]!);
+        const newBoard2 = game2.makeMove(board2, moves2[0]);
         expect(newBoard2).not.toBe(board2);
       }
 
       if (moves3.length > 0) {
-        const newBoard3 = game3.makeMove(board3, moves3[0]!);
+        const newBoard3 = game3.makeMove(board3, moves3[0]);
         expect(newBoard3).not.toBe(board3);
       }
 
@@ -414,8 +414,8 @@ describe("Game Engine Integration Tests", () => {
       const moveHistory: Move[] = [];
 
       for (let i = 0; i < 3 && i < moves.length; i++) {
-        currentBoard = rules.makeMove(currentBoard, moves[i]!);
-        moveHistory.push(moves[i]!);
+        currentBoard = rules.makeMove(currentBoard, moves[i]);
+        moveHistory.push(moves[i]);
       }
 
       // Serialize state

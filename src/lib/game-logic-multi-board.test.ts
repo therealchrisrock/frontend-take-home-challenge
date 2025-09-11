@@ -10,9 +10,9 @@ import {
   getRandomAIMove,
   type Board,
   type Position,
-} from "./game-logic";
+} from "./game/logic";
 import { GameConfigLoader } from "./game-engine/config-loader";
-import type { BoardVariant } from "./variants";
+import type { BoardVariant } from "./game/variants";
 
 describe("Game Logic - Multiple Board Sizes", () => {
   const variants: BoardVariant[] = ["american", "international", "canadian"];

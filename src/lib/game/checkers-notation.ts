@@ -1,4 +1,4 @@
-import type { Move, Position, Board } from "./game-logic";
+import type { Move, Position, Board } from "./logic";
 
 /**
  * Convert a board position to standard checkers notation.

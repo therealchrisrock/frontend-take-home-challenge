@@ -1,4 +1,4 @@
-import type { Move, PieceColor } from "../game-logic";
+import type { Move, PieceColor } from "../game/logic";
 
 export type MoveCategory =
   | "brilliant"

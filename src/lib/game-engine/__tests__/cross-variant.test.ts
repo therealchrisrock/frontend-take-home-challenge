@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { GameRules } from "../game-rules";
 import { GameConfigLoader } from "../config-loader";
-import type { Board, Move, PieceColor } from "../../game-logic";
+import type { Board, Move, PieceColor } from "../../game/logic";
 
 // Test data for all variants
 const VARIANTS = ["american", "brazilian", "international"] as const;
@@ -554,7 +554,7 @@ describe("Cross-Variant Tests", () => {
           // Make a few moves
           const moves = rules.findValidMoves(board, "red");
           if (moves.length > 0) {
-            rules.makeMove(board, moves[0]!);
+            rules.makeMove(board, moves[0]);
           }
         }
       }

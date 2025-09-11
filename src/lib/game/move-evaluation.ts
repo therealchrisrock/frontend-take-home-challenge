@@ -1,7 +1,7 @@
-import type { Move, Board, PieceColor } from "./game-logic";
-import { makeMove, getValidMoves, getMustCapturePositions } from "./game-logic";
-import type { VariantConfig } from "./game-engine/rule-schema";
-import { AmericanConfig } from "./game-engine/rule-configs/american";
+import type { Move, Board, PieceColor } from "./logic";
+import { makeMove, getValidMoves, getMustCapturePositions } from "./logic";
+import type { VariantConfig } from "../game-engine/rule-schema";
+import { AmericanConfig } from "../game-engine/rule-configs/american";
 import { CheckersAI } from "./ai-engine";
 import type {
   MoveCategory,
@@ -11,11 +11,11 @@ import type {
   AnalysisConfig,
   GamePhase,
   ThreatLevel,
-} from "./types/move-analysis";
+} from "../types/move-analysis";
 import {
   MOVE_QUALITY_THRESHOLDS,
   DEFAULT_ANALYSIS_CONFIG,
-} from "./types/move-analysis";
+} from "../types/move-analysis";
 
 export class MoveEvaluator {
   private ai: CheckersAI;

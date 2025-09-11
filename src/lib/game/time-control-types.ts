@@ -1,7 +1,7 @@
-import type { PieceColor } from "./game-logic";
+import type { PieceColor } from "./logic";
 
 // Re-export PieceColor for convenience
-export type { PieceColor } from "./game-logic";
+export type { PieceColor } from "./logic";
 
 /**
  * Time control configuration for a game

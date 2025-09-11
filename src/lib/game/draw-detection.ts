@@ -1,5 +1,5 @@
-import type { Board, Move, PieceColor } from "./game-logic";
-import type { VariantConfig } from "./game-engine/rule-schema";
+import type { Board, Move, PieceColor } from "./logic";
+import type { VariantConfig } from "../game-engine/rule-schema";
 
 /**
  * Draw result with explanation

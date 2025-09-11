@@ -158,14 +158,14 @@ export type {
   Position,
   Move,
   Piece,
-} from "../game-logic";
+} from "../game/logic";
 export {
   createInitialBoard,
   makeMove,
   checkWinner,
   getRandomAIMove,
   isValidSquare,
-} from "../game-logic";
+} from "../game/logic";
 
 /**
  * Type exports for TypeScript users

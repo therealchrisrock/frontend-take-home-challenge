@@ -10,7 +10,7 @@ import {
   getMustCapturePositions,
   type Board,
   type Move,
-} from "../game-logic";
+} from "../game/logic";
 
 describe("Illegal Move Prevention - Comprehensive Tests", () => {
   describe("Backward Movement Prevention for Regular Pieces", () => {

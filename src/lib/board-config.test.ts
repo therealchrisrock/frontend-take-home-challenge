@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { GameConfigLoader } from "./game-engine/config-loader";
-import { getBoardGridStyleFromSize } from "./board-style";
-import { getBoardVariants, type BoardVariant } from "./variants";
+import { getBoardGridStyleFromSize } from "../app/(checkers)/_lib/board-style";
+import { getBoardVariants, type BoardVariant } from "./game/variants";
 
 describe("Variant Rules Configuration System", () => {
   describe("getBoardConfig", () => {

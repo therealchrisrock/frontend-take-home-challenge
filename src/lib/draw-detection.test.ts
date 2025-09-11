@@ -8,8 +8,8 @@ import {
   checkTwentyFiveMoveRule,
   checkInsufficientMaterial,
   checkDrawConditions,
-} from "./draw-detection";
-import { createInitialBoard, type Board, type Move } from "./game-logic";
+} from "./game/draw-detection";
+import { createInitialBoard, type Board, type Move } from "./game/logic";
 import { AmericanConfig } from "./game-engine/rule-configs/american";
 import type { VariantConfig } from "./game-engine/rule-schema";
 
@@ -413,7 +413,7 @@ describe("Draw Detection", () => {
       const state = createDrawState();
 
       // Import checkWinner from game-logic using import statement
-      const { checkWinner } = await import("./game-logic");
+      const { checkWinner } = await import("./game/logic");
       const result = checkWinner(board, testConfig, state);
       expect(result).toBe("draw");
     });
@@ -428,7 +428,7 @@ describe("Draw Detection", () => {
       const state = createDrawState();
       state.movesSinceCapture = 80; // Would be draw by forty-move rule
 
-      const { checkWinner } = await import("./game-logic");
+      const { checkWinner } = await import("./game/logic");
       const result = checkWinner(board, testConfig, state);
       expect(result).toBe("black"); // Win takes precedence
     });
