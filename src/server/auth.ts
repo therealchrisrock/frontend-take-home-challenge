@@ -41,8 +41,37 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
+    signIn: async ({ user, account, profile }) => {
+      // For OAuth providers, ensure user has a username before allowing sign in
+      if (account?.provider === "discord") {
+        if (!user.username) {
+          // Generate a placeholder username
+          const tempUsername = `user_${user.id?.slice(-8) || Date.now().toString().slice(-8)}`;
+          user.username = tempUsername;
+        }
+      }
+      return true;
+    },
   },
-  adapter: PrismaAdapter(db) as Adapter,
+  adapter: {
+    ...PrismaAdapter(db),
+    createUser: async (data) => {
+      // Ensure username is provided for new users
+      const username = data.username || `user_${Date.now().toString().slice(-8)}`;
+      
+      const user = await db.user.create({
+        data: {
+          ...data,
+          username,
+        },
+      });
+      
+      return {
+        ...user,
+        needsUsername: username.startsWith("user_"),
+      };
+    },
+  } as Adapter,
   providers: [
     DiscordProvider({
       clientId: env.DISCORD_CLIENT_ID,
@@ -101,19 +130,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-  },
-  events: {
-    async createUser({ user }) {
-      // Generate temporary username for OAuth users who don't have one
-      if (!user.username) {
-        const tempUsername = `user_${user.id.slice(-8)}`;
-        await db.user.update({
-          where: { id: user.id },
-          data: { username: tempUsername },
-        });
-        user.username = tempUsername;
-      }
-    },
   },
 };
 
