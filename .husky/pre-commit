@@ -1,2 +1,3 @@
 #!/usr/bin/env sh
 # pnpm -s next build --no-lint || exit 1
+ npx tsc --noEmit || exit 1
