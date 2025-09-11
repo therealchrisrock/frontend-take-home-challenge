@@ -17,7 +17,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { PlayerCard } from "~/app/(checkers)/_components/game/PlayerCard";
 import { useSession } from "next-auth/react";
-import { mapUserToPlayerInfo } from "~/lib/map-user-to-player-info";
+import { mapUserToPlayerInfo } from "~/app/(checkers)/_lib/map-user-to-player-info";
 import { api } from "~/trpc/react";
 
 interface GameModeCardProps {

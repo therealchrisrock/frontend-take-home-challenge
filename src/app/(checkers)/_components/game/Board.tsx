@@ -5,7 +5,7 @@ import {
   type Position,
   type Move,
 } from "~/lib/game-logic";
-import { getBoardGridStyleFromSize } from "~/lib/board-style";
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import { Square } from "./Square.motion";
 import { Piece } from "./Piece";
 import { MoveSequenceArrows } from "./MoveSequenceArrows";

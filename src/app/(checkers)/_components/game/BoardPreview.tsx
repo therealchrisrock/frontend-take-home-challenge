@@ -1,6 +1,6 @@
 "use client";
 
-import { getBoardGridStyleFromSize } from "~/lib/board-style";
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
 import {
   type GamePlayers,

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
-import { getBoardGridStyleFromSize } from "~/lib/board-style";
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 
 interface GameSkeletonProps {
   size?: number;
