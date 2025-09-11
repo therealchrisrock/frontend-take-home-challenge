@@ -41,47 +41,38 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
+    signIn: async ({ user, account, profile }) => {
+      // For OAuth providers, ensure user has a username before allowing sign in
+      if (account?.provider === "discord") {
+        if (!user.username) {
+          // Generate a placeholder username
+          const tempUsername = `user_${user.id?.slice(-8) || Date.now().toString().slice(-8)}`;
+          user.username = tempUsername;
+        }
+      }
+      return true;
+    },
   },
-  // Wrap the Prisma adapter to ensure a placeholder username is set for new OAuth users
-  adapter: ((): Adapter => {
-    const base = PrismaAdapter(db) as Adapter;
-    return {
-      ...base,
-      // next-auth calls createUser during initial sign-in for new OAuth users
-      async createUser(data) {
-        // Ensure username is present (Prisma requires it)
-        if (
-          !("username" in data) ||
-          !data.username ||
-          typeof data.username !== "string"
-        ) {
-          // We cannot rely on db to generate id here because createUser is supposed to do that.
-          // Use a temporary placeholder that we will replace after the record exists with its id.
-          // To avoid unique collisions, incorporate a random suffix.
-          const random = Math.random().toString(36).slice(-6);
-          (data as any).username = `user_tmp_${random}`;
-        }
+  adapter: {
+    ...PrismaAdapter(db),
+    createUser: async (data) => {
+      // Ensure username is provided for new users
+      const username =
+        data.username || `user_${Date.now().toString().slice(-8)}`;
 
-        const user = await base.createUser(data);
+      const user = await db.user.create({
+        data: {
+          ...data,
+          username,
+        },
+      });
 
-        // After we have an id, normalize placeholder to stable form user_<last8>
-        try {
-          if (user && user.id && user.username?.startsWith("user_tmp_")) {
-            const stableUsername = `user_${user.id.slice(-8)}`;
-            await db.user.update({
-              where: { id: user.id },
-              data: { username: stableUsername },
-            });
-            return { ...user, username: stableUsername } as typeof user;
-          }
-        } catch {
-          // If update fails, return the created user; downstream flows can still proceed
-        }
-
-        return user as any;
-      },
-    } as Adapter;
-  })(),
+      return {
+        ...user,
+        needsUsername: username.startsWith("user_"),
+      };
+    },
+  } as Adapter,
   providers: [
     DiscordProvider({
       clientId: env.DISCORD_CLIENT_ID,
@@ -140,19 +131,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-  },
-  events: {
-    async createUser({ user }) {
-      // Generate temporary username for OAuth users who don't have one
-      if (!user.username) {
-        const tempUsername = `user_${user.id.slice(-8)}`;
-        await db.user.update({
-          where: { id: user.id },
-          data: { username: tempUsername },
-        });
-        user.username = tempUsername;
-      }
-    },
   },
 };
 

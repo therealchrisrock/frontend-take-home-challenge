@@ -37,9 +37,16 @@ export default function NewUserPage() {
   const { data: session, update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const form = useForm<UsernameData>({
     resolver: zodResolver(usernameSchema),
+    defaultValues: {
+      // Pre-fill with a suggested username based on display name
+      username: session?.user?.name ?
+        session.user.name.toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) :
+        "",
+    },
   });
 
   const setUsernameMutation = api.auth.setUsername.useMutation({
@@ -68,6 +75,10 @@ export default function NewUserPage() {
     setIsLoading(false);
   };
 
+  const handleAvatarUpload = (newAvatarUrl: string) => {
+    setAvatarUrl(newAvatarUrl);
+  };
+
   if (!session?.user) {
     return null;
   }
@@ -85,14 +96,24 @@ export default function NewUserPage() {
             Welcome, {session.user.name ?? session.user.email}!
           </CardTitle>
           <CardDescription>
-            Choose a username to complete your profile
+            Complete your profile to get started
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <AvatarUpload currentAvatarUrl={session.user.image} />
-            </div>
+        <CardContent className="space-y-6">
+          {/* Avatar Upload Section */}
+          <div className="space-y-2">
+            <Label>Profile Picture</Label>
+            <AvatarUpload
+              currentAvatarUrl={session.user.image}
+              onUploadComplete={handleAvatarUpload}
+            />
+            <p className="text-xs text-muted-foreground">
+              Upload a profile picture (optional)
+            </p>
+          </div>
+
+          {/* Username Form */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -116,13 +137,16 @@ export default function NewUserPage() {
                 <p className="text-sm text-green-500">Username is available</p>
               )}
               {error && <p className="text-sm text-red-500">{error}</p>}
+              <p className="text-xs text-muted-foreground">
+                Choose a unique username (3-20 characters, letters, numbers, underscores, and hyphens only)
+              </p>
             </div>
             <Button
               type="submit"
               className="w-full"
               disabled={isLoading || !checkUsername.data?.available}
             >
-              {isLoading ? "Setting username..." : "Continue"}
+              {isLoading ? "Setting up profile..." : "Complete Setup"}
             </Button>
           </form>
         </CardContent>
