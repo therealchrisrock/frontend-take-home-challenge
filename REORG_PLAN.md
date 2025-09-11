@@ -7,8 +7,8 @@ Goal: Align repository with `project-structure` and `route-colocation` rules whi
 - [x] Keep `/auth` directly under `app/auth` (no route group)
 - [x] Scaffold private folders under `(checkers)`: `_components`, `_lib`
 - [ ] Audit usage of global UI (chat, social, header, sidebar)
-- [ ] Colocate `profile` and `history` components under their routes
-- [ ] Move `game` components into `(checkers)/_components/game`
+- [x] Colocate `profile` and `history` components under their routes
+- [x] Move `game` components into `(checkers)/_components/game`
 - [ ] Move `features/game` hooks/state to `lib/game`
 - [ ] Update imports for moved files; add barrels where helpful
 - [ ] Build/test verification; resolve import errors

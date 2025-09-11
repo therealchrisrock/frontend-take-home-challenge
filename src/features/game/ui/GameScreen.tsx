@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { Board } from "~/app/(checkers)/_components/game/Board";
-import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
+import { PlayerCardContainer } from "~/lib/game/ui/player-card-container";
 import { MoveHistory } from "~/app/(checkers)/_components/game/MoveHistory";
 import { PostGameAnalysis } from "~/app/(checkers)/_components/game/PostGameAnalysis";
 import { GameChat } from "~/components/chat/GameChat";
