@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Card } from "~/components/ui/card";
 import { Users, User, Bot } from "lucide-react";
-import { BoardPreview } from "~/components/game/BoardPreview";
-import { GameWrapper } from "~/components/game/game-wrapper";
+import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
+import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
 
 export default function GameModeSelectorPage() {
   const router = useRouter();

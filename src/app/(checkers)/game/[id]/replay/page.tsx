@@ -1,6 +1,6 @@
 import { getServerAuthSession } from "~/server/auth";
 import { redirect } from "next/navigation";
-import GameReplayController from "~/components/game/GameReplayController";
+import GameReplayController from "~/app/(checkers)/_components/game/GameReplayController";
 
 interface ReplayPageProps {
   params: Promise<{ id: string }>;

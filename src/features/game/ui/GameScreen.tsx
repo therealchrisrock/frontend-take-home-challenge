@@ -1,11 +1,11 @@
 "use client";
 import { useEffect } from "react";
-import { Board } from "~/components/game/Board";
+import { Board } from "~/app/(checkers)/_components/game/Board";
 import { PlayerCardContainer } from "~/features/game/ui/player-card-container";
-import { MoveHistory } from "~/components/game/MoveHistory";
-import { PostGameAnalysis } from "~/components/game/PostGameAnalysis";
+import { MoveHistory } from "~/app/(checkers)/_components/game/MoveHistory";
+import { PostGameAnalysis } from "~/app/(checkers)/_components/game/PostGameAnalysis";
 import { GameChat } from "~/components/chat/GameChat";
-import { GameControls } from "~/components/game/GameControls";
+import { GameControls } from "~/app/(checkers)/_components/game/GameControls";
 import { Button } from "~/components/ui/button";
 import { History } from "lucide-react";
 import { useGame } from "../state/game-context";
@@ -14,12 +14,12 @@ import { useAI } from "../hooks/use-ai";
 import { useOnlineSync } from "../hooks/use-online-sync";
 import { useGameTimers } from "../hooks/use-game-timers";
 import { useAutoSave } from "../hooks/use-auto-save";
-import { GameWrapper } from "~/components/game/game-wrapper";
+import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
 import { useAudioWarnings } from "~/hooks/useAudioWarnings";
 import { ResizablePanels } from "~/components/ui/resizable-panels";
-import { WinnerDialog } from "~/components/game/WinnerDialog.motion";
+import { WinnerDialog } from "~/app/(checkers)/_components/game/WinnerDialog.motion";
 import { useGameSounds } from "~/hooks/useGameSounds";
-import { GameSettings } from "~/components/game/GameSettings";
+import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 import { useSettings } from "~/contexts/settings-context";
 
 export function GameScreen() {

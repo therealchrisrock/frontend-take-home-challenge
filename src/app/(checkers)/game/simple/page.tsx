@@ -1,6 +1,6 @@
 "use client";
 
-import { GameController } from "~/components/game/GameController";
+import { GameController } from "~/app/(checkers)/_components/game/GameController";
 
 export default function SimpleGamePage() {
   // Simple game page just creates a local game without a gameId

@@ -1,4 +1,4 @@
-import { GameController } from "~/components/game/GameController";
+import { GameController } from "~/app/(checkers)/_components/game/GameController";
 
 interface GamePageProps {
   params: Promise<{

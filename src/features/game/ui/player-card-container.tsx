@@ -1,13 +1,13 @@
 "use client";
 
-import { PlayerCard } from "~/components/game/PlayerCard";
-import { PlayerCardSkeleton } from "~/components/game/PlayerCardSkeleton";
+import { PlayerCard } from "~/app/(checkers)/_components/game/PlayerCard";
+import { PlayerCardSkeleton } from "~/app/(checkers)/_components/game/PlayerCardSkeleton";
 import { LoadingDots } from "~/components/ui/loading-dots";
 import { usePlayerCard } from "../hooks/use-player-card";
 import { type PieceColor } from "~/lib/game-logic";
 import { type PlayerInfo } from "~/lib/player-types";
 import { type TimeState } from "~/lib/time-control-types";
-import { PlayerTimer } from "~/components/game/player-timer";
+import { PlayerTimer } from "~/app/(checkers)/_components/game/player-timer";
 
 interface PlayerCardContainerProps {
   player: PlayerInfo;

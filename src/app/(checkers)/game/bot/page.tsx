@@ -1,5 +1,5 @@
 import { type Metadata } from "next";
-import { GameConfiguration } from "~/components/game/GameConfiguration";
+import { GameConfiguration } from "~/app/(checkers)/_components/game/GameConfiguration";
 
 export const metadata: Metadata = {
   title: "Play vs AI",
