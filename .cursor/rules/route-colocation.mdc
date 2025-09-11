@@ -1,0 +1,33 @@
+---
+description: Route groups, private folders, and colocation decision tree
+globs: src/app/**/*
+---
+
+### Route Organization
+
+- **Semantic route groups** where appropriate: `(checkers)`, `(public)`, `(marketing)`
+- Keep stable top-level routes like `/auth` under `app/auth` unless there's a clear benefit to grouping
+- Avoid generic names like `(app)`, `(pages)`, `(routes)`
+- Use private folders inside routes for colocated code: `_components`, `_lib`, `_hooks`
+- Tests colocated with `__tests__` (double underscore)
+
+### Colocation Decision Tree
+
+```text
+Is this code used in multiple route groups?
+├─ YES → Put in `/lib/[feature]/` or `/components/ui/`
+└─ NO → Is it used by multiple routes in the same group?
+    ├─ YES → Put in route group's `_components/` or `_lib/`
+    └─ NO → Put in specific route's `_components/` or `_lib/`
+```
+
+### Standard Route Folder
+
+```text
+app/(group)/route-name/
+├── _components/
+├── _lib/
+├── _hooks/
+├── __tests__/
+└── page.tsx
+```

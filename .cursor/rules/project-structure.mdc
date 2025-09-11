@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+description: Next.js 15 project structure and high-level conventions
+---
+
+### Project Structure Guide
+
+Follow a colocated, feature-first structure with clear boundaries and a single source of truth.
+
+- **Route groups**: Use semantic groups like `(checkers)`, `(legal)` when helpful; keep existing `/auth` directly under `app/auth` to preserve route stability
+- **Private folders**: Use `_components`, `_lib`, `_hooks`; tests in `__tests__`
+- **APIs**: All endpoints live under `app/api/` and are grouped by feature
+- **Colocation**: Colocate route-specific code within the route; share cross-feature code only via `lib/` or `components/ui/`
+
+Standard scaffold:
+
+```text
+app/
+├── (route-group)/
+│   ├── _components/
+│   ├── _lib/
+│   ├── route-name/
+│   │   ├── _components/
+│   │   ├── _lib/
+│   │   ├── _hooks/
+│   │   ├── __tests__/
+│   │   └── page.tsx
+│   └── layout.tsx
+├── api/
+└── providers.tsx
+```
+
+Do's:
+
+- **Colocate by feature**, not by file type
+- **Use route groups** for access and boundaries
+- **Keep shared logic** in `lib/` or `components/ui/`
+
+Don'ts:
+
+- Don't colocate API routes with page routes
+- Don't duplicate shared logic; prefer a single source of truth
+
+See also: [`tsconfig.json`](mdc:tsconfig.json), [`eslint.config.js`](mdc:eslint.config.js)
