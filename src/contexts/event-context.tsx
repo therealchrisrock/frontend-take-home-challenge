@@ -14,6 +14,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
   type ReactNode
 } from 'react';
@@ -422,7 +423,12 @@ export function EventProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Friend request accepted",
       });
-      // Optionally refetch friend requests or update UI
+      // Invalidate to update drawers and counts immediately
+      void Promise.all([
+        utils.user.getFriendRequestNotificationCount.invalidate(),
+        utils.user.getFriendRequestNotifications.invalidate(),
+        utils.user.getFriendsWithStatus.invalidate(),
+      ]);
     },
     onError: (error: { message: string }) => {
       toast({
@@ -439,7 +445,11 @@ export function EventProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Friend request declined",
       });
-      // Optionally refetch friend requests or update UI
+      // Invalidate to update drawers and counts immediately
+      void Promise.all([
+        utils.user.getFriendRequestNotificationCount.invalidate(),
+        utils.user.getFriendRequestNotifications.invalidate(),
+      ]);
     },
     onError: (error: { message: string }) => {
       toast({
@@ -530,6 +540,36 @@ export function EventProvider({ children }: { children: ReactNode }) {
                     onClick={async () => {
                       await declineInviteMutation.mutateAsync({ inviteToken: token });
                     }}
+                  >
+                    Decline
+                  </Button>
+                </div>
+              )
+            });
+          } else if (payload.type === 'FRIEND_REQUEST' && payload.relatedEntityId) {
+            const friendRequestId = payload.relatedEntityId;
+            toast({
+              title: payload.title,
+              description: payload.message,
+              action: (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptFriendRequestMutation.mutate({
+                      friendRequestId,
+                    })}
+                    disabled={acceptFriendRequestMutation.isPending}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => declineFriendRequestMutation.mutate({
+                      friendRequestId,
+                    })}
+                    disabled={declineFriendRequestMutation.isPending}
                   >
                     Decline
                   </Button>
@@ -849,7 +889,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
                   })}
                   disabled={declineFriendRequestMutation.isPending}
                 >
-                  Reject
+                  Decline
                 </Button>
               </div>
             )
@@ -998,8 +1038,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_CONNECTION_STATE', payload: 'reconnecting' });
   }, []);
 
-  // Context value
-  const value: EventContextValue = {
+  // Context value - memoized to prevent infinite re-renders
+  const value: EventContextValue = useMemo(() => ({
     ...state,
     reconnect,
     markNotificationRead,
@@ -1013,7 +1053,21 @@ export function EventProvider({ children }: { children: ReactNode }) {
     declineGameInvite,
     acceptFriendRequest,
     declineFriendRequest,
-  };
+  }), [
+    state,
+    reconnect,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteNotification,
+    sendMessage,
+    setTyping,
+    markMessagesRead,
+    makeGameMove,
+    acceptGameInvite,
+    declineGameInvite,
+    acceptFriendRequest,
+    declineFriendRequest,
+  ]);
 
   return (
     <EventContext.Provider value={value}>

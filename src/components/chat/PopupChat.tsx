@@ -64,7 +64,7 @@ export function PopupChat({
     );
 
   // Live messages from EventContext for instant UI updates
-  const { messages: liveMessages, markAsRead } = useMessages(user.id);
+  const { messages: liveMessages, unreadCount, markAsRead } = useMessages(user.id);
 
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {
@@ -93,13 +93,13 @@ export function PopupChat({
   useEffect(() => {
     const wasOpen = prevIsOpenRef.current;
     const isNowOpen = isOpen;
-    
+
     if (!wasOpen && isNowOpen && messagesEndRef.current) {
       // Chat just opened, scroll to bottom and reset user scroll state
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       setUserHasScrolled(false);
     }
-    
+
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
@@ -109,12 +109,12 @@ export function PopupChat({
 
     const currentMessageCount = (conversation?.messages?.length ?? 0) + liveMessages.length;
     const prevMessageCount = prevMessageCountRef.current;
-    
+
     if (currentMessageCount > prevMessageCount && !userHasScrolled && messagesEndRef.current) {
       // New message(s) added and user hasn't scrolled up, scroll to bottom
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-    
+
     prevMessageCountRef.current = currentMessageCount;
   }, [isOpen, conversation?.messages?.length, liveMessages.length, userHasScrolled]);
 
@@ -130,7 +130,7 @@ export function PopupChat({
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const element = event.currentTarget;
     const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50; // 50px threshold
-    
+
     if (!isAtBottom && !userHasScrolled) {
       setUserHasScrolled(true);
     } else if (isAtBottom && userHasScrolled) {
@@ -138,13 +138,13 @@ export function PopupChat({
     }
   };
 
-  // Mark as read in EventContext when the chat is open and new messages arrive
+  // Mark as read in EventContext when the chat is open and there are unread messages
   useEffect(() => {
     if (!isOpen) return;
-    if (liveMessages.length > 0) {
+    if (unreadCount > 0) {
       markAsRead();
     }
-  }, [isOpen, liveMessages, markAsRead]);
+  }, [isOpen, unreadCount, markAsRead]);
 
   // Merge server conversation with live EventContext messages for display
   const displayMessages = (() => {
@@ -161,13 +161,23 @@ export function PopupChat({
       createdAt: new Date(m.createdAt),
     }));
 
+    // Simple deduplication by ID - both server and live messages should have valid IDs
     const byId = new Map<string, { id: string; senderId: string; content: string; createdAt: Date }>();
-    for (const m of [...serverMsgs, ...live]) {
-      const existing = byId.get(m.id);
-      if (!existing || existing.createdAt < m.createdAt) {
+
+    // Add server messages first
+    for (const m of serverMsgs) {
+      if (m.id) {
         byId.set(m.id, m);
       }
     }
+
+    // Add live messages, only if not already present (server messages take precedence)
+    for (const m of live) {
+      if (m.id && !byId.has(m.id)) {
+        byId.set(m.id, m);
+      }
+    }
+
     const merged = Array.from(byId.values());
     merged.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     return merged;
@@ -261,12 +271,10 @@ export function PopupChat({
                   Start a conversation with {user.name ?? user.username}
                 </div>
               )}
-              {displayMessages.map((msg, index) => {
-                const time = msg.createdAt instanceof Date ? msg.createdAt.getTime() : new Date(msg.createdAt as any).getTime();
-                const compositeKey = `${msg.id ?? "no-id"}-${time}-${index}`;
+              {displayMessages.map((msg) => {
                 return (
                   <div
-                    key={compositeKey}
+                    key={msg.id}
                     className={cn(
                       "flex",
                       msg.senderId === session.user.id
@@ -356,7 +364,7 @@ export function MinimizedChatTab({
         <Avatar className="h-8 w-8">
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback>
-            {user.name?.[0] ?? user.username?.[0] ?? "U"}
+            {user.name?.trim()?.[0] || user.username?.[0] || "U"}
           </AvatarFallback>
         </Avatar>
         {unreadCount > 0 && (
@@ -373,7 +381,7 @@ export function MinimizedChatTab({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
-          {user.name ?? user.username}
+          {user.name?.trim() || user.username}
         </p>
       </div>
       <Button
