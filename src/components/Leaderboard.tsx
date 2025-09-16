@@ -59,7 +59,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
         {isLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 10 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <Skeleton key={i} className="h-[69px] w-full" />
             ))}
           </div>
         ) : (
