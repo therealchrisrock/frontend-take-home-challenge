@@ -139,14 +139,17 @@ export default function NewUserPage() {
                   {form.formState.errors.username.message}
                 </p>
               )}
-              {checkUsername.data && !checkUsername.data.available && (
-                <p className="text-sm text-red-500">
-                  Username is already taken
-                </p>
-              )}
-              {checkUsername.data?.available && (
-                <p className="text-sm text-green-500">Username is available</p>
-              )}
+              {/* Reserve space to prevent CLS */}
+              <div className="min-h-[20px]">
+                {checkUsername.data && !checkUsername.data.available && (
+                  <p className="text-sm text-red-500">
+                    Username is already taken
+                  </p>
+                )}
+                {checkUsername.data?.available && (
+                  <p className="text-sm text-green-500">Username is available</p>
+                )}
+              </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <p className="text-xs text-muted-foreground">
                 Choose a unique username (3-20 characters, letters, numbers, underscores, and hyphens only)
