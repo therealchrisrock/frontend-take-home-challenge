@@ -116,6 +116,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const connectSSE = useCallback(() => {
     if (!session?.user?.id || status !== "authenticated") {
+      console.log("Skipping SSE connection - not authenticated:", {
+        hasUserId: !!session?.user?.id,
+        status,
+        sessionState: session ? 'exists' : 'null'
+      });
       return;
     }
 
@@ -126,6 +131,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
 
     const url = `/api/notifications/stream?tabId=${tabIdRef.current}`;
+
+    console.log("Establishing SSE connection:", {
+      url,
+      userId: session.user.id,
+      tabId: tabIdRef.current,
+    });
 
     sseClientRef.current = createSSEClient({
       url,
@@ -232,10 +243,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       },
       onError: (error) => {
         console.error("Notification SSE error:", error);
+        console.error("Session status:", status);
+        console.error("Session user ID:", session?.user?.id);
+        console.error("Tab ID:", tabIdRef.current);
+        console.error("Connection state:", connectionState);
+
         dispatch({
           type: "CONNECTION_ERROR",
           payload: {
-            error: "Connection lost",
+            error: error.readyState === 2 ? "Connection failed to establish" : "Connection lost",
             reconnectAttempts: connectionState.reconnectAttempts + 1,
           },
         });

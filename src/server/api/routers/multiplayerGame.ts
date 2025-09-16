@@ -373,11 +373,18 @@ export const multiplayerGameRouter = createTRPCRouter({
 
       // Update game in database with transaction
       const updatedGame = await ctx.db.$transaction(async (tx) => {
+        // Get the next move index atomically to prevent race conditions
+        const nextMoveIndex = await tx.$queryRaw<{ nextIndex: bigint }[]>`
+          SELECT COALESCE(MAX(moveIndex), -1) + 1 as nextIndex
+          FROM GameMove
+          WHERE gameId = ${input.gameId}
+        `;
+
         // Save the move
         await tx.gameMove.create({
           data: {
             gameId: input.gameId,
-            moveIndex: game.moveCount,
+            moveIndex: Number(nextMoveIndex[0]?.nextIndex ?? 0),
             fromRow: input.move.from.row,
             fromCol: input.move.from.col,
             toRow: input.move.to.row,

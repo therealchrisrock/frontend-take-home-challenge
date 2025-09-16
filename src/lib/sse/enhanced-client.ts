@@ -281,6 +281,8 @@ export function createSSEClient(options: SSEClientOptions): SSEClient {
 
       eventSource.onerror = (error) => {
         console.error("SSE connection error:", error);
+        console.error("EventSource readyState:", eventSource?.readyState);
+        console.error("EventSource URL:", eventSource?.url);
         isConnecting = false;
 
         if (connectionState === "intentionally_disconnected" || isDestroyed) {
@@ -293,7 +295,17 @@ export function createSSEClient(options: SSEClientOptions): SSEClient {
         clearTimeouts();
 
         reconnectAttempts++;
-        onError?.(error);
+
+        // Create a more descriptive error object for the callback
+        const enhancedError = {
+          ...error,
+          readyState: eventSource?.readyState,
+          url: eventSource?.url,
+          reconnectAttempts,
+          timestamp: new Date().toISOString(),
+        };
+
+        onError?.(enhancedError);
 
         // Schedule reconnection
         scheduleReconnect();

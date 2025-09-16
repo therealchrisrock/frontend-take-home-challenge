@@ -11,6 +11,17 @@ import { OptimisticUpdateManager } from "~/lib/optimistic-updates";
 import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
 import { api } from "~/trpc/react";
 
+// Helper function to check if two moves are equal
+function movesEqual(move1: Move, move2: Move): boolean {
+  return (
+    move1.from.row === move2.from.row &&
+    move1.from.col === move2.from.col &&
+    move1.to.row === move2.to.row &&
+    move1.to.col === move2.to.col &&
+    JSON.stringify(move1.captures || []) === JSON.stringify(move2.captures || [])
+  );
+}
+
 export interface UseGameSyncEnhancedOptions {
   gameId?: string;
   enabled?: boolean;
@@ -68,6 +79,7 @@ export function useGameSyncEnhanced(
   const isConnectingRef = useRef(false);
   const serverVersionRef = useRef<number>(0);
   const reconnectAttemptsRef = useRef<number>(0);
+  const lastMoveSubmissionRef = useRef<{ move: Move; timestamp: number } | null>(null);
 
   // tRPC mutations (use multiplayer makeMove for online games)
   const makeMoveApi = api.multiplayerGame.makeMove.useMutation();
@@ -312,8 +324,23 @@ export function useGameSyncEnhanced(
       currentBoard?: Board,
       currentPlayer?: PieceColor,
       moveCount?: number,
+      isRetry = false,
     ): Promise<boolean> => {
       if (!gameId) return false;
+
+      // Prevent duplicate move submissions within 500ms
+      const now = Date.now();
+      const lastSubmission = lastMoveSubmissionRef.current;
+
+      if (lastSubmission &&
+          now - lastSubmission.timestamp < 500 &&
+          movesEqual(lastSubmission.move, move)) {
+        console.log("Preventing duplicate move submission");
+        return false;
+      }
+
+      // Record this move attempt
+      lastMoveSubmissionRef.current = { move, timestamp: now };
 
       // Attempt send regardless of SSE connection; queue only on failure
 
@@ -362,6 +389,17 @@ export function useGameSyncEnhanced(
         return true;
       } catch (error) {
         console.error("Failed to send enhanced move:", error);
+
+        // Check if it's a unique constraint violation (race condition) and we haven't retried yet
+        if (!isRetry && error instanceof Error && error.message?.includes("Unique constraint failed")) {
+          console.log("Constraint violation detected, retrying with fresh state");
+          // Wait a small random amount and retry once
+          await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+          // Clear the last submission to allow retry
+          lastMoveSubmissionRef.current = null;
+          // Retry once (but don't infinite loop)
+          return sendMove(move, currentBoard, currentPlayer, moveCount, true);
+        }
 
         // Queue for retry when connection restored
         syncDispatch({
