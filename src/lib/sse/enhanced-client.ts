@@ -1,17 +1,15 @@
 /**
- * SSE Client
+ * SSE Client - Simplified "Always Alive" Pattern
  *
- * Provides consistent SSE connection management with proper cleanup patterns
- * that work seamlessly with the existing SSE hub infrastructure.
- * Fixes Firefox "connection interrupted" errors and prevents resource leaks.
+ * Maintains persistent SSE connections with automatic browser-handled reconnection.
+ * Fixes Firefox "connection interrupted" errors and simplifies state management.
  */
 
 export type ConnectionState =
   | "disconnected"
   | "connecting"
   | "connected"
-  | "reconnecting"
-  | "intentionally_disconnected";
+  | "reconnecting";
 
 export interface SSEClientOptions {
   url: string;
@@ -19,9 +17,6 @@ export interface SSEClientOptions {
   onOpen?: () => void;
   onError?: (error: Event) => void;
   onConnectionStateChange?: (state: ConnectionState) => void;
-  maxReconnectAttempts?: number;
-  baseReconnectDelay?: number;
-  maxReconnectDelay?: number;
   heartbeatTimeout?: number;
   autoConnect?: boolean;
 }
@@ -36,7 +31,7 @@ export interface SSEClient {
 }
 
 /**
- * Creates an SSE client with proper cleanup patterns
+ * Creates a simplified SSE client that maintains persistent connections
  */
 export function createSSEClient(options: SSEClientOptions): SSEClient {
   const {
@@ -45,304 +40,206 @@ export function createSSEClient(options: SSEClientOptions): SSEClient {
     onOpen,
     onError,
     onConnectionStateChange,
-    maxReconnectAttempts = 10,
-    baseReconnectDelay = 1000,
-    maxReconnectDelay = 30000,
     heartbeatTimeout = 60000,
     autoConnect = true,
   } = options;
 
   let eventSource: EventSource | null = null;
   let connectionState: ConnectionState = "disconnected";
-  let reconnectAttempts = 0;
-  let reconnectTimeout: NodeJS.Timeout | null = null;
   let heartbeatTimeoutId: NodeJS.Timeout | null = null;
   let isDestroyed = false;
-  let isConnecting = false;
-
-  // Track browser events for cleanup
-  let hasRegisteredBrowserEvents = false;
 
   const setState = (newState: ConnectionState) => {
     if (connectionState !== newState) {
       const previousState = connectionState;
       connectionState = newState;
-
+      
       // Log state changes for debugging
       console.log(`SSE state change: ${previousState} -> ${newState} (${url})`);
-
+      
       onConnectionStateChange?.(newState);
     }
   };
 
-  const clearTimeouts = () => {
-    if (reconnectTimeout) {
-      clearTimeout(reconnectTimeout);
-      reconnectTimeout = null;
-    }
+  const clearHeartbeatTimeout = () => {
     if (heartbeatTimeoutId) {
       clearTimeout(heartbeatTimeoutId);
       heartbeatTimeoutId = null;
     }
   };
 
-  const closeEventSource = (reason = "unknown") => {
+  const closeEventSource = () => {
     if (eventSource) {
-      console.log(`Closing SSE connection: ${reason} (${url})`);
-
+      console.log(`Closing SSE connection (${url})`);
+      
       // Remove event listeners to prevent further events
       eventSource.onopen = null;
       eventSource.onmessage = null;
       eventSource.onerror = null;
-
+      
       // Close the connection
       eventSource.close();
       eventSource = null;
     }
   };
 
-  const scheduleReconnect = () => {
-    if (isDestroyed || connectionState === "intentionally_disconnected") {
-      console.log(
-        `Skipping reconnect: destroyed=${isDestroyed}, state=${connectionState}`,
-      );
-      return;
-    }
-
-    if (reconnectAttempts >= maxReconnectAttempts) {
-      console.warn(
-        `Max reconnect attempts reached (${maxReconnectAttempts}), giving up`,
-      );
-      setState("disconnected");
-      return;
-    }
-
-    setState("reconnecting");
-
-    // Exponential backoff with jitter
-    const delay = Math.min(
-      baseReconnectDelay * Math.pow(2, reconnectAttempts) +
-        Math.random() * 1000,
-      maxReconnectDelay,
-    );
-
-    console.log(
-      `Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`,
-    );
-
-    reconnectTimeout = setTimeout(() => {
-      if (!isDestroyed && connectionState !== "intentionally_disconnected") {
-        connect().catch((error) => {
-          console.error("Reconnect failed:", error);
-        });
-      }
-    }, delay);
-  };
-
-  const handleBeforeUnload = () => {
-    console.log("Page unloading, disconnecting SSE");
-    setState("intentionally_disconnected");
-    closeEventSource("beforeunload");
-    clearTimeouts();
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "hidden") {
-      console.log("Page hidden, preparing for potential cleanup");
-      // Don't disconnect immediately, but clear heartbeat timeout
-      if (heartbeatTimeoutId) {
-        clearTimeout(heartbeatTimeoutId);
-      }
-    } else if (document.visibilityState === "visible") {
-      console.log("Page visible, restarting heartbeat");
-      // Page is visible again, restart heartbeat if connected
-      if (eventSource && connectionState === "connected") {
-        resetHeartbeatTimeout();
-      }
-    }
-  };
-
-  const handlePageHide = () => {
-    console.log("Page hiding, disconnecting SSE immediately");
-    setState("intentionally_disconnected");
-    closeEventSource("pagehide");
-    clearTimeouts();
-  };
-
-  const registerBrowserEvents = () => {
-    if (hasRegisteredBrowserEvents || typeof window === "undefined") {
-      return;
-    }
-
-    console.log("Registering browser cleanup events");
-    hasRegisteredBrowserEvents = true;
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handlePageHide);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Handle browser back/forward navigation
-    window.addEventListener("pageshow", (event) => {
-      if (event.persisted && connectionState === "intentionally_disconnected") {
-        console.log("Page restored from cache, resetting state");
-        setState("disconnected");
-      }
-    });
-  };
-
-  const unregisterBrowserEvents = () => {
-    if (!hasRegisteredBrowserEvents || typeof window === "undefined") {
-      return;
-    }
-
-    console.log("Unregistering browser cleanup events");
-    hasRegisteredBrowserEvents = false;
-
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("pagehide", handlePageHide);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-
   const resetHeartbeatTimeout = () => {
-    if (heartbeatTimeoutId) {
-      clearTimeout(heartbeatTimeoutId);
-    }
-
+    clearHeartbeatTimeout();
+    
+    // Heartbeat timeout is now only for monitoring, not disconnection
     heartbeatTimeoutId = setTimeout(() => {
       if (connectionState === "connected" && !isDestroyed) {
-        console.warn("SSE heartbeat timeout, connection may be stale");
-        closeEventSource("heartbeat_timeout");
-        setState("disconnected");
-        scheduleReconnect();
+        console.warn("SSE heartbeat timeout - connection may be stale, but keeping alive");
+        // Don't disconnect - let browser handle reconnection if needed
       }
     }, heartbeatTimeout);
   };
 
+  // Cleanup function for page unload events
+  const cleanup = () => {
+    console.log("SSE: Cleaning up connection for page unload");
+    isDestroyed = true;
+    setState("disconnected");
+    closeEventSource();
+    clearHeartbeatTimeout();
+  };
+
+  // Handle various page unload events for Firefox compatibility
+  const handlePageHide = (e: PageTransitionEvent) => {
+    // Don't cleanup if page is being cached (bfcache)
+    if (e.persisted) return;
+    
+    console.log("SSE: Page hiding, cleaning up for Firefox");
+    cleanup();
+  };
+
+  const handleBeforeUnload = () => {
+    console.log("SSE: Page unloading");
+    cleanup();
+  };
+
+  const handleUnload = () => {
+    console.log("SSE: Page unload event");
+    cleanup();
+  };
+
+  const registerUnloadEvents = () => {
+    if (typeof window === "undefined") return;
+    
+    // Register all unload events for maximum compatibility
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("unload", handleUnload);
+  };
+
+  const unregisterUnloadEvents = () => {
+    if (typeof window === "undefined") return;
+    
+    window.removeEventListener("pagehide", handlePageHide);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("unload", handleUnload);
+  };
+
   const connect = async (): Promise<void> => {
-    if (
-      isDestroyed ||
-      connectionState === "intentionally_disconnected" ||
-      isConnecting
-    ) {
-      console.log(
-        `Skipping connect: destroyed=${isDestroyed}, state=${connectionState}, connecting=${isConnecting}`,
-      );
+    if (isDestroyed) {
+      console.log("SSE: Cannot connect - client is destroyed");
       return;
     }
 
-    isConnecting = true;
+    if (eventSource?.readyState === EventSource.OPEN) {
+      console.log("SSE: Already connected");
+      return;
+    }
+
     setState("connecting");
-
-    console.log(`Connecting to SSE: ${url}`);
-
-    // Register browser events on first connection attempt
-    registerBrowserEvents();
-
+    console.log(`SSE: Connecting to ${url}`);
+    
+    // Register unload events on first connection
+    registerUnloadEvents();
+    
     // Close any existing connection
-    closeEventSource("reconnecting");
-    clearTimeouts();
-
+    closeEventSource();
+    clearHeartbeatTimeout();
+    
     try {
       eventSource = new EventSource(url);
-
+      
       eventSource.onopen = () => {
-        console.log("SSE connection opened");
-        isConnecting = false;
+        console.log("SSE: Connection opened");
         setState("connected");
-        reconnectAttempts = 0; // Reset counter on successful connection
         resetHeartbeatTimeout();
         onOpen?.();
       };
-
+      
       eventSource.onmessage = (event) => {
         // Reset heartbeat timeout on any message
         resetHeartbeatTimeout();
-
-        // Handle heartbeat messages internally
+        
+        // Filter heartbeat messages internally
         try {
           const data = JSON.parse(event.data);
           if (data.type === "HEARTBEAT" || data.type === "heartbeat") {
-            console.log("Heartbeat received");
+            console.log("SSE: Heartbeat received");
             return; // Don't pass heartbeat to application
           }
-          if (
-            data.type === "CONNECTION_STATUS" ||
-            data.type === "connection_established"
-          ) {
-            console.log("Connection status message received:", data);
+          if (data.type === "CONNECTION_STATUS" || data.type === "connection_established") {
+            console.log("SSE: Connection status message received:", data);
             // Pass through connection status messages
           }
         } catch {
           // Not JSON or doesn't have type field, pass through
         }
-
+        
         onMessage?.(event);
       };
-
+      
       eventSource.onerror = (error) => {
-        console.error("SSE connection error:", error);
-        console.error("EventSource readyState:", eventSource?.readyState);
-        console.error("EventSource URL:", eventSource?.url);
-        isConnecting = false;
-
-        if (connectionState === "intentionally_disconnected" || isDestroyed) {
-          console.log("Ignoring error after intentional disconnect");
-          return;
+        // Don't log errors during normal reconnection
+        if (eventSource?.readyState === EventSource.CONNECTING) {
+          // Browser is automatically reconnecting
+          if (connectionState !== "reconnecting") {
+            console.log("SSE: Browser reconnecting...");
+            setState("reconnecting");
+          }
+        } else if (eventSource?.readyState === EventSource.CLOSED) {
+          // Connection closed, browser will auto-reconnect
+          console.log("SSE: Connection closed, browser will handle reconnection");
+          setState("disconnected");
+          // Don't manually reconnect - let browser handle it
+        } else {
+          // Actual error
+          console.error("SSE: Connection error:", error);
+          onError?.(error);
         }
-
-        setState("disconnected");
-        closeEventSource("connection_error");
-        clearTimeouts();
-
-        reconnectAttempts++;
-
-        // Create a more descriptive error object for the callback
-        const enhancedError = {
-          ...error,
-          readyState: eventSource?.readyState,
-          url: eventSource?.url,
-          reconnectAttempts,
-          timestamp: new Date().toISOString(),
-        };
-
-        onError?.(enhancedError);
-
-        // Schedule reconnection
-        scheduleReconnect();
       };
     } catch (error) {
-      console.error("Failed to create EventSource:", error);
-      isConnecting = false;
+      console.error("SSE: Failed to create EventSource:", error);
       setState("disconnected");
-      scheduleReconnect();
+      // Don't try to reconnect on construction failure
     }
   };
 
   const disconnect = () => {
-    console.log("Intentional disconnect requested");
-    setState("intentionally_disconnected");
-    closeEventSource("intentional_disconnect");
-    clearTimeouts();
+    console.log("SSE: Manual disconnect requested");
+    closeEventSource();
+    clearHeartbeatTimeout();
+    setState("disconnected");
   };
 
   const reconnect = async (): Promise<void> => {
-    console.log("Manual reconnect requested");
-    if (connectionState === "intentionally_disconnected") {
-      setState("disconnected"); // Reset from intentional disconnect
-    }
-    closeEventSource("manual_reconnect");
-    clearTimeouts();
-    reconnectAttempts = 0; // Reset attempts for manual reconnect
+    console.log("SSE: Manual reconnect requested");
+    closeEventSource();
+    clearHeartbeatTimeout();
     await connect();
   };
 
   const destroy = () => {
-    console.log("Destroying SSE client");
+    console.log("SSE: Destroying client");
     isDestroyed = true;
-    setState("intentionally_disconnected");
-    closeEventSource("destroy");
-    clearTimeouts();
-    unregisterBrowserEvents();
+    closeEventSource();
+    clearHeartbeatTimeout();
+    unregisterUnloadEvents();
+    setState("disconnected");
   };
 
   const getState = () => connectionState;
@@ -354,7 +251,7 @@ export function createSSEClient(options: SSEClientOptions): SSEClient {
     setTimeout(() => {
       if (!isDestroyed) {
         connect().catch((error) => {
-          console.error("Auto-connect failed:", error);
+          console.error("SSE: Auto-connect failed:", error);
         });
       }
     }, 0);

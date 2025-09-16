@@ -61,9 +61,10 @@ export function PopupChat({
     );
 
   // Enhanced SSE subscription for real-time message updates
+  // Keep connection alive even when minimized for real-time updates
   useEffect(() => {
-    if (!isOpen || !session?.user?.id) {
-      // Clean up connection when chat is closed or user logs out
+    if (!session?.user?.id) {
+      // Clean up connection when user logs out
       if (sseClientRef.current) {
         sseClientRef.current.destroy();
         sseClientRef.current = null;
@@ -115,7 +116,7 @@ export function PopupChat({
         sseClientRef.current = null;
       }
     };
-  }, [isOpen, session?.user?.id, user.id, user.username, refetchConversation]);
+  }, [session?.user?.id, user.id, user.username, refetchConversation]);
 
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {

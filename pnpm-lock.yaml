@@ -216,6 +216,9 @@ importers:
       msw-trpc:
         specifier: ^2.0.1
         version: 2.0.1(@trpc/server@11.5.0(typescript@5.9.2))(msw@2.11.1(@types/node@20.19.11)(typescript@5.9.2))(typescript@5.9.2)
+      playwright:
+        specifier: ^1.55.0
+        version: 1.55.0
       postcss:
         specifier: ^8.5.3
         version: 8.5.6

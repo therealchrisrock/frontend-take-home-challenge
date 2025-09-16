@@ -106,6 +106,7 @@
     "lint-staged": "^16.1.6",
     "msw": "^2.11.1",
     "msw-trpc": "^2.0.1",
+    "playwright": "^1.55.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

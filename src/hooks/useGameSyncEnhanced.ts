@@ -262,7 +262,6 @@ export function useGameSyncEnhanced(
               break;
 
             case "disconnected":
-            case "intentionally_disconnected":
               syncDispatch({
                 type: "CONNECTION_CLOSED",
                 payload: { reason: connectionState },
