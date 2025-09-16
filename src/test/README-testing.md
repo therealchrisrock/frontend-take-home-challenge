@@ -1,8 +1,8 @@
-# Testing Documentation for Friend Request Notification System
+# Testing Documentation for Checkers Platform
 
 ## Overview
 
-This document provides comprehensive testing coverage for the friend request notification system, including unit tests, integration tests, component tests, and end-to-end tests.
+This document provides comprehensive testing coverage for the entire checkers platform, including multiplayer gameplay, social features, notification system, and tournament functionality. Testing covers unit tests, integration tests, component tests, and end-to-end scenarios.
 
 ## Test Structure
 
@@ -171,23 +171,23 @@ pnpm test --testNamePattern="should handle"
 
 ### E2E Tests
 ```bash
-# Install Playwright browsers
-pnpm playwright install
+# Install Playwright browsers (if not already installed)
+npx playwright install
 
 # Run all E2E tests
-pnpm playwright test
+pnpm test:e2e
 
 # Run in headed mode (see browser)
-pnpm playwright test --headed
+npx playwright test --headed
 
-# Run specific test
-pnpm playwright test friend-request-flow
+# Run specific test suite
+npx playwright test multiplayer-game-flow
 
 # Run in debug mode
-pnpm playwright test --debug
+npx playwright test --debug
 
 # Generate test report
-pnpm playwright show-report
+npx playwright show-report
 ```
 
 ## Test Data Management
@@ -214,15 +214,27 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: checkers_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - run: pnpm install
+      - run: pnpm db:push
       - run: pnpm test --coverage
-      - run: pnpm playwright install
-      - run: pnpm playwright test
+      - run: npx playwright install
+      - run: pnpm test:e2e
 ```
 
 ### Coverage Requirements
