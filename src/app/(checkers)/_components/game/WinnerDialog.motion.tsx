@@ -195,19 +195,17 @@ export function WinnerDialog({
 
   const { title, description, icon, isVictory } = getWinnerText();
 
-  // Only show dialog when there's actually a winner AND open is true
-  const shouldShowDialog = open && winner !== null;
-
   return (
-    <AlertDialog open={shouldShowDialog} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <div className="relative flex flex-col items-center gap-4 py-4">
-            {/* Confetti for victories */}
-            {isVictory && winner !== "draw" && <Confetti />}
+        {winner ? (
+          <AlertDialogHeader>
+            <div className="relative flex flex-col items-center gap-4 py-4">
+              {/* Confetti for victories */}
+              {isVictory && winner !== "draw" && <Confetti />}
 
-            {/* Animated icon */}
-            <m.div
+              {/* Animated icon */}
+              <m.div
               initial={{ scale: 0, rotate: -180 }}
               animate={
                 isVictory && winner !== "draw"
@@ -285,7 +283,9 @@ export function WinnerDialog({
             </AlertDialogDescription>
           </div>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        ) : null}
+        {winner && (
+          <AlertDialogFooter>
           <div className="flex w-full gap-2">
             {gameId && (
               <Button
@@ -312,6 +312,7 @@ export function WinnerDialog({
             </AlertDialogAction>
           </div>
         </AlertDialogFooter>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
