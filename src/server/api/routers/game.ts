@@ -500,6 +500,8 @@ export const gameRouter = createTRPCRouter({
         player2Id: game.player2Id,
         player1: game.player1,
         player2: game.player2,
+        boardSize: game.boardSize,
+        gameConfig: game.gameConfig,
         moves: game.moves.map((move) => ({
           moveIndex: move.moveIndex,
           fromRow: move.fromRow,

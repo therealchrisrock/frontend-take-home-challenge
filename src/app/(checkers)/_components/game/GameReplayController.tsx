@@ -45,6 +45,7 @@ import {
   createInitialBoard,
   getValidMoves,
 } from "~/lib/game/logic";
+import { loadVariantConfig } from "~/lib/game-engine";
 import { api } from "~/trpc/react";
 import { Board } from "./Board";
 
@@ -84,12 +85,47 @@ export default function GameReplayController({
     null,
   );
   const [validMoves, setValidMoves] = useState<Move[]>([]);
+  const [boardSize, setBoardSize] = useState(8);
+  const [gameConfig, setGameConfig] = useState<any>(null);
+
+  // Parse game config and set board size
+  useEffect(() => {
+    if (!gameData) return;
+
+    // Get board size from game data or parse from config
+    let size = 8;
+    let config = null;
+
+    if (gameData.boardSize) {
+      size = gameData.boardSize;
+    } else if (gameData.gameConfig) {
+      try {
+        config = JSON.parse(gameData.gameConfig);
+        if (config.boardVariant) {
+          const variantConfig = loadVariantConfig(config.boardVariant);
+          size = variantConfig.board.size;
+        }
+      } catch (e) {
+        console.error("Failed to parse game config:", e);
+      }
+    }
+
+    setBoardSize(size);
+    setGameConfig(config);
+  }, [gameData]);
 
   // Reconstruct board state up to current move
   useEffect(() => {
     if (!gameData?.moves) return;
 
-    let reconstructedBoard: BoardType = createInitialBoard();
+    // Initialize board with correct size
+    let reconstructedBoard: BoardType;
+    if (gameConfig?.boardVariant) {
+      const variantConfig = loadVariantConfig(gameConfig.boardVariant);
+      reconstructedBoard = createInitialBoard(variantConfig);
+    } else {
+      reconstructedBoard = createInitialBoard();
+    }
     let player: PieceColor = "red";
 
     // Apply moves up to currentMoveIndex
@@ -116,7 +152,7 @@ export default function GameReplayController({
     if (analysisMode) {
       analyzePosition(reconstructedBoard, player);
     }
-  }, [currentMoveIndex, gameData, analysisMode]);
+  }, [currentMoveIndex, gameData, analysisMode, gameConfig]);
 
   // Auto-play functionality
   useEffect(() => {
@@ -141,8 +177,8 @@ export default function GameReplayController({
     let redKings = 0;
     let blackKings = 0;
 
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
+    for (let row = 0; row < boardSize; row++) {
+      for (let col = 0; col < boardSize; col++) {
         const piece = board[row]?.[col];
         if (piece) {
           if (piece.color === "red") {
@@ -161,8 +197,8 @@ export default function GameReplayController({
 
     // Get valid moves for analysis - get all moves for all pieces of current player
     const allMoves: Move[] = [];
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
+    for (let row = 0; row < boardSize; row++) {
+      for (let col = 0; col < boardSize; col++) {
         const piece = board[row]?.[col];
         if (piece && piece.color === player) {
           const pieceMoves = getValidMoves(board, { row, col }, player);
@@ -372,6 +408,7 @@ export default function GameReplayController({
                     draggingPosition={null}
                     mustCapturePositions={[]}
                     replayMode={true}
+                    size={boardSize}
                   />
                 </div>
               </div>
@@ -555,9 +592,9 @@ export default function GameReplayController({
                     <p className="text-sm font-medium">Engine Suggestion</p>
                     <p className="text-muted-foreground text-sm">
                       {String.fromCharCode(97 + analysis.bestMove.from.col)}
-                      {8 - analysis.bestMove.from.row} →{" "}
+                      {boardSize - analysis.bestMove.from.row} →{" "}
                       {String.fromCharCode(97 + analysis.bestMove.to.col)}
-                      {8 - analysis.bestMove.to.row}
+                      {boardSize - analysis.bestMove.to.row}
                     </p>
                   </div>
                 )}
@@ -590,7 +627,7 @@ export default function GameReplayController({
                 ) : (
                   moves.map((move, index) => {
                     const moveNotation = move
-                      ? `${String.fromCharCode(97 + move.fromCol)}${8 - move.fromRow} → ${String.fromCharCode(97 + move.toCol)}${8 - move.toRow}`
+                      ? `${String.fromCharCode(97 + move.fromCol)}${boardSize - move.fromRow} → ${String.fromCharCode(97 + move.toCol)}${boardSize - move.toRow}`
                       : "Invalid move";
 
                     return (
