@@ -50,3 +50,4 @@ prisma/*.sqlite-journal
 # OS files
 .DS_Store
 Thumbs.db
+.vercel
