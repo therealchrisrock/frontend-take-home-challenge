@@ -5,8 +5,26 @@ import {
   updateDrawState,
 } from "~/lib/game/draw-detection";
 import { createInitialBoard, makeMove } from "~/lib/game/logic";
-import { initialGameSyncState } from "~/lib/game/sync/game-sync-reducer";
 import type { GameAction, GameState } from "./game-types";
+
+// Minimal sync state for backwards compatibility
+const initialGameSyncState = {
+  connection: {
+    status: 'disconnected' as const,
+    error: null as string | null,
+    reconnectAttempts: 0,
+    lastHeartbeat: null as Date | null,
+  },
+  moveQueue: {
+    offline: [],
+    retry: [],
+    pending: [],
+  },
+  optimisticUpdates: [],
+  pendingCount: 0,
+  conflict: null,
+  syncErrors: [],
+};
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -176,10 +194,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case "REQUEST_DRAW":
+      // For online games, don't set drawRequestedBy here - it will be set by SYNC_DRAW_REQUEST
+      // For local games, set it to current player
+      if (state.gameMode === "online") {
+        return {
+          ...state,
+          // Don't show dialog yet for requester - wait for server confirmation
+        };
+      }
       return {
         ...state,
         showDrawDialog: true,
-        drawRequestedBy: state.gameMode === "online" ? state.playerColor : state.currentPlayer,
+        drawRequestedBy: state.currentPlayer,
       };
     case "ACCEPT_DRAW":
       return {
@@ -328,7 +354,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         selectedPosition: null,
         draggingPosition: null,
         validMoves: [],
-        ...(winner !== undefined && { winner, showWinnerDialog: true }),
+        ...(winner !== undefined && winner !== null && { winner, showWinnerDialog: true }),
       };
     }
 

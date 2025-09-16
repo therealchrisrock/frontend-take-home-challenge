@@ -196,7 +196,7 @@ export function WinnerDialog({
   const { title, description, icon, isVictory } = getWinnerText();
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open && winner !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           {winner ? (
