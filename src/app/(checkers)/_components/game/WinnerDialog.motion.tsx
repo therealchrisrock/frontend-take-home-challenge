@@ -35,6 +35,7 @@ interface WinnerDialogProps {
     incrementSeconds: number;
     preset?: "bullet" | "blitz" | "rapid" | "classical" | "custom";
   } | null;
+  gameId?: string;
 }
 
 // Confetti particle component
@@ -85,6 +86,7 @@ export function WinnerDialog({
   boardVariant = "american",
   aiDifficulty = "medium",
   timeControl = null,
+  gameId,
 }: WinnerDialogProps) {
   const router = useRouter();
   const [isCreatingGame, setIsCreatingGame] = useState(false);
@@ -109,9 +111,15 @@ export function WinnerDialog({
     });
   };
 
-  if (!winner) return null;
-
   const getWinnerText = () => {
+    if (!winner) {
+      return {
+        title: "",
+        description: "",
+        icon: null,
+        isVictory: false,
+      };
+    }
     if (winner === "draw") {
       // Use the draw reason explanation if available
       const description =
@@ -246,21 +254,23 @@ export function WinnerDialog({
               )}
 
               {/* Trophy bounce animation for victory */}
-              {isVictory && winner !== "draw" ? (
-                <m.div
-                  animate={{
-                    y: [0, -10, 0],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  {icon}
-                </m.div>
-              ) : (
-                icon
+              {icon && (
+                isVictory && winner !== "draw" ? (
+                  <m.div
+                    animate={{
+                      y: [0, -10, 0],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    {icon}
+                  </m.div>
+                ) : (
+                  icon
+                )
               )}
             </m.div>
 
@@ -274,9 +284,9 @@ export function WinnerDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <div className="flex w-full gap-2">
-            {onStartAnalysis && (
+            {gameId && (
               <Button
-                onClick={onStartAnalysis}
+                onClick={() => router.push(`/game/${gameId}/replay?analysis=true`)}
                 variant="outline"
                 className="flex-1"
               >
