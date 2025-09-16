@@ -1,29 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import {
+  ChevronDown,
+  Link,
+  Search,
+  User,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
-import {
-  Users,
-  Search,
-  UserCheck,
-  Link,
-  ChevronDown,
-  User,
-} from "lucide-react";
-import { api } from "~/trpc/react";
+import { ScrollArea } from "~/components/ui/scroll-area";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
 interface PlayerSelectionCardProps {
   selectedFriend: string | null;
@@ -44,9 +44,7 @@ export function PlayerSelectionCard({
   const [friendSearchQuery, setFriendSearchQuery] = useState("");
 
   // API queries
-  const { data: friends } = api.user.getFriends.useQuery({
-    enabled: !!session?.user,
-  });
+  const { data: friends } = api.user.getFriends.useQuery();
 
   const { data: searchResults } = api.user.searchUsers.useQuery(
     { query: friendSearchQuery },
@@ -55,11 +53,11 @@ export function PlayerSelectionCard({
 
   // Get selected friend data
   const selectedFriendData = friends?.find((friend) => friend.id === selectedFriend);
-  
+
   // Filter friends based on search query
   const filteredFriends = friends?.filter((friend) =>
-    (friend.name?.toLowerCase().includes(friendSearchQuery.toLowerCase()) ||
-     friend.username?.toLowerCase().includes(friendSearchQuery.toLowerCase()))
+  (friend.name?.toLowerCase().includes(friendSearchQuery.toLowerCase()) ||
+    friend.username?.toLowerCase().includes(friendSearchQuery.toLowerCase()))
   ) ?? [];
 
   const handleFriendSelect = (friendId: string) => {
@@ -90,7 +88,7 @@ export function PlayerSelectionCard({
             className={cn(
               "h-auto flex-col p-4",
               selectionMode === "friend"
-                ? "bg-amber-600 hover:bg-amber-700"
+                ? "bg-primary hover:bg-primary-700"
                 : "hover:border-gray-300"
             )}
             onClick={() => handleModeChange("friend")}
@@ -109,7 +107,7 @@ export function PlayerSelectionCard({
             className={cn(
               "h-auto flex-col p-4",
               selectionMode === "anyone"
-                ? "bg-amber-600 hover:bg-amber-700"
+                ? "bg-primary hover:bg-primary-700"
                 : "hover:border-gray-300"
             )}
             onClick={() => handleModeChange("anyone")}
@@ -131,7 +129,7 @@ export function PlayerSelectionCard({
           <Label className="mb-3 block text-sm text-gray-700">
             Select a friend to invite
           </Label>
-          
+
           {/* Friend Selector */}
           <Popover open={friendSearchOpen} onOpenChange={setFriendSearchOpen}>
             <PopoverTrigger asChild>
@@ -146,8 +144,8 @@ export function PlayerSelectionCard({
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={selectedFriendData.image ?? undefined} />
                       <AvatarFallback>
-                        {selectedFriendData.name?.[0] ?? 
-                         selectedFriendData.username?.[0] ?? "U"}
+                        {selectedFriendData.name?.[0] ??
+                          selectedFriendData.username?.[0] ?? "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left">
@@ -180,7 +178,7 @@ export function PlayerSelectionCard({
                   />
                 </div>
               </div>
-              
+
               <ScrollArea className="h-[300px]">
                 {displayResults?.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
@@ -220,7 +218,7 @@ export function PlayerSelectionCard({
                           </p>
                         </div>
                         {selectedFriend === friend.id && (
-                          <UserCheck className="h-4 w-4 text-amber-600" />
+                          <UserCheck className="h-4 w-4 text-primary-600" />
                         )}
                       </Button>
                     ))}
@@ -235,17 +233,17 @@ export function PlayerSelectionCard({
       {/* Current Selection Summary */}
       <Card className="bg-gray-50 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
             {selectionMode === "friend" && selectedFriendData ? (
               <Avatar className="h-8 w-8">
                 <AvatarImage src={selectedFriendData.image ?? undefined} />
                 <AvatarFallback>
-                  {selectedFriendData.name?.[0] ?? 
-                   selectedFriendData.username?.[0] ?? "U"}
+                  {selectedFriendData.name?.[0] ??
+                    selectedFriendData.username?.[0] ?? "U"}
                 </AvatarFallback>
               </Avatar>
             ) : (
-              <Link className="h-5 w-5 text-amber-700" />
+              <Link className="h-5 w-5 text-primary-700" />
             )}
           </div>
           <div className="flex-1">
@@ -253,16 +251,16 @@ export function PlayerSelectionCard({
               {selectionMode === "friend" && selectedFriendData
                 ? `Playing with ${selectedFriendData.name ?? selectedFriendData.username}`
                 : selectionMode === "friend"
-                ? "Select a friend to invite"
-                : "Creating shareable invitation link"
+                  ? "Select a friend to invite"
+                  : "Creating shareable invitation link"
               }
             </p>
             <p className="text-sm text-gray-600">
               {selectionMode === "friend" && selectedFriendData
                 ? "Your friend will receive a direct invitation"
                 : selectionMode === "friend"
-                ? "Choose from your friends list"
-                : "Anyone with the link can join your game"
+                  ? "Choose from your friends list"
+                  : "Anyone with the link can join your game"
               }
             </p>
           </div>

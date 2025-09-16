@@ -19,30 +19,38 @@ export function usePlayerCard({
   const { data: session } = useSession();
 
   const isCurrentUser = !player.id || session?.user?.id === player.id;
+  const isPlaceholderId =
+    !!player.id &&
+    (player.id.startsWith("player-") ||
+      player.id.startsWith("guest-") ||
+      player.id.startsWith("ai-") ||
+      player.id.startsWith("fallback-"));
   const isGuest = isCurrentUser && !session;
 
   const shouldFetch =
-    enableServerData && !!player.id && !player.isAI && !isGuest;
+    enableServerData &&
+    !!player.id &&
+    !player.isAI &&
+    !isGuest &&
+    !isPlaceholderId;
 
+  const profileInput = shouldFetch
+    ? { userId: player.id! }
+    : (undefined as any);
   const { data: profileData, isLoading: profileLoading } =
-    api.user.getPlayerProfile.useQuery(
-      { userId: player.id! },
-      {
-        enabled: shouldFetch,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-      },
-    );
+    api.user.getPlayerProfile.useQuery(profileInput, {
+      enabled: shouldFetch,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    });
 
+  const statsInput = shouldFetch ? { userId: player.id } : (undefined as any);
   const { data: statsData, isLoading: statsLoading } =
-    api.user.getPlayerStats.useQuery(
-      { userId: player.id },
-      {
-        enabled: shouldFetch,
-        staleTime: 2 * 60 * 1000,
-        gcTime: 5 * 60 * 1000,
-      },
-    );
+    api.user.getPlayerStats.useQuery(statsInput, {
+      enabled: shouldFetch,
+      staleTime: 2 * 60 * 1000,
+      gcTime: 5 * 60 * 1000,
+    });
 
   const isLoading = shouldFetch && (profileLoading || statsLoading);
 

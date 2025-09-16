@@ -1,11 +1,13 @@
-import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { gameRouter } from "~/server/api/routers/game";
 import { authRouter } from "~/server/api/routers/auth";
-import { userRouter } from "~/server/api/routers/user";
-import { messageRouter } from "~/server/api/routers/message";
 import { friendRequestRouter } from "~/server/api/routers/friendRequest";
+import { gameRouter } from "~/server/api/routers/game";
 import { gameInviteRouter } from "~/server/api/routers/gameInvite";
+import { gameNotesRouter } from "~/server/api/routers/gameNotes";
+import { messageRouter } from "~/server/api/routers/message";
 import { multiplayerGameRouter } from "~/server/api/routers/multiplayerGame";
+import { notificationRouter } from "~/server/api/routers/notification";
+import { userRouter } from "~/server/api/routers/user";
+import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
  * This is the primary router for your server.
@@ -20,6 +22,8 @@ export const appRouter = createTRPCRouter({
   friendRequest: friendRequestRouter,
   gameInvite: gameInviteRouter,
   multiplayerGame: multiplayerGameRouter,
+  gameNotes: gameNotesRouter,
+  notification: notificationRouter,
 });
 
 // export type definition of API

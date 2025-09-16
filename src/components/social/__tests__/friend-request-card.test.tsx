@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, fireEvent, waitFor } from "@testing-library/react";
-import { renderWithProviders } from "~/test/test-utils";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FriendRequestCard, FriendRequestCardSkeleton } from "../friend-request-card";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "~/test/test-utils";
+import { FriendRequestCard, FriendRequestCardSkeleton } from "../FriendRequestCard";
 
 // Mock tRPC
 const mockMutateAsync = vi.fn();
@@ -56,7 +56,7 @@ describe("FriendRequestCard", () => {
       image: "https://example.com/avatar.jpg",
     },
     receiver: {
-      id: "receiver-1", 
+      id: "receiver-1",
       name: "Jane Smith",
       email: "jane@example.com",
       image: null,
@@ -248,7 +248,7 @@ describe("FriendRequestCard", () => {
 
     it("should call respond mutation when accept button is clicked", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -268,7 +268,7 @@ describe("FriendRequestCard", () => {
 
     it("should call respond mutation when decline button is clicked", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -288,7 +288,7 @@ describe("FriendRequestCard", () => {
 
     it("should call onUpdate after successful accept", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -307,7 +307,7 @@ describe("FriendRequestCard", () => {
 
     it("should show success toast after accepting", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -345,7 +345,7 @@ describe("FriendRequestCard", () => {
 
     it("should call cancel mutation when cancel button is clicked", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -366,7 +366,7 @@ describe("FriendRequestCard", () => {
   describe("loading states", () => {
     it("should disable buttons when mutations are pending", async () => {
       vi.mocked(mockRespondMutation).isPending = true;
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -387,7 +387,7 @@ describe("FriendRequestCard", () => {
     it("should show error toast when mutation fails", async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockRejectedValueOnce(new Error("Network error"));
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -411,7 +411,7 @@ describe("FriendRequestCard", () => {
     it("should show default error message when no specific error", async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockRejectedValueOnce(new Error());
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}
@@ -452,7 +452,7 @@ describe("FriendRequestCard", () => {
   describe("FriendRequestCardSkeleton", () => {
     it("should render skeleton loading state", () => {
       renderWithProviders(<FriendRequestCardSkeleton />);
-      
+
       // Check for skeleton elements (they have specific classes)
       const skeletons = document.querySelectorAll(".animate-pulse");
       expect(skeletons.length).toBeGreaterThan(0);
@@ -478,7 +478,7 @@ describe("FriendRequestCard", () => {
 
     it("should support keyboard navigation", async () => {
       const user = userEvent.setup();
-      
+
       renderWithProviders(
         <FriendRequestCard
           friendRequest={mockFriendRequest}

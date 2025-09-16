@@ -1,7 +1,7 @@
+import { MousePointer2, RefreshCw, Users, Wifi, WifiOff } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
-import { Wifi, WifiOff, Users, MousePointer2, RefreshCw } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 export interface TabStatusIndicatorProps {
@@ -133,7 +133,7 @@ export function TabStatusIndicator({
 
             {/* Warning for inactive tabs */}
             {!isActiveTab && (
-              <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+              <div className="rounded border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary-700">
                 ⚠️ Only the active tab can make moves
               </div>
             )}
@@ -156,7 +156,7 @@ export function TabStatusIndicator({
 
             {/* Offline move queue status */}
             {offlineMoveCount > 0 && (
-              <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+              <div className="rounded border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary-700">
                 📦 {offlineMoveCount} move{offlineMoveCount !== 1 ? "s" : ""}{" "}
                 queued for sync
               </div>

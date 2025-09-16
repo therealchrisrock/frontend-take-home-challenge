@@ -83,9 +83,17 @@ export default function MatchHistoryTable({ userId }: MatchHistoryTableProps) {
   };
 
   const getPlayerColor = (match: (typeof matches)[0]) => {
-    if (match.gameMode === "ai" || match.gameMode === "local") {
-      return "red";
+    // For AI and local games, get the actual player color from game config
+    if ((match.gameMode === "ai" || match.gameMode === "local") && (match as any).gameConfig) {
+      try {
+        const config = JSON.parse((match as any).gameConfig);
+        return config.playerColor || "red";
+      } catch (e) {
+        // Fall back to default if config parsing fails
+        return "red";
+      }
     }
+    // For online games, determine color by player position
     return match.player1Id === userId ? "red" : "black";
   };
 

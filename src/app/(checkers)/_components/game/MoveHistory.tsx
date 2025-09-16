@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GameChat } from "~/components/chat/GameChat";
+import { GameNotes } from "~/components/game/GameNotes";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { TabsContent, TabsUnderline, TabsUnderlineList, TabsUnderlineTrigger } from "~/components/ui/tabs";
 import {
@@ -25,9 +25,7 @@ interface MoveHistoryProps {
   winner: PieceColor | "draw" | null;
   analysis?: GameAnalysis | null;
   showAnalysis?: boolean;
-  showChat?: boolean;
-  chatGameId?: string;
-  opponentName?: string;
+  gameId?: string;
 }
 
 export function MoveHistory({
@@ -39,9 +37,7 @@ export function MoveHistory({
   winner,
   analysis,
   showAnalysis = false,
-  showChat = false,
-  chatGameId,
-  opponentName,
+  gameId,
 }: MoveHistoryProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000); // ms per move
@@ -190,8 +186,6 @@ export function MoveHistory({
     void navigator.clipboard.writeText(notation);
   };
 
-  const hasChat = showChat && !!chatGameId;
-
   return (
     <Card className="flex h-full min-h-0 flex-col">
       <TabsUnderline defaultValue="history" className="flex min-h-0 flex-1 flex-col">
@@ -200,8 +194,8 @@ export function MoveHistory({
             <TabsUnderlineTrigger value="history" className="flex-1">
               History
             </TabsUnderlineTrigger>
-            <TabsUnderlineTrigger value="chat" className="flex-1" disabled={!hasChat}>
-              Chat
+            <TabsUnderlineTrigger value="notes" className="flex-1">
+              Notes
             </TabsUnderlineTrigger>
           </TabsUnderlineList>
         </CardHeader>
@@ -241,9 +235,9 @@ export function MoveHistory({
                                 : null
                             }
                             className={cn(
-                              "flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-0.5 transition-colors hover:bg-amber-100",
+                              "flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-0.5 transition-colors hover:bg-primary/10",
                               currentMoveIndex === redMoveIndex &&
-                              "bg-amber-200 font-bold",
+                              "bg-primary/20 font-bold",
                               redMoveIndex > currentMoveIndex && "opacity-40",
                             )}
                             onClick={() => handleMoveClick(redMoveIndex)}
@@ -288,9 +282,9 @@ export function MoveHistory({
                                 : null
                             }
                             className={cn(
-                              "flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-0.5 transition-colors hover:bg-amber-100",
+                              "flex flex-1 cursor-pointer items-center gap-1 rounded px-1 py-0.5 transition-colors hover:bg-primary/10",
                               currentMoveIndex === blackMoveIndex &&
-                              "bg-amber-200 font-bold",
+                              "bg-primary/20 font-bold",
                               blackMoveIndex > currentMoveIndex && "opacity-40",
                             )}
                             onClick={() => handleMoveClick(blackMoveIndex)}
@@ -346,18 +340,18 @@ export function MoveHistory({
 
             {/* Position indicator */}
             {currentMoveIndex < moves.length - 1 && moves.length > 0 && (
-              <div className="rounded bg-amber-50 px-2 py-1 text-center text-[10px] text-amber-600">
+              <div className="rounded bg-primary/10 px-2 py-1 text-center text-[10px] text-primary-600">
                 Viewing position after move {currentMoveIndex + 1}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="chat" className="flex min-h-0 flex-1 flex-col">
-            {hasChat ? (
-              <GameChat gameId={chatGameId!} opponentName={opponentName} embedded />
+          <TabsContent value="notes" className="flex min-h-0 flex-1 flex-col">
+            {gameId ? (
+              <GameNotes gameId={gameId} embedded />
             ) : (
               <div className="flex flex-1 items-center justify-center text-xs text-gray-500">
-                Chat is available in online games
+                Save the game to enable notes
               </div>
             )}
           </TabsContent>

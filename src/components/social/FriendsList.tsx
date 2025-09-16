@@ -55,7 +55,7 @@ export function FriendsList() {
   );
 
   // API mutations
-  const sendRequestMutation = api.user.sendFriendRequest.useMutation({
+  const sendRequestMutation = api.friendRequest.send.useMutation({
     onSuccess: () => {
       void refetchRequests();
       toast({

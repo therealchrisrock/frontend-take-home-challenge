@@ -35,11 +35,25 @@
   --piece-black-base: #1a1a1a;
   --piece-black-from: #4a4a4a;
   --piece-black-to: #000000;
-  --piece-black-border: #ffffff;
+  --piece-black-border: oklch(96.5% 0.005 210);
   --piece-black-crown: #ffd700;
 }
 
 @custom-variant dark (&:is(.dark *));
+
+/* Subtle pulse animation for notifications */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
 /* Shimmer animation for loading skeletons */
 @keyframes shimmer {
@@ -103,12 +117,13 @@
   --radius: 0.625rem;
   --background: oklch(99.03% 0.006 82);
   --foreground: oklch(14.07% 0.043 45.42);
-  --card: oklch(100% 0 0);
+  --card: oklch(96.5% 0.005 210);
   --card-foreground: oklch(14.07% 0.043 45.42);
-  --popover: oklch(100% 0 0);
+  --popover: oklch(96.5% 0.005 210);
   --popover-foreground: oklch(14.07% 0.043 45.42);
-  --primary: oklch(59.94% 0.117 63.6);
-  --primary-foreground: oklch(99.03% 0.006 82);
+  --primary: oklch(55% 0.13 142); /* Forest Green */
+  --primary-hex: oklch(55% 0.13 142);
+  --primary-foreground: oklch(96.5% 0.005 210);
   --secondary: oklch(97.16% 0.027 82.25);
   --secondary-foreground: oklch(37.49% 0.088 63.1);
   --muted: oklch(95.66% 0.009 82);
@@ -121,7 +136,7 @@
   --input: oklch(0.922 0 0);
   --input-background: oklch(98.24% 0.006 82);
   --switch-background: oklch(83.04% 0.008 82);
-  --ring: oklch(59.94% 0.117 63.6);
+  --ring: oklch(55% 0.13 142); /* Forest Green */
   --chart-1: oklch(77.37% 0.13 83.1);
   --chart-2: oklch(50.04% 0.176 27.5);
   --chart-3: oklch(52.75% 0.135 300.9);
@@ -129,12 +144,12 @@
   --chart-5: oklch(50.59% 0.113 145.7);
   --sidebar: oklch(98.81% 0.009 82);
   --sidebar-foreground: oklch(14.07% 0.043 45.42);
-  --sidebar-primary: oklch(59.94% 0.117 63.6);
-  --sidebar-primary-foreground: oklch(99.03% 0.006 82);
+  --sidebar-primary: oklch(55% 0.13 142); /* Forest Green */
+  --sidebar-primary-foreground: oklch(96.5% 0.005 210);
   --sidebar-accent: oklch(97.16% 0.027 82.25);
   --sidebar-accent-foreground: oklch(37.49% 0.088 63.1);
   --sidebar-border: oklch(95.66% 0.009 82 / 0.13);
-  --sidebar-ring: oklch(59.94% 0.117 63.6);
+  --sidebar-ring: oklch(55% 0.13 142); /* Forest Green */
 }
 
 .dark {
@@ -144,7 +159,8 @@
   --card-foreground: oklch(97.16% 0.027 82.25);
   --popover: oklch(14.07% 0.043 45.42);
   --popover-foreground: oklch(97.16% 0.027 82.25);
-  --primary: oklch(81.9% 0.098 83.1);
+  --primary: oklch(55% 0.13 142); /* Forest Green */
+  --primary-hex: #228b22;
   --primary-foreground: oklch(8.2% 0.038 45.42);
   --secondary: oklch(21.39% 0.061 45.42);
   --secondary-foreground: oklch(81.9% 0.098 83.1);
@@ -158,7 +174,7 @@
   --input: oklch(21.39% 0.061 45.42);
   --input-background: oklch(21.39% 0.061 45.42);
   --switch-background: oklch(57.49% 0.016 82);
-  --ring: oklch(81.9% 0.098 83.1);
+  --ring: oklch(55% 0.13 142); /* Forest Green */
   --chart-1: oklch(81.9% 0.098 83.1);
   --chart-2: oklch(69.8% 0.174 27.5);
   --chart-3: oklch(65.02% 0.086 300.9);
@@ -166,12 +182,12 @@
   --chart-5: oklch(70.93% 0.116 145.7);
   --sidebar: oklch(14.07% 0.043 45.42);
   --sidebar-foreground: oklch(97.16% 0.027 82.25);
-  --sidebar-primary: oklch(81.9% 0.098 83.1);
+  --sidebar-primary: oklch(55% 0.13 142); /* Forest Green */
   --sidebar-primary-foreground: oklch(8.2% 0.038 45.42);
   --sidebar-accent: oklch(21.39% 0.061 45.42);
   --sidebar-accent-foreground: oklch(81.9% 0.098 83.1);
   --sidebar-border: oklch(21.39% 0.061 45.42 / 0.33);
-  --sidebar-ring: oklch(81.9% 0.098 83.1);
+  --sidebar-ring: oklch(55% 0.13 142); /* Forest Green */
 }
 
 @layer base {
@@ -217,6 +233,22 @@
   animation: shimmer 3s infinite;
 }
 
+/* Copy Notification Animation */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out;
+}
+
 /* 3D Canvas Background Gradient */
 .bg-3d-canvas {
   background: linear-gradient(to bottom, #ffb366, #ffa652);
@@ -230,10 +262,10 @@
   --board-dark-from: rgb(146, 64, 14);
   --board-dark-to: rgb(120, 53, 15);
   --board-border: rgb(92, 51, 23);
-  --board-selected-ring: rgb(59, 130, 246);
-  --board-highlighted-ring: rgb(250, 204, 21);
-  --board-possible-move: rgb(74, 222, 128);
-  --board-possible-move-glow: rgba(74, 222, 128, 0.5);
+  --board-selected-ring: #228b22; /* Forest Green */
+  --board-highlighted-ring: #228b22; /* Forest Green */
+  --board-possible-move: #228b22; /* Forest Green */
+  --board-possible-move-glow: rgba(34, 139, 34, 0.5);
 
   /* Piece Colors */
   --piece-red-base: rgb(185, 28, 28);

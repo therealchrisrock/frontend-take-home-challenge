@@ -9,7 +9,7 @@ import {
   type Move,
   type Position,
 } from "~/lib/game/logic";
-import { gameConnectionManager } from "~/lib/sse/game-connection-manager";
+import { sseHub } from "~/lib/sse/sse-hub";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -255,6 +255,14 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
       }
 
+      // Prevent any moves until opponent slot is filled (lobby state)
+      if (!game.player2Id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Waiting for opponent to join",
+        });
+      }
+
       // Check optimistic locking - prevent race conditions
       if (game.version !== input.gameVersion) {
         // Get moves that happened after client's version
@@ -290,10 +298,6 @@ export const multiplayerGameRouter = createTRPCRouter({
         canMove = game.currentPlayer === "red";
         playerColor = "red";
       } else if (userId === game.player2Id) {
-        canMove = game.currentPlayer === "black";
-        playerColor = "black";
-      } else if (isGuest && !game.player2Id) {
-        // Guest player can move as black if no player2 assigned
         canMove = game.currentPlayer === "black";
         playerColor = "black";
       }
@@ -356,6 +360,17 @@ export const multiplayerGameRouter = createTRPCRouter({
       const nextPlayer = game.currentPlayer === "red" ? "black" : "red";
       const newVersion = game.version + 1;
 
+      // Determine the winner value to save (handle draw results)
+      let winnerToSave: string | undefined;
+      if (winner) {
+        if (typeof winner === "string") {
+          winnerToSave = winner;
+        } else if (typeof winner === "object" && "type" in winner) {
+          // It's a draw result
+          winnerToSave = "draw";
+        }
+      }
+
       // Update game in database with transaction
       const updatedGame = await ctx.db.$transaction(async (tx) => {
         // Save the move
@@ -379,7 +394,7 @@ export const multiplayerGameRouter = createTRPCRouter({
             board: JSON.stringify(newBoard),
             currentPlayer: winner ? game.currentPlayer : nextPlayer,
             moveCount: game.moveCount + 1,
-            winner: winner && typeof winner === "string" ? winner : undefined,
+            winner: winnerToSave,
             version: newVersion,
           },
           include: {
@@ -433,7 +448,7 @@ export const multiplayerGameRouter = createTRPCRouter({
       };
 
       // Emit SSE event for real-time synchronization (minimal)
-      gameConnectionManager.broadcast(input.gameId, {
+      sseHub.broadcast("game", input.gameId, {
         type: "GAME_MOVE",
         data: {
           move: input.move,
@@ -444,11 +459,13 @@ export const multiplayerGameRouter = createTRPCRouter({
       });
 
       // If game ended, notify players
-      if (winner) {
+      if (winnerToSave) {
         const winnerName =
-          winner === "red"
+          winnerToSave === "red"
             ? updatedGame.player1?.username || "Red Player"
-            : updatedGame.player2?.username || "Black Player";
+            : winnerToSave === "black"
+            ? updatedGame.player2?.username || "Black Player"
+            : "Draw";
 
         // Notify both players
         if (updatedGame.player1Id) {
@@ -460,7 +477,7 @@ export const multiplayerGameRouter = createTRPCRouter({
               message: `Game ended. Winner: ${winnerName}`,
               metadata: JSON.stringify({
                 gameId: input.gameId,
-                winner,
+                winner: winnerToSave,
                 gameMode: "online",
               }),
               relatedEntityId: input.gameId,
@@ -477,7 +494,7 @@ export const multiplayerGameRouter = createTRPCRouter({
               message: `Game ended. Winner: ${winnerName}`,
               metadata: JSON.stringify({
                 gameId: input.gameId,
-                winner,
+                winner: winnerToSave,
                 gameMode: "online",
               }),
               relatedEntityId: input.gameId,
@@ -711,5 +728,200 @@ export const multiplayerGameRouter = createTRPCRouter({
         gameState,
         rejectedMoves,
       };
+    }),
+
+  /**
+   * Request a draw in a multiplayer game
+   */
+  requestDraw: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        playerId: z.string().nullable(), // null for guests
+        guestSessionId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        select: {
+          id: true,
+          player1Id: true,
+          player2Id: true,
+          currentPlayer: true,
+          winner: true,
+          syncMetadata: true,
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.winner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Game has already ended",
+        });
+      }
+
+      // Determine which player is requesting
+      const userId = ctx.session?.user?.id;
+      const isPlayer1 = userId === game.player1Id;
+      const isPlayer2 = userId === game.player2Id || (!userId && input.guestSessionId);
+
+      if (!isPlayer1 && !isPlayer2) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only players can request a draw",
+        });
+      }
+
+      const requestingPlayer = isPlayer1 ? "red" : "black";
+
+      // Store draw request in syncMetadata
+      const syncMetadata = game.syncMetadata ? JSON.parse(game.syncMetadata) : {};
+      syncMetadata.drawRequestedBy = requestingPlayer;
+      syncMetadata.drawRequestTime = new Date().toISOString();
+
+      await ctx.db.game.update({
+        where: { id: input.gameId },
+        data: {
+          syncMetadata: JSON.stringify(syncMetadata),
+        },
+      });
+
+      // Broadcast draw request via SSE
+      sseHub.broadcast("game", input.gameId, {
+        type: "DRAW_REQUEST",
+        data: {
+          requestedBy: requestingPlayer,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return { success: true, requestedBy: requestingPlayer };
+    }),
+
+  /**
+   * Respond to a draw request (accept or decline)
+   */
+  respondToDraw: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        accept: z.boolean(),
+        playerId: z.string().nullable(),
+        guestSessionId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        select: {
+          id: true,
+          player1Id: true,
+          player2Id: true,
+          syncMetadata: true,
+          winner: true,
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.winner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Game has already ended",
+        });
+      }
+
+      // Parse syncMetadata to check for draw request
+      const syncMetadata = game.syncMetadata ? JSON.parse(game.syncMetadata) : {};
+      
+      if (!syncMetadata.drawRequestedBy) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No pending draw request",
+        });
+      }
+
+      // Determine which player is responding
+      const userId = ctx.session?.user?.id;
+      const isPlayer1 = userId === game.player1Id;
+      const isPlayer2 = userId === game.player2Id || (!userId && input.guestSessionId);
+
+      if (!isPlayer1 && !isPlayer2) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only players can respond to draw requests",
+        });
+      }
+
+      const respondingPlayer = isPlayer1 ? "red" : "black";
+
+      // Can't respond to your own draw request
+      if (respondingPlayer === syncMetadata.drawRequestedBy) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot respond to your own draw request",
+        });
+      }
+
+      if (input.accept) {
+        // Accept draw - end the game
+        await ctx.db.game.update({
+          where: { id: input.gameId },
+          data: {
+            winner: "draw",
+            syncMetadata: JSON.stringify({
+              ...syncMetadata,
+              drawRequestedBy: null,
+              drawAcceptedAt: new Date().toISOString(),
+            }),
+          },
+        });
+
+        // Broadcast draw acceptance
+        sseHub.broadcast("game", input.gameId, {
+          type: "DRAW_ACCEPTED",
+          data: {
+            acceptedBy: respondingPlayer,
+            timestamp: new Date().toISOString(),
+          },
+        });
+
+        return { success: true, result: "accepted" };
+      } else {
+        // Decline draw - clear the request
+        delete syncMetadata.drawRequestedBy;
+        delete syncMetadata.drawRequestTime;
+
+        await ctx.db.game.update({
+          where: { id: input.gameId },
+          data: {
+            syncMetadata: JSON.stringify(syncMetadata),
+          },
+        });
+
+        // Broadcast draw decline
+        sseHub.broadcast("game", input.gameId, {
+          type: "DRAW_DECLINED",
+          data: {
+            declinedBy: respondingPlayer,
+            timestamp: new Date().toISOString(),
+          },
+        });
+
+        return { success: true, result: "declined" };
+      }
     }),
 });

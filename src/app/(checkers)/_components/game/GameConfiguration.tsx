@@ -178,16 +178,7 @@ export function GameConfiguration({
         </div>
 
         {/* Configuration */}
-        <div className="max-h-full w-full space-y-4 self-start overflow-y-auto lg:mt-8">
-          <Button
-            variant="ghost"
-            className="text-gray-600 hover:text-gray-900"
-            onClick={handleBack}
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-
+        <div className="max-h-full w-full space-y-4 self-start overflow-y-auto">
           <Card className="border-gray-200 bg-white p-4">
             <div className="mb-3">
               <h2 className="mb-1 text-xl font-bold text-gray-900">{title}</h2>
@@ -221,7 +212,7 @@ export function GameConfiguration({
                           <Label
                             htmlFor="american"
                             className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "american"
-                              ? "border-amber-400 bg-amber-50"
+                              ? "border-primary/70 bg-primary/10"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
                               }`}
                           >
@@ -274,7 +265,7 @@ export function GameConfiguration({
                           <Label
                             htmlFor="international"
                             className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "international"
-                              ? "border-amber-400 bg-amber-50"
+                              ? "border-primary/70 bg-primary/10"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
                               }`}
                           >
@@ -327,7 +318,7 @@ export function GameConfiguration({
                           <Label
                             htmlFor="brazilian"
                             className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "brazilian"
-                              ? "border-amber-400 bg-amber-50"
+                              ? "border-primary/70 bg-primary/10"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
                               }`}
                           >
@@ -380,7 +371,7 @@ export function GameConfiguration({
                           <Label
                             htmlFor="canadian"
                             className={`flex w-full cursor-pointer items-center justify-between rounded-md border p-3 transition-colors ${variant === "canadian"
-                              ? "border-amber-400 bg-amber-50"
+                              ? "border-primary/70 bg-primary/10"
                               : "border-gray-200 bg-gray-50 hover:border-gray-300"
                               }`}
                           >
@@ -473,11 +464,6 @@ export function GameConfiguration({
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        {difficulty === "expert" && (
-                          <p className="mt-1.5 text-xs text-yellow-400">
-                            ⚠️ Expert AI is very challenging!
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
@@ -486,7 +472,7 @@ export function GameConfiguration({
 
               {/* Time Control Settings */}
               <div>
-                <Label className="mb-3 block flex items-center gap-2 text-base text-gray-900">
+                <Label className="mb-3 flex items-center gap-2 text-base text-gray-900">
                   <Clock className="h-4 w-4" />
                   Time Control
                 </Label>
@@ -600,10 +586,18 @@ export function GameConfiguration({
                 </ComingSoon>
               </div>
 
-              {/* Primary Action */}
-              <div className="flex pt-2">
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
                 <Button
-                  className="w-full bg-amber-600 text-white hover:bg-amber-700"
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={createGameMutation.isPending}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  className="flex-1 bg-primary text-white hover:bg-primary-700"
                   onClick={handleCreateGame}
                   disabled={createGameMutation.isPending}
                 >

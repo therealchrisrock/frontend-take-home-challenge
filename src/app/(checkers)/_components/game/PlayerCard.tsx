@@ -2,6 +2,7 @@ import { Bot, Crown } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
+import { LoadingDots } from "~/components/ui/loading-dots";
 import { type PieceColor } from "~/lib/game/logic";
 import { type PlayerInfo } from "~/lib/game/player-types";
 // PlayerCard is strictly the profile display; timers are handled by containers
@@ -85,16 +86,18 @@ export function PlayerCard({
         {/* Avatar */}
         <div className="relative flex-shrink-0">
           <Avatar className="h-8 w-8 border border-gray-200">
-            <AvatarImage src={player.avatar} alt={displayName} />
-            <AvatarFallback
-              className={`${accentColor} text-xs font-semibold text-white`}
-            >
-              {player.isAI ? (
-                <Bot className="h-3 w-3" />
-              ) : (
-                getInitials(displayName)
-              )}
-            </AvatarFallback>
+            {player.avatar ? (
+              <>
+                <AvatarImage src={player.avatar ?? undefined} alt={displayName} />
+                <AvatarFallback delayMs={100} className={`${accentColor} text-white`}>
+                  <LoadingDots size="sm" color="muted" />
+                </AvatarFallback>
+              </>
+            ) : (
+              <AvatarFallback className={`${accentColor} text-xs font-semibold text-white`}>
+                {player.isAI ? <Bot className="h-3 w-3" /> : getInitials(displayName)}
+              </AvatarFallback>
+            )}
           </Avatar>
 
           {/* Color indicator - only show in game context */}

@@ -1,14 +1,14 @@
 "use client";
 
-import { Board } from "./Board";
-import { getBoardOrientationForViewer } from "~/lib/game/boardOrientation";
-import type { GameParticipants } from "~/lib/game/playerRoles";
+import { getBoardOrientationForViewer } from "~/lib/game/board-orientation";
 import type {
   Board as BoardType,
-  Position,
   Move,
   PieceColor,
+  Position,
 } from "~/lib/game/logic";
+import type { GameParticipants } from "~/lib/game/playerRoles";
+import { Board } from "./Board";
 
 interface OrientedBoardProps {
   board: BoardType;

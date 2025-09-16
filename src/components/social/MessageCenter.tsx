@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Badge } from "~/components/ui/badge";
-import { ScrollArea } from "~/components/ui/scroll-area";
-import {
-  Send,
-  Search,
-  MessageCircle,
-  Trash2,
-  MoreHorizontal,
-  ArrowLeft,
-} from "lucide-react";
-import { api } from "~/trpc/react";
 import { formatDistanceToNow } from "date-fns";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+  ArrowLeft,
+  MessageCircle,
+  MoreHorizontal,
+  Search,
+  Send,
+  Trash2,
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +22,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Input } from "~/components/ui/input";
+import { ScrollArea } from "~/components/ui/scroll-area";
 import { toast } from "~/hooks/use-toast";
+import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { api } from "~/trpc/react";
 
 export function MessageCenter() {
   const { data: session } = useSession();
@@ -42,10 +43,11 @@ export function MessageCenter() {
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sseClientRef = useRef<SSEClient | null>(null);
 
   // API queries
   const { data: conversations, refetch: refetchConversations } =
-    api.message.getConversations.useQuery({
+    api.message.getConversations.useQuery(undefined, {
       enabled: !!session?.user,
       refetchInterval: 30000,
     });
@@ -55,6 +57,69 @@ export function MessageCenter() {
       { userId: selectedUserId ?? "", limit: 50 },
       { enabled: !!selectedUserId, refetchInterval: 5000 },
     );
+
+  // Enhanced SSE subscription for real-time message updates
+  useEffect(() => {
+    if (!session?.user?.id) {
+      // Clean up connection when user logs out
+      if (sseClientRef.current) {
+        sseClientRef.current.destroy();
+        sseClientRef.current = null;
+      }
+      return;
+    }
+
+    // Disconnect existing client if any
+    if (sseClientRef.current) {
+      sseClientRef.current.destroy();
+      sseClientRef.current = null;
+    }
+
+    const tabId = `message_center_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const url = `/api/messages/stream?tabId=${tabId}`;
+
+    sseClientRef.current = createSSEClient({
+      url,
+      onMessage: (event) => {
+        try {
+          const payload = JSON.parse(event.data) as { type: string; data?: any };
+          if (payload.type === "MESSAGE_CREATED") {
+            const { senderId, receiverId } = payload.data ?? {};
+            // Always refresh conversation list for unread counts and last message
+            void refetchConversations();
+            // If event is from/to the selected user, refresh thread
+            if (
+              selectedUserId &&
+              (senderId === selectedUserId || receiverId === selectedUserId)
+            ) {
+              void refetchConversation();
+            }
+          }
+          if (payload.type === "MESSAGE_READ") {
+            // Refresh counts and thread
+            void refetchConversations();
+            if (selectedUserId) void refetchConversation();
+          }
+        } catch (error) {
+          console.error("Error processing message center SSE message:", error);
+        }
+      },
+      onOpen: () => {
+        console.log("Message center SSE connected");
+      },
+      onError: (error) => {
+        console.error("Message center SSE error:", error);
+      },
+      autoConnect: true,
+    });
+
+    return () => {
+      if (sseClientRef.current) {
+        sseClientRef.current.destroy();
+        sseClientRef.current = null;
+      }
+    };
+  }, [session?.user?.id, selectedUserId, refetchConversations, refetchConversation]);
 
   // API mutations
   const sendMessageMutation = api.message.sendMessage.useMutation({
@@ -78,12 +143,12 @@ export function MessageCenter() {
     },
   });
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or when conversation changes
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [conversation?.messages]);
+  }, [conversation?.messages, selectedUserId]);
 
   // Mark messages as read when conversation is selected
   useEffect(() => {
@@ -177,9 +242,8 @@ export function MessageCenter() {
               <button
                 key={conv.userId}
                 onClick={() => setSelectedUserId(conv.userId)}
-                className={`hover:bg-accent w-full p-3 text-left transition-colors ${
-                  selectedUserId === conv.userId ? "bg-accent" : ""
-                }`}
+                className={`hover:bg-accent w-full p-3 text-left transition-colors ${selectedUserId === conv.userId ? "bg-accent" : ""
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -333,11 +397,10 @@ export function MessageCenter() {
                         {!showAvatar && !isOwn && <div className="w-8" />}
 
                         <div
-                          className={`rounded-lg p-3 ${
-                            isOwn
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-accent"
-                          }`}
+                          className={`rounded-lg p-3 ${isOwn
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-accent"
+                            }`}
                         >
                           <p className="text-sm">{msg.content}</p>
                           <p

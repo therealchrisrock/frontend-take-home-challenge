@@ -77,8 +77,12 @@ export function WinnerDialog({
         ? "/game/bot"
         : gameMode === "local"
           ? "/game/local"
-          : "/game/friend";
+          : "/game/online";
     router.push(configPath);
+  };
+
+  const handleReturnToMainMenu = () => {
+    router.push("/");
   };
 
   if (!winner) return null;
@@ -179,11 +183,18 @@ export function WinnerDialog({
               </Button>
             )}
             <Button
+              onClick={handleReturnToMainMenu}
+              variant="outline"
+              className="flex-1"
+            >
+              Main Menu
+            </Button>
+            <Button
               onClick={handleReturnToConfig}
               variant="outline"
               className="flex-1"
             >
-              Return to Game Config
+              Game Config
             </Button>
             <AlertDialogAction
               onClick={handlePlayAgain}

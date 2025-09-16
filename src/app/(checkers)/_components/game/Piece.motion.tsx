@@ -1,9 +1,9 @@
 "use client";
 
-import { type Piece as PieceType } from "~/lib/game/logic";
-import { m, AnimatePresence, type MotionProps } from "framer-motion";
-import { pieceCapture } from "~/lib/motion/variants";
+import { AnimatePresence, m, type MotionProps } from "framer-motion";
 import { Crown, Shield } from "lucide-react";
+import { type Piece as PieceType } from "~/lib/game/logic";
+import { pieceCapture } from "~/lib/motion/variants";
 
 interface MotionPieceProps {
   piece: PieceType;
@@ -42,7 +42,7 @@ export function MotionPiece({
           : "bg-gray-800 shadow-[0_0_20px_rgba(31,41,55,0.8)] border-2 border-gray-600";
       case "wooden":
         return piece.color === "red"
-          ? "bg-gradient-to-br from-amber-600 to-amber-800 shadow-md"
+          ? "bg-gradient-to-br from-primary to-primary shadow-md"
           : "bg-gradient-to-br from-stone-700 to-stone-900 shadow-md";
       default: // classic
         return piece.color === "red"
@@ -128,11 +128,10 @@ export function MotionPiece({
         {/* Inner highlight for depth */}
         {pieceStyle !== "minimal" && (
           <m.div
-            className={`pointer-events-none absolute inset-2 rounded-full ${
-              piece.color === "red"
-                ? "bg-gradient-to-tl from-transparent to-red-400/30"
-                : "bg-gradient-to-tl from-transparent to-gray-600/30"
-            } `}
+            className={`pointer-events-none absolute inset-2 rounded-full ${piece.color === "red"
+              ? "bg-gradient-to-tl from-transparent to-red-400/30"
+              : "bg-gradient-to-tl from-transparent to-gray-600/30"
+              } `}
             animate={{
               opacity: isDragging ? 0.8 : 0.5,
             }}

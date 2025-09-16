@@ -49,6 +49,7 @@ model User {
     name               String?
     image              String?
     avatarKey          String?
+    lastActive         DateTime?           // For tracking user presence
     createdAt          DateTime            @default(now())
     updatedAt          DateTime            @updatedAt
     
@@ -262,6 +263,7 @@ model Game {
     events        GameEvent[]
     tournament    Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
     gameInvites   GameInvite[]
+    notes         GameNotes?
     
     @@index([lastSaved])
     @@index([player1Id])
@@ -315,6 +317,18 @@ model GameEvent {
     @@index([gameId, createdAt])
     @@index([eventType])
     @@index([createdAt])
+}
+
+model GameNotes {
+    id        String   @id @default(cuid())
+    gameId    String   @unique
+    content   String   // The notes content
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    
+    game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    
+    @@index([gameId])
 }
 
 // Tournament and Rating Models

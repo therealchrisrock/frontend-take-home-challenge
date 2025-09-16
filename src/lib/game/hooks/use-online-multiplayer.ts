@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Board, Move, PieceColor } from "~/lib/game/logic";
 import { api } from "~/trpc/react";
 
@@ -19,123 +19,10 @@ export function useOnlineMultiplayer({ gameId }: UseOnlineMultiplayerOptions) {
     error: null,
   });
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-
   const joinGame = api.multiplayerGame.joinGame.useMutation();
   const makeMove = api.multiplayerGame.makeMove.useMutation();
-
-  const connect = useCallback(async () => {
-    if (!gameId || eventSourceRef.current) return;
-    try {
-      // Join to determine role and get a connection id
-      const res = await joinGame.mutateAsync({ gameId });
-
-      // Open SSE for this game
-      const es = new EventSource(`/api/game/${gameId}/mp-stream`);
-      eventSourceRef.current = es;
-
-      es.onopen = () => {
-        setStatus({
-          isConnected: true,
-          connectionId: res.connectionId,
-          error: null,
-        });
-      };
-
-      es.onmessage = (evt) => {
-        try {
-          const data = JSON.parse(evt.data);
-          if (data.type === "GAME_MOVE") {
-            // Consumers should listen via GameScreen's existing state sync in getById polling or extend as needed
-            // Minimal implementation: no-op here; game state is updated on client by move apply already
-          }
-        } catch {}
-      };
-
-      es.onerror = () => {
-        setStatus((s) => ({
-          ...s,
-          isConnected: false,
-          error: "mp-stream error",
-        }));
-        eventSourceRef.current?.close();
-        eventSourceRef.current = null;
-      };
-    } catch (e) {
-      setStatus({
-        isConnected: false,
-        connectionId: null,
-        error: e instanceof Error ? e.message : "join failed",
-      });
-    }
-  }, [gameId, joinGame.mutateAsync]);
-
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    setStatus((s) => ({ ...s, isConnected: false }));
-  }, []);
-
-  useEffect(() => {
-    if (!gameId || eventSourceRef.current) return;
-
-    const connectToGame = async () => {
-      try {
-        // Join to determine role and get a connection id
-        const res = await joinGame.mutateAsync({ gameId });
-
-        // Open SSE for this game
-        const es = new EventSource(`/api/game/${gameId}/mp-stream`);
-        eventSourceRef.current = es;
-
-        es.onopen = () => {
-          setStatus({
-            isConnected: true,
-            connectionId: res.connectionId,
-            error: null,
-          });
-        };
-
-        es.onmessage = (evt) => {
-          try {
-            const data = JSON.parse(evt.data);
-            if (data.type === "GAME_MOVE") {
-              // Consumers should listen via GameScreen's existing state sync in getById polling or extend as needed
-              // Minimal implementation: no-op here; game state is updated on client by move apply already
-            }
-          } catch {}
-        };
-
-        es.onerror = () => {
-          setStatus((s) => ({
-            ...s,
-            isConnected: false,
-            error: "mp-stream error",
-          }));
-          eventSourceRef.current?.close();
-          eventSourceRef.current = null;
-        };
-      } catch (e) {
-        setStatus({
-          isConnected: false,
-          connectionId: null,
-          error: e instanceof Error ? e.message : "join failed",
-        });
-      }
-    };
-
-    void connectToGame();
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      setStatus((s) => ({ ...s, isConnected: false }));
-    };
-  }, [gameId]); // Remove joinGame.mutateAsync from dependencies
+  const requestDraw = api.multiplayerGame.requestDraw.useMutation();
+  const respondToDraw = api.multiplayerGame.respondToDraw.useMutation();
 
   const sendMove = useCallback(
     async (
@@ -162,8 +49,49 @@ export function useOnlineMultiplayer({ gameId }: UseOnlineMultiplayerOptions) {
     [gameId, makeMove],
   );
 
+  const sendDrawRequest = useCallback(
+    async (playerId?: string | null, guestSessionId?: string) => {
+      if (!gameId) return false;
+      try {
+        const res = await requestDraw.mutateAsync({
+          gameId,
+          playerId: playerId ?? null,
+          guestSessionId,
+        });
+        return res.success;
+      } catch (e) {
+        console.error("Failed to send draw request:", e);
+        return false;
+      }
+    },
+    [gameId, requestDraw],
+  );
+
+  const sendDrawResponse = useCallback(
+    async (accept: boolean, playerId?: string | null, guestSessionId?: string) => {
+      if (!gameId) return false;
+      try {
+        const res = await respondToDraw.mutateAsync({
+          gameId,
+          accept,
+          playerId: playerId ?? null,
+          guestSessionId,
+        });
+        return res.success;
+      } catch (e) {
+        console.error("Failed to send draw response:", e);
+        return false;
+      }
+    },
+    [gameId, respondToDraw],
+  );
+
+  // Note: SSE connection is now handled by useGameSync hook
+  // This hook only handles sending moves via tRPC
   return {
     status,
     sendMove,
+    sendDrawRequest,
+    sendDrawResponse,
   } as const;
 }

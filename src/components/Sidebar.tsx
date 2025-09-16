@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
-  Users,
   Bot,
-  Wifi,
-  Home,
   ChevronLeft,
   ChevronRight,
+  Home,
+  Users,
+  Wifi,
 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
@@ -103,12 +103,12 @@ export function Sidebar({ userMenu, children }: SidebarProps) {
             <Link
               href="/"
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-amber-50",
+                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-primary/10",
                 isCollapsed && "justify-center px-2",
               )}
               title={isCollapsed ? "Home" : undefined}
             >
-              <Home className="h-4 w-4 flex-shrink-0 text-amber-700" />
+              <Home className="h-4 w-4 flex-shrink-0 text-primary-700" />
               {!isCollapsed && (
                 <span
                   className={cn(
@@ -135,12 +135,12 @@ export function Sidebar({ userMenu, children }: SidebarProps) {
             <Link
               href="/game/local"
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-amber-50",
+                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-primary/10",
                 isCollapsed && "justify-center px-2",
               )}
               title={isCollapsed ? "Local Game" : undefined}
             >
-              <Users className="h-4 w-4 flex-shrink-0 text-amber-700" />
+              <Users className="h-4 w-4 flex-shrink-0 text-primary-700" />
               {!isCollapsed && (
                 <span
                   className={cn(
@@ -156,12 +156,12 @@ export function Sidebar({ userMenu, children }: SidebarProps) {
             <Link
               href="/game/bot"
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-amber-50",
+                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-primary/10",
                 isCollapsed && "justify-center px-2",
               )}
               title={isCollapsed ? "Play Bot" : undefined}
             >
-              <Bot className="h-4 w-4 flex-shrink-0 text-amber-700" />
+              <Bot className="h-4 w-4 flex-shrink-0 text-primary-700" />
               {!isCollapsed && (
                 <span
                   className={cn(
@@ -175,14 +175,14 @@ export function Sidebar({ userMenu, children }: SidebarProps) {
             </Link>
 
             <Link
-              href="/game/friend"
+              href="/game/online"
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-amber-50",
+                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-primary/10",
                 isCollapsed && "justify-center px-2",
               )}
               title={isCollapsed ? "Online Friend" : undefined}
             >
-              <Wifi className="h-4 w-4 flex-shrink-0 text-amber-700" />
+              <Wifi className="h-4 w-4 flex-shrink-0 text-primary-700" />
               {!isCollapsed && (
                 <span
                   className={cn(

@@ -1,5 +1,9 @@
 "use client";
 
+import { m } from "framer-motion";
+import { Handshake, Trophy } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,14 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { Trophy, Handshake } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { m } from "framer-motion";
-import type { PieceColor } from "~/lib/game/logic";
 import type { DrawResult } from "~/lib/game/draw-detection";
+import type { PieceColor } from "~/lib/game/logic";
 import { api } from "~/trpc/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 interface WinnerDialogProps {
   winner: PieceColor | "draw" | null;
@@ -201,26 +201,26 @@ export function WinnerDialog({
               animate={
                 isVictory && winner !== "draw"
                   ? {
-                      scale: [0, 1.2, 1],
-                      rotate: [180, 360, 360],
-                    }
+                    scale: [0, 1.2, 1],
+                    rotate: [180, 360, 360],
+                  }
                   : {
-                      scale: [0, 1],
-                      rotate: 0,
-                    }
+                    scale: [0, 1],
+                    rotate: 0,
+                  }
               }
               transition={
                 isVictory && winner !== "draw"
                   ? {
-                      duration: 0.6,
-                      ease: "easeOut",
-                    }
+                    duration: 0.6,
+                    ease: "easeOut",
+                  }
                   : {
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 15,
-                      duration: 0.6,
-                    }
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    duration: 0.6,
+                  }
               }
             >
               {/* Glow effect for victory */}
@@ -283,6 +283,13 @@ export function WinnerDialog({
                 Analyze Game
               </Button>
             )}
+            <Button
+              onClick={() => router.push("/game")}
+              variant="outline"
+              className="flex-1"
+            >
+              Main Menu
+            </Button>
             <AlertDialogAction
               onClick={handlePlayAgain}
               className="flex-1"

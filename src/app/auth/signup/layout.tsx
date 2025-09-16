@@ -1,4 +1,5 @@
 import AuthLayout from "~/app/auth/_components/AuthLayout";
+import { AuthAside } from "../_components/AuthAside";
 
 export default function SignUpLayout({
   children,
@@ -7,8 +8,7 @@ export default function SignUpLayout({
 }) {
   return (
     <AuthLayout
-      imageSrc="/rogue.png"
-      imageAlt="Checkers"
+      aside={<AuthAside variant="solid" />}
       reverse
       brandName="Birdseye Checkers"
       brandHref="/"

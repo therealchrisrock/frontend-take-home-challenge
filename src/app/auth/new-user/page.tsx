@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,10 +34,14 @@ type UsernameData = z.infer<typeof usernameSchema>;
 
 export default function NewUserPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  // Get the callbackUrl, default to home page
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
   const form = useForm<UsernameData>({
     resolver: zodResolver(usernameSchema),
@@ -52,7 +56,7 @@ export default function NewUserPage() {
   const setUsernameMutation = api.auth.setUsername.useMutation({
     onSuccess: async () => {
       await update({ username: form.getValues("username") });
-      router.push("/");
+      router.push(callbackUrl);
       router.refresh();
     },
     onError: (error) => {

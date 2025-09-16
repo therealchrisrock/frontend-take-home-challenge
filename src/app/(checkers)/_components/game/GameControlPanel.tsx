@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookMarkedIcon,
   ChevronLeft,
   ChevronRight,
   Flag,
@@ -9,7 +10,7 @@ import {
   Play,
   Settings,
   SkipBack,
-  SkipForward,
+  SkipForward
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
@@ -25,20 +26,35 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import type { PieceColor } from "~/lib/game/logic";
 import { useGame } from "~/lib/game/state/game-context";
+import { useOnlineMultiplayer } from "~/lib/game/hooks/use-online-multiplayer";
+import { useSession } from "next-auth/react";
 
 interface GameControlPanelProps { }
 
 export function GameControlPanel({ }: GameControlPanelProps) {
   const { state, dispatch } = useGame();
   const [showResignDialog, setShowResignDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showRulesDialog, setShowRulesDialog] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { data: session } = useSession();
+  const { sendDrawRequest, sendDrawResponse } = useOnlineMultiplayer({ 
+    gameId: state.gameMode === "online" ? state.gameId : undefined 
+  });
 
   // Auto-play functionality (history review)
   useEffect(() => {
@@ -74,21 +90,31 @@ export function GameControlPanel({ }: GameControlPanelProps) {
   const canResign =
     canInteract &&
     !!state.currentPlayer &&
-    (state.gameMode === "local" ||
-      (state.gameMode === "ai" && state.currentPlayer === state.playerColor));
+    (state.gameMode === "local" || state.gameMode === "ai");
 
   const handleResign = () => {
     if (!state.currentPlayer) return;
     if (state.gameMode === "local") {
       dispatch({ type: "RESIGN", payload: state.currentPlayer });
     } else if (state.gameMode === "ai") {
+      // In AI mode, the human player can always resign regardless of turn
       dispatch({ type: "RESIGN", payload: state.playerColor as PieceColor });
     }
     setShowResignDialog(false);
   };
 
-  const handleDrawRequest = () => {
-    dispatch({ type: "REQUEST_DRAW" });
+  const handleDrawRequest = async () => {
+    if (state.gameMode === "online") {
+      // Send draw request to server
+      const playerId = session?.user?.id ?? null;
+      const success = await sendDrawRequest(playerId);
+      if (success) {
+        dispatch({ type: "REQUEST_DRAW" });
+      }
+    } else {
+      // Local draw request
+      dispatch({ type: "REQUEST_DRAW" });
+    }
   };
 
   return (
@@ -194,20 +220,22 @@ export function GameControlPanel({ }: GameControlPanelProps) {
         {/* Bottom Row - Game Actions (flexible width) */}
         <div className="flex border-t border-gray-200 dark:border-gray-700">
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleDrawRequest}
-                variant="ghost"
-                size="icon"
-                disabled={!canRequestDraw}
-                className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700"
-              >
-                <Handshake className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Request draw</TooltipContent>
-          </Tooltip>
+          {state.gameMode === "online" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleDrawRequest}
+                  variant="ghost"
+                  size="icon"
+                  disabled={!canRequestDraw}
+                  className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:hover:bg-gray-700"
+                >
+                  <Handshake className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Request draw</TooltipContent>
+            </Tooltip>
+          )}
 
 
 
@@ -227,20 +255,33 @@ export function GameControlPanel({ }: GameControlPanelProps) {
           </Tooltip>
 
 
-          <GameSettings>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 flex-1 rounded-none border-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Settings</TooltipContent>
-            </Tooltip>
-          </GameSettings>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowRulesDialog(true)}
+                variant="ghost"
+                size="icon"
+                className="h-12 flex-1 rounded-none border-0 border-r border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
+              >
+                <BookMarkedIcon className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Rules</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowSettingsDialog(true)}
+                variant="ghost"
+                size="icon"
+                className="h-12 flex-1 rounded-none border-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
+          </Tooltip>
         </div>
 
 
@@ -257,7 +298,7 @@ export function GameControlPanel({ }: GameControlPanelProps) {
                 declare{" "}
                 {state.gameMode === "local"
                   ? `${state.currentPlayer === "red" ? "Black" : "Red"}`
-                  : "your opponent"}{" "}
+                  : state.playerColor === "red" ? "Black (AI)" : "Red (AI)"}{" "}
                 as the winner.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -281,17 +322,25 @@ export function GameControlPanel({ }: GameControlPanelProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Draw Requested</AlertDialogTitle>
               <AlertDialogDescription>
-                {state.drawRequestedBy === state.currentPlayer
+                {state.drawRequestedBy === state.playerColor
                   ? "Waiting for opponent to accept draw..."
                   : `${state.drawRequestedBy === "red" ? "Red" : "Black"} has requested a draw. Do you accept?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {state.drawRequestedBy !== state.currentPlayer && (
+            {state.drawRequestedBy !== state.playerColor && (
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => dispatch({ type: "DIALOGS", payload: { showDrawDialog: false } })}>
+                <AlertDialogCancel onClick={async () => {
+                  const playerId = session?.user?.id ?? null;
+                  await sendDrawResponse(false, playerId);
+                  dispatch({ type: "DIALOGS", payload: { showDrawDialog: false } });
+                }}>
                   Decline
                 </AlertDialogCancel>
-                <AlertDialogAction onClick={() => dispatch({ type: "ACCEPT_DRAW" })}>
+                <AlertDialogAction onClick={async () => {
+                  const playerId = session?.user?.id ?? null;
+                  await sendDrawResponse(true, playerId);
+                  dispatch({ type: "ACCEPT_DRAW" });
+                }}>
                   Accept Draw
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -299,6 +348,117 @@ export function GameControlPanel({ }: GameControlPanelProps) {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Settings Dialog */}
+      <GameSettings open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
+
+      {/* Rules Dialog */}
+      <Dialog open={showRulesDialog} onOpenChange={setShowRulesDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{state.rules.metadata.displayName} Rules</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-4 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    <strong>Origin:</strong> {state.rules.metadata.origin}
+                  </p>
+                  <p className="text-sm">{state.rules.metadata.description}</p>
+                  {state.rules.metadata.aliases && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <strong>Also known as:</strong> {state.rules.metadata.aliases.join(", ")}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Board Setup</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Played on a {state.rules.board.size}×{state.rules.board.size} board</li>
+                    <li>Each player starts with {state.rules.board.pieceCount} pieces</li>
+                    <li>Red moves first, then players alternate turns</li>
+                    <li>Pieces are placed on the dark squares</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Movement</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Regular pieces can only move diagonally forward</li>
+                    {state.rules.movement.regularPieces.canMoveBackward && (
+                      <li>Regular pieces can also move backward</li>
+                    )}
+                    {state.rules.movement.regularPieces.canCaptureBackward && (
+                      <li>Regular pieces can capture backward</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Captures</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    {state.rules.capture.mandatory && (
+                      <li>You must capture if a capture move is available</li>
+                    )}
+                    {state.rules.capture.requireMaximum && (
+                      <li>You must make the capture that takes the maximum number of pieces</li>
+                    )}
+                    {state.rules.capture.kingPriority && (
+                      <li>Capturing with a king takes priority over regular pieces</li>
+                    )}
+                    {state.rules.capture.chainCaptures && (
+                      <li>Multiple captures in sequence are required if possible</li>
+                    )}
+                    <li>Captured pieces are removed from the board</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Kings</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Pieces become kings when they reach the opposite end</li>
+                    <li>Kings can move and capture both forward and backward</li>
+                    {state.rules.movement.kings.canFly && (
+                      <li>Kings can move multiple squares diagonally (flying kings)</li>
+                    )}
+                    <li>Kings are indicated by a crown symbol</li>
+                    {state.rules.capture.promotion.stopsCaptureChain && (
+                      <li>Promoting to king stops any capture chain</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-2">Winning & Draws</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Win by capturing all opponent pieces</li>
+                    <li>Win if opponent has no legal moves</li>
+                    {state.rules.draws.fortyMoveRule && (
+                      <li>Game is a draw if no progress is made for 40 moves</li>
+                    )}
+                    {state.rules.draws.twentyFiveMoveRule && (
+                      <li>Game is a draw if no capture is made for 25 moves</li>
+                    )}
+                    {state.rules.draws.repetitionLimit && (
+                      <li>Game is a draw after {state.rules.draws.repetitionLimit} position repetitions</li>
+                    )}
+                    {state.rules.draws.insufficientMaterial && (
+                      <li>Game is a draw with insufficient material to win</li>
+                    )}
+                  </ul>
+                </div>
+
+                {state.rules.metadata.officialRules && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md text-xs">
+                    <p><strong>Official Rules:</strong> {state.rules.metadata.officialRules.organization}</p>
+                    <p>Version: {state.rules.metadata.officialRules.version} ({state.rules.metadata.officialRules.lastUpdated})</p>
+                  </div>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

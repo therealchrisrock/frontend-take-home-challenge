@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import React from "react";
+import { m } from "~/lib/motion";
+import { slideInFromLeft, slideInFromRight } from "~/lib/motion/variants";
 
 interface AuthLayoutProps {
-  imageSrc: string;
-  imageAlt?: string;
+  aside?: React.ReactNode;
   reverse?: boolean;
   children: React.ReactNode;
   brandName?: string;
@@ -13,8 +14,7 @@ interface AuthLayoutProps {
 }
 
 export default function AuthLayout({
-  imageSrc,
-  imageAlt = "",
+  aside,
   reverse = false,
   children,
   brandName = "",
@@ -31,27 +31,32 @@ export default function AuthLayout({
               alt={brandName || "brand"}
               width={200}
               height={57}
+              priority
             />
           </div>
           {/* Centered content */}
-          <div className="flex flex-1 items-center justify-center">
-            <div className="w-full max-w-xs">{children}</div>
+          <div className="flex flex-1 items-center justify-center overflow-hidden">
+            <m.div
+              key={reverse ? "form-right" : "form-left"}
+              variants={reverse ? slideInFromRight : slideInFromLeft}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="w-full max-w-xs"
+            >
+              {children}
+            </m.div>
           </div>
         </div>
       </div>
-      {/* Image column */}
-      <div
-        className={`bg-muted relative hidden lg:block ${reverse ? "order-1 lg:order-1" : "order-2 lg:order-2"}`}
-      >
-        <Image
-          src={imageSrc}
-          alt={imageAlt}
-          fill
-          priority
-          sizes="(max-width: 1024px) 0px, 50vw"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
+      {/* Aside column */}
+      {aside && (
+        <div
+          className={`bg-muted relative hidden lg:block ${reverse ? "order-1 lg:order-1" : "order-2 lg:order-2"}`}
+        >
+          {aside}
+        </div>
+      )}
     </div>
   );
 }

@@ -64,6 +64,11 @@ export function updateDrawState(
   currentPlayer: PieceColor,
   wasPromotion: boolean,
 ): DrawState {
+  // Skip updating draw state for optimistic moves to prevent false 3-fold repetition
+  if (move.isOptimistic) {
+    return state;
+  }
+
   const newState = { ...state };
 
   // Update counters for forty-move rule
@@ -88,6 +93,38 @@ export function updateDrawState(
   const count = newState.positionCounts.get(position) || 0;
   newState.positionCounts.set(position, count + 1);
 
+  return newState;
+}
+
+/**
+ * Remove optimistic move positions from draw state (for rollback scenarios)
+ */
+export function removeOptimisticPositions(
+  state: DrawState,
+  optimisticPositions: string[],
+): DrawState {
+  if (optimisticPositions.length === 0) {
+    return state;
+  }
+
+  const newState = { ...state };
+  
+  // Remove optimistic positions from board positions array
+  newState.boardPositions = state.boardPositions.filter(
+    pos => !optimisticPositions.includes(pos)
+  );
+  
+  // Update position counts by removing optimistic positions
+  newState.positionCounts = new Map(state.positionCounts);
+  for (const position of optimisticPositions) {
+    const count = newState.positionCounts.get(position) || 0;
+    if (count <= 1) {
+      newState.positionCounts.delete(position);
+    } else {
+      newState.positionCounts.set(position, count - 1);
+    }
+  }
+  
   return newState;
 }
 

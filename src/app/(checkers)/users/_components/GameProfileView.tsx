@@ -1,7 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import {
+  Award,
+  Crown,
+  Gamepad2,
+  Shield,
+  Sparkles,
+  Star,
+  Swords,
+  TrendingUp,
+  Trophy,
+  Users,
+  Zap,
+  X,
+  UserCheck,
+  UserPlus,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,26 +28,11 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import {
-  Trophy,
-  Gamepad2,
-  Sparkles,
-  Swords,
-  Shield,
-  Crown,
-  Star,
-  Zap,
-  Users,
-  TrendingUp,
-  Award,
-} from "lucide-react";
-import { api } from "~/trpc/react";
 import { toast } from "~/components/ui/use-toast";
 import { m } from "~/lib/motion";
+import { api } from "~/trpc/react";
 
 interface GameStats {
   totalGames: number;
@@ -110,19 +114,107 @@ export default function GameProfileView({
   isOwnProfile,
   currentUserId,
 }: GameProfileViewProps) {
-  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<{
+    status: string;
+    friendRequestId?: string;
+  }>({ status: "loading" });
 
-  const sendFriendRequest = api.user.sendFriendRequest.useMutation({
-    onSuccess: () => {
-      setFriendRequestSent(true);
+  // Check friend status
+  const { data: statusData, refetch: refetchStatus } = api.friendRequest.checkStatus.useQuery(
+    { userId: user.id },
+    {
+      enabled: !!currentUserId && !isOwnProfile,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+    }
+  );
+
+  useEffect(() => {
+    if (statusData) {
+      setFriendStatus(statusData);
+    }
+  }, [statusData]);
+
+  const utils = api.useUtils();
+
+  const sendFriendRequest = api.friendRequest.send.useMutation({
+    onSuccess: async (data) => {
+      setFriendStatus({ 
+        status: "request_sent", 
+        friendRequestId: data.friendRequest.id 
+      });
       toast({
         title: "Friend request sent!",
         description: `You've sent a friend request to ${user.name ?? user.username}`,
       });
+      await utils.friendRequest.checkStatus.invalidate({ userId: user.id });
+      await refetchStatus();
+    },
+    onError: (error) => {
+      // If error says request already exists, refetch the status
+      if (error.message.includes("already exists")) {
+        void refetchStatus();
+      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelFriendRequest = api.friendRequest.cancel.useMutation({
+    onSuccess: async () => {
+      setFriendStatus({ status: "none" });
+      toast({
+        title: "Friend request cancelled",
+        description: "The friend request has been cancelled",
+      });
+      await utils.friendRequest.checkStatus.invalidate({ userId: user.id });
+      await refetchStatus();
     },
     onError: (error) => {
       toast({
         title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeFriend = api.friendRequest.removeFriend.useMutation({
+    onSuccess: async () => {
+      setFriendStatus({ status: "none" });
+      toast({
+        title: "Friend removed",
+        description: `${user.name ?? user.username} has been removed from your friends list`,
+      });
+      await utils.friendRequest.checkStatus.invalidate({ userId: user.id });
+      await refetchStatus();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const router = useRouter();
+  
+  const createGameInvite = api.gameInvite.createInvitation.useMutation({
+    onSuccess: (data) => {
+      toast({
+        title: "Game invite sent!",
+        description: `You've challenged ${user.name ?? user.username} to a game.`,
+      });
+      // Navigate to the game page
+      router.push(data.inviteUrl);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to send invite",
         description: error.message,
         variant: "destructive",
       });
@@ -203,7 +295,7 @@ export default function GameProfileView({
       description: "Win 10 games",
       icon: Star,
       unlocked: stats.wins >= 10,
-      color: "text-amber-500",
+      color: "text-primary/10",
     },
   ];
 
@@ -305,22 +397,72 @@ export default function GameProfileView({
                   {/* Action Buttons */}
                   {!isOwnProfile && currentUserId && (
                     <div className="flex justify-center gap-2 md:justify-start">
-                      <Button
-                        onClick={() =>
-                          sendFriendRequest.mutate({ userId: user.id })
-                        }
-                        disabled={
-                          friendRequestSent || sendFriendRequest.isPending
-                        }
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                      >
-                        <Users className="h-4 w-4" />
-                        {friendRequestSent ? "Request Sent" : "Add Friend"}
-                      </Button>
-                      <Button variant="outline" disabled>
-                        <Gamepad2 className="h-4 w-4" />
-                        Challenge
-                      </Button>
+                      {friendStatus.status === "none" && (
+                        <Button
+                          onClick={() =>
+                            sendFriendRequest.mutate({ userId: user.id })
+                          }
+                          disabled={sendFriendRequest.isPending}
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Add Friend
+                        </Button>
+                      )}
+                      {friendStatus.status === "request_sent" && (
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            cancelFriendRequest.mutate({
+                              friendRequestId: friendStatus.friendRequestId!,
+                            })
+                          }
+                          disabled={cancelFriendRequest.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                          Cancel Request
+                        </Button>
+                      )}
+                      {friendStatus.status === "request_received" && (
+                        <Button
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          Respond to Request
+                        </Button>
+                      )}
+                      {friendStatus.status === "friends" && (
+                        <>
+                          <Button 
+                            variant="outline"
+                            onClick={() => createGameInvite.mutate({
+                              friendIds: [user.id],
+                              message: "Let's play a game of checkers!",
+                              expiresIn: 24, // 24 hours
+                            })}
+                            disabled={createGameInvite.isPending}
+                          >
+                            <Gamepad2 className="h-4 w-4" />
+                            Challenge
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              removeFriend.mutate({ userId: user.id })
+                            }
+                            disabled={removeFriend.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                            Remove Friend
+                          </Button>
+                        </>
+                      )}
+                      {friendStatus.status === "loading" && (
+                        <Button disabled>
+                          <Users className="h-4 w-4" />
+                          Loading...
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -506,20 +648,18 @@ export default function GameProfileView({
                   transition={{ delay: index * 0.1 }}
                 >
                   <Card
-                    className={`relative overflow-hidden ${
-                      achievement.unlocked
-                        ? "border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50 dark:border-yellow-700 dark:from-yellow-900/20 dark:to-amber-900/20"
-                        : "opacity-60 grayscale"
-                    }`}
+                    className={`relative overflow-hidden ${achievement.unlocked
+                      ? "border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-primary/10 dark:border-yellow-700 dark:from-yellow-900/20 dark:to-primary-900/20"
+                      : "opacity-60 grayscale"
+                      }`}
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
                         <div
-                          className={`rounded-lg p-3 ${
-                            achievement.unlocked
-                              ? "bg-white/80 dark:bg-gray-800/80"
-                              : "bg-gray-200 dark:bg-gray-700"
-                          }`}
+                          className={`rounded-lg p-3 ${achievement.unlocked
+                            ? "bg-white/80 dark:bg-gray-800/80"
+                            : "bg-gray-200 dark:bg-gray-700"
+                            }`}
                         >
                           <achievement.icon
                             className={`h-6 w-6 ${achievement.unlocked ? achievement.color : "text-gray-400"}`}
@@ -578,24 +718,22 @@ export default function GameProfileView({
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`rounded-lg border-2 p-4 ${
-                            result === "win"
-                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                              : result === "loss"
-                                ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                                : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/20"
-                          }`}
+                          className={`rounded-lg border-2 p-4 ${result === "win"
+                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                            : result === "loss"
+                              ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                              : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/20"
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div
-                                className={`rounded-full p-2 ${
-                                  result === "win"
-                                    ? "bg-green-500"
-                                    : result === "loss"
-                                      ? "bg-red-500"
-                                      : "bg-gray-500"
-                                } text-white`}
+                                className={`rounded-full p-2 ${result === "win"
+                                  ? "bg-green-500"
+                                  : result === "loss"
+                                    ? "bg-red-500"
+                                    : "bg-gray-500"
+                                  } text-white`}
                               >
                                 {result === "win" ? (
                                   <Trophy className="h-4 w-4" />

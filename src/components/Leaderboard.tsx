@@ -1,11 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Trophy, TrendingUp, User, Crown, Medal, Award } from "lucide-react";
-import { cn } from "~/lib/utils";
-import { Skeleton } from "~/components/ui/skeleton";
-import { api } from "~/trpc/react";
+import { Award, Crown, Medal, TrendingUp, Trophy, User } from "lucide-react";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Skeleton } from "~/components/ui/skeleton";
+import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
 interface LeaderboardProps {
   limit?: number;
@@ -24,7 +24,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
       case 2:
         return <Medal className="h-5 w-5 text-gray-400" />;
       case 3:
-        return <Award className="h-5 w-5 text-amber-600" />;
+        return <Award className="h-5 w-5 text-primary-600" />;
       default:
         return (
           <span className="flex h-5 w-5 items-center justify-center text-sm font-bold text-gray-600">
@@ -41,16 +41,16 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
       case 2:
         return "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-300";
       case 3:
-        return "bg-gradient-to-r from-amber-50 to-amber-100 border-amber-300";
+        return "bg-gradient-to-r from-primary/10 to-primary/10 border-primary/30";
       default:
         return "bg-white hover:bg-gray-50";
     }
   };
 
   return (
-    <Card className={cn("border-amber-200 shadow-lg", className)}>
+    <Card className={cn("border-primary/20 shadow-lg", className)}>
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-amber-900">
+        <CardTitle className="flex items-center gap-2 text-primary-900">
           <Trophy className="h-5 w-5" />
           Leaderboard
         </CardTitle>
@@ -83,8 +83,8 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-gray-400" />
                       <Link
-                        href={`/profile/${player.username}`}
-                        className="truncate font-medium text-gray-900 hover:text-amber-600 hover:underline transition-colors"
+                        href={`/users/${player.username}`}
+                        className="truncate font-medium text-gray-900 hover:text-primary-600 hover:underline transition-colors"
                       >
                         {player.username}
                       </Link>

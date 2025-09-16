@@ -4,13 +4,12 @@ export type UserId = string;
 export type TabId = string;
 
 export interface SSEMessage {
-  type: 'notification' | 'heartbeat' | 'connection_established' | 'connection_closed' | 'error';
-  data?: {
-    notification?: NotificationData;
-    tabId?: string;
-    timestamp: number;
-    message?: string;
-  };
+  type: "HEARTBEAT" | "CONNECTION_STATUS" | "NOTIFICATION_CREATED" | "presence"; // kept for friends-mini-drawer presence updates
+  payload?: unknown;
+  // Legacy field name used in some routes; keep optional for transition
+  data?: unknown;
+  timestamp?: string | number;
+  userId?: string;
 }
 
 export interface NotificationData {
@@ -40,32 +39,38 @@ export interface UserSession {
 }
 
 export interface HeartbeatMessage {
-  type: 'heartbeat';
-  data: {
-    timestamp: number;
-    tabId: string;
-  };
+  type: "HEARTBEAT";
+  payload: { timestamp: string };
 }
 
 export interface ConnectionStatusMessage {
-  type: 'connection_established' | 'connection_closed';
-  data: {
-    tabId: string;
-    timestamp: number;
-    message?: string;
+  type: "CONNECTION_STATUS";
+  payload: {
+    connected: boolean;
+    reconnecting: boolean;
+    error?: string;
+    lastConnected: string | null;
   };
 }
 
 export interface NotificationMessage {
-  type: 'notification';
-  data: {
-    notification: NotificationData;
-    timestamp: number;
+  type: "NOTIFICATION_CREATED";
+  payload: {
+    id: string;
+    type:
+      | "FRIEND_REQUEST"
+      | "FRIEND_REQUEST_ACCEPTED"
+      | "FRIEND_REQUEST_DECLINED";
+    title: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+    relatedEntityId?: string;
+    createdAt: string;
   };
 }
 
 export interface ErrorMessage {
-  type: 'error';
+  type: "error";
   data: {
     message: string;
     timestamp: number;

@@ -1,6 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Mail,
+  MessageCircle,
+  QrCode,
+  Share2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -12,22 +21,13 @@ import {
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import {
-  Copy,
-  Check,
-  Share2,
-  QrCode,
-  MessageCircle,
-  Mail,
-  ExternalLink,
-} from "lucide-react";
 import { toast } from "~/hooks/use-toast";
 import { cn } from "~/lib/utils";
 
 interface ShareableInviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  inviteId: string;
+  inviteId: string; // token or id; component computes URL from token
 }
 
 export function ShareableInviteDialog({
@@ -37,9 +37,9 @@ export function ShareableInviteDialog({
 }: ShareableInviteDialogProps) {
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
-  
+
   const inviteUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/game/invite/${inviteId}`;
-  
+
   // Generate QR code URL using QR-Server API (free service)
   useEffect(() => {
     if (inviteUrl && open) {
@@ -127,7 +127,7 @@ export function ShareableInviteDialog({
             Share Invitation
           </DialogTitle>
           <DialogDescription>
-            Share this link with anyone you want to play checkers with. 
+            Share this link with anyone you want to play checkers with.
             The first person to join will become your opponent.
           </DialogDescription>
         </DialogHeader>
@@ -157,9 +157,9 @@ export function ShareableInviteDialog({
                   size="sm"
                   className={cn(
                     "px-3 transition-all duration-200",
-                    copied 
-                      ? "bg-green-600 hover:bg-green-700" 
-                      : "bg-amber-600 hover:bg-amber-700"
+                    copied
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-primary hover:bg-primary-700"
                   )}
                 >
                   {copied ? (
@@ -235,12 +235,12 @@ export function ShareableInviteDialog({
                   </div>
                 )}
               </div>
-              
+
               <div>
                 <p className="text-sm text-gray-600 mb-2">
                   Scan this QR code with a phone camera to join the game
                 </p>
-                
+
                 <Button
                   onClick={handleCopyLink}
                   variant="outline"

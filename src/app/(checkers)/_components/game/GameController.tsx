@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { GameScreen } from "~/app/(checkers)/_components/game/GameScreen";
 import TextSpinnerLoader from "~/components/ui/text-spinner-loader";
 import { GameProvider } from "~/lib/game/state/game-context";
@@ -10,6 +11,7 @@ interface GameControllerProps {
 }
 
 export function GameController({ gameId }: GameControllerProps) {
+  const router = useRouter();
   // If no gameId, create a new local game by default
   if (!gameId) {
     return (
@@ -54,7 +56,7 @@ export function GameController({ gameId }: GameControllerProps) {
           </p>
           <Link
             href="/game"
-            className="mt-4 inline-block text-amber-600 hover:text-amber-700"
+            className="mt-4 inline-block text-primary-600 hover:text-primary-700"
           >
             Return to Game Menu
           </Link>

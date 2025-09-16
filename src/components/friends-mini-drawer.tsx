@@ -1,21 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Bell, Gamepad2, MessageSquare, User, UserMinus } from "lucide-react";
+import { AnimatePresence, motion, Reorder } from "motion/react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Bell, Gamepad2, User, MessageSquare, UserMinus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Skeleton } from "~/components/ui/skeleton";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { Badge } from "~/components/ui/badge";
-import { api } from "~/trpc/react";
-import { cn } from "~/lib/utils";
-import { motion, AnimatePresence, Reorder } from "motion/react";
-import {
-  TabsUnderline,
-  TabsUnderlineList,
-  TabsUnderlineTrigger,
-} from "~/components/ui/tabs";
+import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +15,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Skeleton } from "~/components/ui/skeleton";
+import {
+  TabsUnderline,
+  TabsUnderlineList,
+  TabsUnderlineTrigger,
+} from "~/components/ui/tabs";
+import { useChatContext } from "~/contexts/ChatContext";
+import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
 interface FriendsMiniDrawerProps {
   className?: string;
@@ -35,28 +38,80 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
   // Basic data: friends with presence + unread count
   const { data: session } = useSession();
   const { data: friends, isLoading: friendsLoading } =
-    api.user.getFriendsWithStatus.useQuery({
+    api.user.getFriendsWithStatus.useQuery(
+      undefined,
+      {
+        enabled: !!session?.user,
+        staleTime: 10 * 1000, // 10 seconds - refresh presence data more frequently
+        refetchInterval: 30 * 1000, // 30 seconds - periodic refetch for presence updates
+      },
+    );
+  const { data: friendReqCount } = api.user.getFriendRequestNotificationCount.useQuery(
+    undefined,
+    {
       enabled: !!session?.user,
-    });
-  const { data: unread } = api.message.getUnreadCount.useQuery({
-    enabled: !!session?.user,
-  });
+    },
+  );
+  const {
+    data: friendRequests,
+    isLoading: friendRequestsLoading,
+  } = api.user.getFriendRequestNotifications.useQuery(
+    undefined,
+    {
+      enabled: !!session?.user,
+    },
+  );
   const { data: conversations, isLoading: conversationsLoading } =
-    api.message.getConversations.useQuery({
-      enabled: !!session?.user,
-    });
+    api.message.getConversations.useQuery(
+      undefined,
+      {
+        enabled: !!session?.user,
+      },
+    );
 
+  // Unread messages count for bell badge
+  const { data: unreadMsgCount } = api.message.getUnreadCount.useQuery(
+    undefined,
+    {
+      enabled: !!session?.user,
+    },
+  );
+
+  const utils = api.useContext();
   const removeFriendMutation = api.friendRequest.removeFriend.useMutation({
+    onMutate: async ({ userId }) => {
+      // Cancel outgoing refetches
+      await utils.user.getFriendsWithStatus.cancel();
+
+      // Snapshot the previous value
+      const previousFriends = utils.user.getFriendsWithStatus.getData();
+
+      // Optimistically update by removing the friend
+      if (previousFriends) {
+        const updatedFriends = previousFriends.filter(friend => friend.id !== userId);
+        utils.user.getFriendsWithStatus.setData(undefined, updatedFriends);
+
+        // Also update local state immediately
+        setReorderableFriends(updatedFriends);
+      }
+
+      return { previousFriends };
+    },
+    onError: (err, variables, context) => {
+      // Revert optimistic update on error
+      if (context?.previousFriends) {
+        utils.user.getFriendsWithStatus.setData(undefined, context.previousFriends);
+        setReorderableFriends(context.previousFriends);
+      }
+    },
     onSuccess: () => {
-      // Refetch friends data to update the list
-      void api.useContext().user.getFriendsWithStatus.invalidate();
+      // Refetch friends data to ensure consistency
+      void utils.user.getFriendsWithStatus.invalidate();
     },
   });
 
   // Manage reorderable friends list
-  const [reorderableFriends, setReorderableFriends] = useState<typeof friends>(
-    [],
-  );
+  const [reorderableFriends, setReorderableFriends] = useState<Friend[]>([]);
 
   // Update reorderable list when friends data changes
   useMemo(() => {
@@ -67,6 +122,83 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
       setReorderableFriends(sorted);
     }
   }, [friends]);
+
+  // Enhanced SSE subscription for real-time notifications
+  const sseClientRef = useRef<SSEClient | null>(null);
+  const tabIdRef = useRef<string>("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !tabIdRef.current) {
+      tabIdRef.current = `tab_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      // Clean up connection if user logs out
+      if (sseClientRef.current) {
+        sseClientRef.current.destroy();
+        sseClientRef.current = null;
+      }
+      return;
+    }
+
+    // Disconnect existing client if any
+    if (sseClientRef.current) {
+      sseClientRef.current.destroy();
+      sseClientRef.current = null;
+    }
+
+    const url = `/api/notifications/stream?tabId=${tabIdRef.current}`;
+
+    sseClientRef.current = createSSEClient({
+      url,
+      onMessage: (event) => {
+        console.log("friends drawer notification stream event", event);
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg?.type === "NOTIFICATION_CREATED") {
+            const payload = msg?.payload ?? msg?.data; // accept either key during transition
+            const ntype = payload?.type as string | undefined;
+            if (
+              ntype === "FRIEND_REQUEST" ||
+              ntype === "FRIEND_REQUEST_ACCEPTED" ||
+              ntype === "FRIEND_REQUEST_DECLINED"
+            ) {
+              void utils.user.getFriendRequestNotificationCount.invalidate();
+              void utils.user.getFriendRequestNotifications.invalidate();
+              if (ntype === "FRIEND_REQUEST_ACCEPTED") {
+                void utils.user.getFriendsWithStatus.invalidate();
+              }
+            }
+            if (ntype === "MESSAGE") {
+              // Refresh unread message count
+              void utils.message.getUnreadCount.invalidate();
+            }
+          }
+          if (msg?.type === "presence") {
+            void utils.user.getFriendsWithStatus.invalidate();
+          }
+        } catch (error) {
+          console.error("Error processing friends drawer notification:", error);
+        }
+      },
+      onOpen: () => {
+        console.log("Friends drawer notification SSE connected");
+      },
+      onError: (error) => {
+        console.error("Friends drawer notification SSE error:", error);
+      },
+      autoConnect: true,
+    });
+
+    return () => {
+      if (sseClientRef.current) {
+        sseClientRef.current.destroy();
+        sseClientRef.current = null;
+      }
+    };
+  }, [session?.user?.id, utils.user, utils.message]);
 
   // Hover/open state controls staging and ensures we always open on Friends tab
   const [isOpen, setIsOpen] = useState(false);
@@ -130,15 +262,18 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                   exit={{ opacity: 0 }}
                 >
                   <Bell className="h-6 w-6 text-gray-700" />
-                  {unread?.count ? (
-                    <Badge className="absolute -top-2 -right-2 h-5 min-w-5 rounded-full border-0 bg-red-600 px-1 text-[10px] text-white">
-                      {unread.count > 99 ? "99+" : unread.count}
-                    </Badge>
-                  ) : null}
+                  {(() => {
+                    const total = (friendReqCount?.count ?? 0) + (unreadMsgCount?.count ?? 0);
+                    return total > 0 ? (
+                      <Badge className="absolute -top-2 -right-2 h-5 min-w-5 rounded-full border-0 bg-red-600 px-1 text-[10px] text-white">
+                        {total > 99 ? "99+" : total}
+                      </Badge>
+                    ) : null;
+                  })()}
                 </motion.div>
-                {/* Shared underline with the tabs underline */}
+                {/* Mini underline indicator for collapsed state */}
                 <motion.span
-                  layoutId="drawer-underline"
+                  layoutId="mini-drawer-tabs"
                   className="absolute bottom-0 left-1/2 h-px w-8 -translate-x-1/2 rounded-full"
                   style={{ backgroundColor: "#e5e7eb" }}
                 />
@@ -156,7 +291,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                   onValueChange={(v) =>
                     setActiveTab(v as "friends" | "notifications")
                   }
-                  layoutId="drawer-underline"
+                  layoutId="mini-drawer-tabs"
                   underlineColor="#7c3aed"
                   className="h-full"
                 >
@@ -165,7 +300,19 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                       Friends
                     </TabsUnderlineTrigger>
                     <TabsUnderlineTrigger value="notifications">
-                      Notifications
+                      <span className="relative inline-flex items-center">
+                        <span>Notifications</span>
+                        <span aria-hidden className="absolute -top-2 -right-2">
+                          {(() => {
+                            const total = (friendReqCount?.count ?? 0) + (unreadMsgCount?.count ?? 0);
+                            return total > 0 ? (
+                              <Badge className="h-5 min-w-5 rounded-full border-0 bg-red-600 px-1 text-[10px] text-white">
+                                {total > 99 ? "99+" : total}
+                              </Badge>
+                            ) : null;
+                          })()}
+                        </span>
+                      </span>
                     </TabsUnderlineTrigger>
                   </TabsUnderlineList>
                 </TabsUnderline>
@@ -190,55 +337,55 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                   <div className="flex flex-col items-center gap-2 pt-2 pb-6">
                     {friendsLoading
                       ? Array.from({ length: 8 }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="relative flex h-12 w-full items-center justify-center"
+                        >
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                        </div>
+                      ))
+                      : (reorderableFriends ?? []).map((f) => {
+                        const loaded = avatarLoadedMap[f.id] ?? !f.image;
+                        return (
                           <div
-                            key={idx}
+                            key={f.id}
                             className="relative flex h-12 w-full items-center justify-center"
                           >
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                          </div>
-                        ))
-                      : (reorderableFriends ?? []).map((f) => {
-                          const loaded = avatarLoadedMap[f.id] ?? !f.image;
-                          return (
-                            <div
-                              key={f.id}
-                              className="relative flex h-12 w-full items-center justify-center"
+                            <motion.div
+                              layoutId={`friend-avatar-${f.id}`}
+                              className="relative"
                             >
-                              <motion.div
-                                layoutId={`friend-avatar-${f.id}`}
-                                className="relative"
-                              >
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={f.image ?? undefined}
-                                    onLoad={() => markAvatarLoaded(f.id)}
-                                    onError={() => markAvatarLoaded(f.id)}
-                                  />
-                                  <AvatarFallback>
-                                    {f.name?.[0] ?? f.username?.[0] ?? "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                {!loaded && (
-                                  <motion.div
-                                    initial={{ opacity: 1 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0"
-                                  >
-                                    <Skeleton className="h-full w-full rounded-full" />
-                                  </motion.div>
-                                )}
-                                <span
-                                  className={cn(
-                                    "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white",
-                                    f.online ? "bg-emerald-500" : "bg-gray-300",
-                                  )}
-                                  aria-label={f.online ? "online" : "offline"}
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={f.image ?? undefined}
+                                  onLoad={() => markAvatarLoaded(f.id)}
+                                  onError={() => markAvatarLoaded(f.id)}
                                 />
-                              </motion.div>
-                            </div>
-                          );
-                        })}
+                                <AvatarFallback>
+                                  {f.name?.[0] ?? f.username?.[0] ?? "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              {!loaded && (
+                                <motion.div
+                                  initial={{ opacity: 1 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="absolute inset-0"
+                                >
+                                  <Skeleton className="h-full w-full rounded-full" />
+                                </motion.div>
+                              )}
+                              <span
+                                className={cn(
+                                  "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white",
+                                  f.online ? "bg-emerald-500" : "bg-gray-300",
+                                )}
+                                aria-label={f.online ? "online" : "offline"}
+                              />
+                            </motion.div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </ScrollArea>
               </motion.div>
@@ -254,6 +401,8 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                   friends={reorderableFriends ?? []}
                   setFriends={setReorderableFriends}
                   conversations={conversations ?? []}
+                  friendRequests={friendRequests ?? []}
+                  friendRequestsLoading={friendRequestsLoading}
                   isOpen={isOpen}
                   activeTab={activeTab}
                   friendsLoading={friendsLoading}
@@ -312,14 +461,29 @@ interface Conversation {
   unreadCount: number;
 }
 
+interface FriendRequestNotificationItem {
+  id: string;
+  type: "FRIEND_REQUEST_RECEIVED";
+  sender: {
+    id: string;
+    username: string;
+    name: string | null;
+    image: string | null;
+  };
+  createdAt: Date;
+  read: boolean;
+}
+
 function ExpandedContent({
   friends,
   setFriends,
   conversations,
+  friendRequests,
   isOpen,
   activeTab,
   friendsLoading,
   conversationsLoading,
+  friendRequestsLoading,
   avatarLoadedMap = {},
   markAvatarLoaded,
   removeFriendMutation,
@@ -327,12 +491,14 @@ function ExpandedContent({
   setOpenDropdownId,
 }: {
   friends: Friend[];
-  setFriends: React.Dispatch<React.SetStateAction<Friend[] | undefined>>;
+  setFriends: React.Dispatch<React.SetStateAction<Friend[]>>;
   conversations: Conversation[];
+  friendRequests: FriendRequestNotificationItem[];
   isOpen: boolean;
   activeTab: "friends" | "notifications";
   friendsLoading?: boolean;
   conversationsLoading?: boolean;
+  friendRequestsLoading?: boolean;
   avatarLoadedMap?: Record<string, boolean>;
   markAvatarLoaded?: (id: string) => void;
   removeFriendMutation: ReturnType<typeof api.friendRequest.removeFriend.useMutation>;
@@ -340,6 +506,71 @@ function ExpandedContent({
   setOpenDropdownId: (id: string | null) => void;
 }) {
   const router = useRouter();
+  const { openChat } = useChatContext();
+  const utils = api.useContext();
+
+  const markConversationAsReadMutation = api.message.markConversationAsRead.useMutation({
+    onSuccess: () => {
+      // Invalidate conversations to update unread counts
+      void utils.message.getConversations.invalidate();
+    },
+  });
+
+  const acceptMutation = api.friendRequest.accept.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.user.getFriendRequestNotificationCount.invalidate(),
+        utils.user.getFriendRequestNotifications.invalidate(),
+        utils.user.getFriendsWithStatus.invalidate(),
+      ]);
+    },
+  });
+
+  const declineMutation = api.friendRequest.decline.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.user.getFriendRequestNotificationCount.invalidate(),
+        utils.user.getFriendRequestNotifications.invalidate(),
+      ]);
+    },
+  });
+
+  function FriendRequestActions({ requestId }: { requestId: string }) {
+    const [loading, setLoading] = useState<"accept" | "decline" | null>(null);
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          disabled={!!loading}
+          onClick={async () => {
+            setLoading("accept");
+            try {
+              await acceptMutation.mutateAsync({ friendRequestId: requestId });
+            } finally {
+              setLoading(null);
+            }
+          }}
+        >
+          {loading === "accept" ? "Accepting..." : "Accept"}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={!!loading}
+          onClick={async () => {
+            setLoading("decline");
+            try {
+              await declineMutation.mutateAsync({ friendRequestId: requestId });
+            } finally {
+              setLoading(null);
+            }
+          }}
+        >
+          {loading === "decline" ? "Declining..." : "Decline"}
+        </Button>
+      </div>
+    );
+  }
   return (
     <ScrollArea className="w-full flex-1">
       <div className="space-y-2 p-3">
@@ -454,7 +685,7 @@ function ExpandedContent({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
-                            onClick={() => router.push(`/game/friend?username=${f.username}`)}
+                            onClick={() => router.push(`/game/online?username=${f.username}`)}
                           >
                             <Gamepad2 className="mr-2 h-4 w-4" />
                             Challenge to a game
@@ -466,19 +697,32 @@ function ExpandedContent({
                             View profile
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => router.push(`/messages/${f.username}`)}
+                            onClick={() => {
+                              // Find if there's an active conversation with unread messages
+                              const conversation = conversations.find(c => c.userId === f.id);
+                              if (conversation && conversation.unreadCount > 0) {
+                                markConversationAsReadMutation.mutate({ userId: f.id });
+                              }
+
+                              openChat({
+                                id: f.id,
+                                username: f.username,
+                                name: f.name,
+                                image: f.image,
+                              });
+                            }}
                           >
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Message
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            variant="destructive"
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
                             onClick={() => removeFriendMutation.mutate({ userId: f.id })}
-                            disabled={removeFriendMutation.isLoading}
+                            disabled={removeFriendMutation.isPending}
                           >
                             <UserMinus className="mr-2 h-4 w-4" />
-                            {removeFriendMutation.isLoading ? "Removing..." : "Remove friend"}
+                            {removeFriendMutation.isPending ? "Removing..." : "Remove friend"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -487,7 +731,7 @@ function ExpandedContent({
                 })}
               </Reorder.Group>
             )
-          ) : conversationsLoading ? (
+          ) : conversationsLoading && activeTab === "notifications" ? (
             Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
@@ -502,7 +746,7 @@ function ExpandedContent({
                 <Skeleton className="ml-auto h-5 w-6" />
               </div>
             ))
-          ) : conversations.length === 0 ? (
+          ) : conversations.length === 0 && friendRequests.length === 0 ? (
             <motion.div
               key="empty-n"
               className="p-2 text-sm text-gray-500"
@@ -513,36 +757,76 @@ function ExpandedContent({
               No notifications
             </motion.div>
           ) : (
-            conversations.map((c) => (
-              <motion.div
-                key={c.userId}
-                className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={c.user.image ?? undefined} />
-                  <AvatarFallback>
-                    {c.user.name?.[0] ?? c.user.username?.[0] ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    {c.user.name ?? c.user.username}
+            <div>
+              {friendRequests.map((r) => (
+                <motion.div
+                  key={r.id}
+                  className="flex items-center gap-3 rounded-lg p-2 bg-violet-50/50 border border-violet-100"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={r.sender.image ?? undefined} />
+                    <AvatarFallback>
+                      {r.sender.name?.[0] ?? r.sender.username?.[0] ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">
+                      {r.sender.name ?? r.sender.username}
+                    </div>
+                    <div className="text-xs text-gray-600">sent you a friend request</div>
                   </div>
-                  <div className="max-w-[170px] truncate text-xs text-gray-500">
-                    {c.lastMessage.content}
+                  <FriendRequestActions requestId={r.id} />
+                </motion.div>
+              ))}
+
+              {conversations.map((c) => (
+                <motion.div
+                  key={c.userId}
+                  className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 cursor-pointer"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => {
+                    // Mark conversation as read if there are unread messages
+                    if (c.unreadCount > 0) {
+                      markConversationAsReadMutation.mutate({ userId: c.userId });
+                    }
+
+                    openChat({
+                      id: c.userId,
+                      username: c.user.username,
+                      name: c.user.name,
+                      image: c.user.image,
+                    });
+                  }}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={c.user.image ?? undefined} />
+                    <AvatarFallback>
+                      {c.user.name?.[0] ?? c.user.username?.[0] ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">
+                      {c.user.name ?? c.user.username}
+                    </div>
+                    <div className="max-w-[170px] truncate text-xs text-gray-500">
+                      {c.lastMessage.content}
+                    </div>
                   </div>
-                </div>
-                {c.unreadCount > 0 && (
-                  <Badge className="ml-auto" variant="secondary">
-                    {c.unreadCount}
-                  </Badge>
-                )}
-              </motion.div>
-            ))
+                  {c.unreadCount > 0 && (
+                    <Badge className="ml-auto" variant="secondary">
+                      {c.unreadCount}
+                    </Badge>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           )}
         </AnimatePresence>
       </div>

@@ -30,6 +30,7 @@ export const createMockUser = (overrides?: Partial<User>): User => ({
   password: bcrypt.hashSync("password123", 10),
   image: null,
   avatarKey: null,
+  lastActive: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,

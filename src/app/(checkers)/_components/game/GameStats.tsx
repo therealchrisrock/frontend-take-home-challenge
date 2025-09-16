@@ -1,11 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import { Separator } from "~/components/ui/separator";
-import { Clock, Trophy, Target } from "lucide-react";
-import { type Board, type PieceColor } from "~/lib/game/logic";
+import { Clock, Target, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
+import { type Board, type PieceColor } from "~/lib/game/logic";
 
 interface GameStatsProps {
   board: Board;
@@ -69,7 +69,7 @@ export function GameStats({
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span className="text-amber-900">Game Stats</span>
+          <span className="text-primary">Game Stats</span>
           {winner && (
             <Badge variant="default" className="bg-green-600">
               <Trophy className="mr-1 h-4 w-4" />
@@ -82,7 +82,7 @@ export function GameStats({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-amber-800">
+          <span className="text-sm font-medium text-primary">
             Current Turn
           </span>
           <Badge
@@ -97,11 +97,11 @@ export function GameStats({
           </Badge>
         </div>
 
-        <Separator className="bg-amber-300" />
+        <Separator className="bg-primary/30" />
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-amber-800">
+            <span className="text-sm font-medium text-primary">
               Red Pieces
             </span>
             <div className="flex gap-2">
@@ -120,7 +120,7 @@ export function GameStats({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-amber-800">
+            <span className="text-sm font-medium text-primary">
               Black Pieces
             </span>
             <div className="flex gap-2">
@@ -142,20 +142,20 @@ export function GameStats({
           </div>
         </div>
 
-        <Separator className="bg-amber-300" />
+        <Separator className="bg-primary/30" />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-amber-700" />
-            <span className="text-sm font-medium text-amber-800">Moves</span>
+            <Target className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Moves</span>
           </div>
           <Badge variant="secondary">{moveCount}</Badge>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-amber-700" />
-            <span className="text-sm font-medium text-amber-800">Time</span>
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Time</span>
           </div>
           <Badge variant="secondary">{formatTime(elapsedTime)}</Badge>
         </div>

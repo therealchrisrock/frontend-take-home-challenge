@@ -31,6 +31,11 @@ export function BoardPreview({
     players ??
     (gameMode === "ai"
       ? createAIGamePlayers(aiDifficulty)
+      : gameMode === "online"
+      ? { 
+          red: { id: "current-user", name: "You", isBot: false },
+          black: { id: "opponent", name: "Opponent", isBot: false }
+        }
       : createLocalGamePlayers());
 
   return (

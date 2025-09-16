@@ -2,10 +2,14 @@
 
 import { SessionProvider } from "next-auth/react";
 import { type ReactNode } from "react";
-import { SkinProvider } from "~/lib/skins/skin-context";
-import { MotionProvider } from "~/lib/motion";
-import { SettingsProvider } from "~/contexts/settings-context";
+import { PresenceProvider } from "~/components/PresenceProvider";
 import { Toaster } from "~/components/ui/toaster";
+import { ChatProvider } from "~/contexts/ChatContext";
+import { NotificationProvider } from "~/contexts/notification-context";
+import { SettingsProvider } from "~/contexts/settings-context";
+import { MotionProvider } from "~/lib/motion";
+import { SkinProvider } from "~/lib/skins/skin-context";
+import { TRPCReactProvider } from "~/trpc/react";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -13,8 +17,16 @@ export function Providers({ children }: { children: ReactNode }) {
       <SettingsProvider>
         <SkinProvider>
           <MotionProvider>
-            {children}
-            <Toaster />
+            <TRPCReactProvider>
+              <NotificationProvider>
+                <PresenceProvider>
+                  <ChatProvider>
+                    {children}
+                    <Toaster />
+                  </ChatProvider>
+                </PresenceProvider>
+              </NotificationProvider>
+            </TRPCReactProvider>
           </MotionProvider>
         </SkinProvider>
       </SettingsProvider>

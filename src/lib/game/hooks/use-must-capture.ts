@@ -22,14 +22,23 @@ export function useMustCapture(onMoveApplied?: (move: Move) => void) {
 
   const handleMove = useCallback(
     (move: Move) => {
-      const newBoard = makeMove(state.board, move, state.rules);
-      // Pass draw state to check for draw conditions after the move is applied
-      // Note: The draw state will be updated in the reducer after this move
-      const winner = checkWinner(newBoard, state.rules, state.drawState);
-      dispatch({ type: "APPLY_MOVE", payload: { newBoard, move, winner } });
-      if (onMoveApplied) onMoveApplied(move);
+      // For online games, let the optimistic update system handle the move
+      // For local/AI games, apply the move immediately
+      if (state.gameMode === "online") {
+        // Skip immediate board update for online games
+        // The optimistic update system will handle this via onMoveApplied callback
+        if (onMoveApplied) onMoveApplied(move);
+      } else {
+        // Local/AI games: apply move immediately
+        const newBoard = makeMove(state.board, move, state.rules);
+        // Pass draw state to check for draw conditions after the move is applied
+        // Note: The draw state will be updated in the reducer after this move
+        const winner = checkWinner(newBoard, state.rules, state.drawState);
+        dispatch({ type: "APPLY_MOVE", payload: { newBoard, move, winner } });
+        if (onMoveApplied) onMoveApplied(move);
+      }
     },
-    [dispatch, state.board, state.rules, state.drawState, onMoveApplied],
+    [dispatch, state.board, state.rules, state.drawState, state.gameMode, onMoveApplied],
   );
 
   const onSquareClick = useCallback(

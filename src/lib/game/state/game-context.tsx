@@ -1,26 +1,28 @@
 "use client";
+import { useSession } from "next-auth/react";
 import React, {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useReducer,
-  useCallback,
 } from "react";
-import type { BoardVariant } from "~/lib/game/variants";
-import { createInitialBoard, makeMove } from "~/lib/game/logic";
+import { useSettings } from "~/contexts/settings-context";
+import { useGameSounds } from "~/hooks/useGameSounds";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
-import { gameReducer } from "./game-reducer";
-import type { GameState, GameAction, GameMode } from "./game-types";
+import type { VariantConfig } from "~/lib/game-engine/rule-schema";
+import type { AIDifficulty } from "~/lib/game/ai-engine";
+import { createDrawState } from "~/lib/game/draw-detection";
+import type { PieceColor } from "~/lib/game/logic";
+import { createInitialBoard, makeMove } from "~/lib/game/logic";
 import {
   createAIGamePlayers,
   createLocalGamePlayers,
 } from "~/lib/game/player-types";
-import type { VariantConfig } from "~/lib/game-engine/rule-schema";
 import type { TimeControl } from "~/lib/game/time-control-types";
-import type { AIDifficulty } from "~/lib/game/ai-engine";
-import { useGameSounds } from "~/hooks/useGameSounds";
-import { useSettings } from "~/contexts/settings-context";
-import { createDrawState } from "~/lib/game/draw-detection";
+import type { BoardVariant } from "~/lib/game/variants";
+import { gameReducer } from "./game-reducer";
+import type { GameAction, GameMode, GameState } from "./game-types";
 
 const GameContext = createContext<{
   state: GameState;
@@ -46,6 +48,8 @@ interface InitialGameData {
   timeControl: TimeControl | null;
   moves: any[];
   gameStartTime: Date;
+  player1Id?: string | null;
+  player2Id?: string | null;
 }
 
 export function GameProvider({
@@ -57,6 +61,7 @@ export function GameProvider({
   gameId?: string;
   initialConfig?: InitialGameData | null;
 }) {
+  const { data: session } = useSession();
   // If we have initial config from database, use it
   // Otherwise create a default local game
   const initialState: GameState = useMemo(() => {
@@ -78,13 +83,52 @@ export function GameProvider({
         }
       }
 
+      // Determine viewer-specific color for online games
+      const viewerUserId = session?.user?.id;
+      let resolvedPlayerColor = gameConfig.playerColor;
+      if (gameMode === "online") {
+        if (viewerUserId && initialConfig.player1Id === viewerUserId) {
+          resolvedPlayerColor = "red";
+        } else if (viewerUserId && initialConfig.player2Id === viewerUserId) {
+          resolvedPlayerColor = "black";
+        } else {
+          // Default spectator perspective to red
+          resolvedPlayerColor = "red";
+        }
+      }
+
+      // Build players for online games using server player slots
+      const resolvedPlayers =
+        gameMode === "ai"
+          ? createAIGamePlayers(aiDifficulty)
+          : gameMode === "online"
+            ? ({
+              red: {
+                id: initialConfig.player1Id ?? `player-red`,
+                name: "Player 1",
+                isAI: false,
+                isCurrentUser:
+                  !!viewerUserId && initialConfig.player1Id === viewerUserId,
+                color: "red" as PieceColor,
+              },
+              black: {
+                id: initialConfig.player2Id ?? `player-black`,
+                name: "Player 2",
+                isAI: false,
+                isCurrentUser:
+                  !!viewerUserId && initialConfig.player2Id === viewerUserId,
+                color: "black" as PieceColor,
+              },
+            })
+            : createLocalGamePlayers();
+
       return {
         gameId: initialConfig.id,
         rules: gameConfig.rules,
         boardVariant: gameConfig.boardVariant,
         board: initialConfig.board || currentBoard,
         currentPlayer: initialConfig.currentPlayer as "red" | "black",
-        playerColor: gameConfig.playerColor,
+        playerColor: resolvedPlayerColor,
         selectedPosition: null,
         draggingPosition: null,
         validMoves: [],
@@ -106,10 +150,7 @@ export function GameProvider({
         audioWarningsEnabled: true,
         gameMode,
         aiDifficulty,
-        players:
-          gameMode === "ai"
-            ? createAIGamePlayers(aiDifficulty)
-            : createLocalGamePlayers(),
+        players: resolvedPlayers,
         isAIThinking: false,
         isReviewMode: false,
         gameAnalysis: null,
@@ -159,7 +200,7 @@ export function GameProvider({
         gameStartTime: new Date(),
       };
     }
-  }, [gameId, initialConfig]);
+  }, [gameId, initialConfig, session?.user?.id]);
 
   const [state, baseDispatch] = useReducer(gameReducer, initialState);
   const { settings } = useSettings();

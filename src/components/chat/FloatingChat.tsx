@@ -207,7 +207,7 @@ export function FloatingChat({ initialPosition }: FloatingChatProps) {
     <>
       <Card
         ref={chatRef}
-        className={`fixed z-50 w-96 transition-all duration-200 select-none ${isMinimized ? "h-16" : "h-96"} ${settings.theme === "dark" ? "border-gray-600 text-white" : "border-gray-300"} ${isDragging ? "cursor-grabbing" : "cursor-auto"} `}
+        className={`fixed z-50 w-96 transition-all duration-200 ease-in-out select-none ${isMinimized ? "h-16" : "h-96"} ${settings.theme === "dark" ? "border-gray-600 text-white" : "border-gray-300"} ${isDragging ? "cursor-grabbing" : "cursor-auto"} `}
         style={chatStyle}
       >
         {/* Header */}
@@ -364,6 +364,7 @@ export function FloatingChat({ initialPosition }: FloatingChatProps) {
                         ? "text-gray-300 hover:bg-gray-700"
                         : "hover:bg-gray-200"
                     } `}
+                    title="Settings"
                   >
                     <Settings className="h-4 w-4" />
                   </Button>

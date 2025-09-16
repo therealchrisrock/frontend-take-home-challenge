@@ -114,7 +114,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent };
 
 // Underline Tabs Variant
 // A variant of Tabs that renders uppercase triggers with an animated underline indicator.
-// Designed to support shared layout transitions via a stable layoutId (defaults to "drawer-underline").
+// Each instance gets a unique layoutId by default to prevent animation conflicts.
 
 type TabsUnderlineProps = React.ComponentProps<typeof TabsPrimitive.Root> & {
   underlineColor?: string;
@@ -124,12 +124,18 @@ type TabsUnderlineProps = React.ComponentProps<typeof TabsPrimitive.Root> & {
 function TabsUnderline({
   className,
   underlineColor = "#7c3aed",
-  layoutId = "drawer-underline",
+  layoutId,
   value,
   defaultValue,
   onValueChange,
   ...props
 }: TabsUnderlineProps) {
+  // Generate a stable unique ID for this instance if layoutId not provided
+  const generatedId = React.useRef(
+    `tabs-underline-${Math.random().toString(36).substr(2, 9)}`
+  );
+  const effectiveLayoutId = layoutId ?? generatedId.current;
+  
   const [internalValue, setInternalValue] = React.useState<string | undefined>(
     value ?? defaultValue,
   );
@@ -151,7 +157,7 @@ function TabsUnderline({
         activeValue: value ?? internalValue,
         setActiveValue: (v) => handleChange(v),
         underlineColor,
-        layoutId,
+        layoutId: effectiveLayoutId,
       }}
     >
       <TabsPrimitive.Root

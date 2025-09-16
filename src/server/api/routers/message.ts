@@ -1,6 +1,8 @@
-import { z } from "zod";
+import { NotificationType } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
+import { sseHub } from "~/lib/sse/sse-hub";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const messageRouter = createTRPCRouter({
@@ -59,6 +61,63 @@ export const messageRouter = createTRPCRouter({
           },
         },
       });
+
+      // Create a Notification for the receiver (used by notifications SSE and drawer badge)
+      try {
+        const createdNotification = await ctx.db.notification.create({
+          data: {
+            userId: input.receiverId,
+            type: NotificationType.MESSAGE,
+            title: "New Message",
+            message:
+              (ctx.session.user.name ||
+                ctx.session.user.username ||
+                "Someone") +
+              ": " +
+              input.content,
+            relatedEntityId: message.id,
+            metadata: JSON.stringify({
+              senderId: ctx.session.user.id,
+              senderName: ctx.session.user.name,
+              senderUsername: ctx.session.user.username,
+              senderImage: ctx.session.user.image,
+            }),
+          },
+        });
+
+        // Broadcast via the notifications SSE namespace for NotificationProvider consumers
+        sseHub.broadcast("notifications", input.receiverId, {
+          type: "NOTIFICATION_CREATED",
+          data: {
+            id: createdNotification.id,
+            type: "MESSAGE",
+            title: createdNotification.title,
+            message: createdNotification.message,
+            metadata: createdNotification.metadata
+              ? JSON.parse(createdNotification.metadata as any)
+              : undefined,
+            relatedEntityId: createdNotification.relatedEntityId ?? undefined,
+            createdAt: createdNotification.createdAt.toISOString(),
+          },
+        });
+      } catch (err) {
+        console.error("Failed to create/broadcast message notification", err);
+      }
+
+      // Broadcast to both participants so UIs can refetch
+      sseHub.broadcastMany(
+        "messages",
+        [ctx.session.user.id, input.receiverId],
+        {
+          type: "MESSAGE_CREATED",
+          data: {
+            messageId: message.id,
+            senderId: message.senderId,
+            receiverId: message.receiverId,
+            createdAt: message.createdAt.toISOString(),
+          },
+        },
+      );
 
       return message;
     }),
@@ -267,6 +326,24 @@ export const messageRouter = createTRPCRouter({
         data: { read: true },
       });
 
+      // Notify sender that message was read
+      const updated = await ctx.db.message.findUnique({
+        where: { id: input.messageId },
+      });
+      if (updated) {
+        sseHub.broadcastMany(
+          "messages",
+          [updated.senderId, updated.receiverId],
+          {
+            type: "MESSAGE_READ",
+            data: {
+              messageId: input.messageId,
+              readAt: new Date().toISOString(),
+            },
+          },
+        );
+      }
+
       return { success: true };
     }),
 
@@ -280,4 +357,19 @@ export const messageRouter = createTRPCRouter({
 
     return { count };
   }),
+
+  markConversationAsRead: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.message.updateMany({
+        where: {
+          senderId: input.userId,
+          receiverId: ctx.session.user.id,
+          read: false,
+        },
+        data: { read: true },
+      });
+
+      return { success: true };
+    }),
 });

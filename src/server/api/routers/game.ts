@@ -15,11 +15,6 @@ import type { BoardVariant } from "~/lib/game/variants";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 import type { TimeControl } from "~/lib/game/time-control-types";
 import { STORAGE_VERSION } from "~/lib/storage/types";
-import { gameSessionManager } from "~/lib/multi-tab/session-manager";
-import type {
-  InitialStatePayload,
-  MoveAppliedPayload,
-} from "~/lib/multi-tab/types";
 
 const BoardSchema = z.array(
   z.array(
@@ -516,29 +511,15 @@ export const gameRouter = createTRPCRouter({
       };
     }),
 
-  // Multi-tab synchronization procedures
   makeMove: publicProcedure
     .input(
       z.object({
         gameId: z.string(),
         move: MoveSchema,
-        tabId: z.string(),
         optimisticMoveId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Validate tab is active for this game
-      const isActiveTab = gameSessionManager.isActiveTab(
-        input.gameId,
-        input.tabId,
-      );
-      if (!isActiveTab) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the active tab can make moves",
-        });
-      }
-
       // Get current game state
       const game = await ctx.db.game.findUnique({
         where: { id: input.gameId },
@@ -588,8 +569,8 @@ export const gameRouter = createTRPCRouter({
           },
         });
 
-        // Create new game state payload
-        const newGameState: InitialStatePayload = {
+        // Create simplified game state response
+        const gameState = {
           board: newBoard,
           currentPlayer: newCurrentPlayer,
           moveCount: newMoveCount,
@@ -598,25 +579,9 @@ export const gameRouter = createTRPCRouter({
           version: updatedGame.version,
         };
 
-        // Broadcast move to all tabs
-        gameSessionManager.broadcastToTabs(
-          input.gameId,
-          {
-            type: "MOVE_APPLIED",
-            payload: {
-              move: input.move,
-              newGameState,
-              optimisticMoveId: input.optimisticMoveId,
-            } as MoveAppliedPayload,
-            timestamp: new Date().toISOString(),
-            gameId: input.gameId,
-          },
-          input.tabId,
-        ); // Exclude the tab that made the move
-
         return {
           success: true,
-          gameState: newGameState,
+          gameState,
         };
       } catch (error) {
         // Handle version conflict (optimistic locking failure)
@@ -624,169 +589,11 @@ export const gameRouter = createTRPCRouter({
           throw new TRPCError({
             code: "CONFLICT",
             message:
-              "Game state has been modified by another tab. Please retry.",
+              "Game state has been modified. Please retry.",
           });
         }
         throw error;
       }
     }),
 
-  requestTabActivation: publicProcedure
-    .input(
-      z.object({
-        gameId: z.string(),
-        tabId: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const success = gameSessionManager.setActiveTab(
-        input.gameId,
-        input.tabId,
-      );
-
-      if (success) {
-        // Broadcast active tab change
-        gameSessionManager.broadcastToTabs(input.gameId, {
-          type: "ACTIVE_TAB_CHANGED",
-          payload: { activeTabId: input.tabId },
-          timestamp: new Date().toISOString(),
-          gameId: input.gameId,
-        });
-      }
-
-      return { success };
-    }),
-
-  getTabStatus: publicProcedure
-    .input(
-      z.object({
-        gameId: z.string(),
-        tabId: z.string(),
-      }),
-    )
-    .query(async ({ input }) => {
-      const gameSession = gameSessionManager.getSession(input.gameId);
-      if (!gameSession) {
-        return { isActive: true, totalTabs: 1 };
-      }
-
-      return {
-        isActive: gameSession.activeTabId === input.tabId,
-        totalTabs: gameSession.tabs.size,
-        activeTabId: gameSession.activeTabId,
-      };
-    }),
-
-  heartbeat: publicProcedure
-    .input(
-      z.object({
-        gameId: z.string(),
-        tabId: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      gameSessionManager.updateTabHeartbeat(input.gameId, input.tabId);
-      return { success: true };
-    }),
-
-  // Get session stats for monitoring
-  getSessionStats: publicProcedure.query(async () => {
-    return gameSessionManager.getStats();
-  }),
-
-  // Sync offline moves when reconnecting
-  syncOfflineMoves: publicProcedure
-    .input(
-      z.object({
-        gameId: z.string(),
-        moves: z.array(MoveSchema),
-        tabId: z.string(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const successfulMoves: Move[] = [];
-      const failedMoves: Move[] = [];
-
-      // Get current game state
-      const game = await ctx.db.game.findUnique({
-        where: { id: input.gameId },
-      });
-
-      if (!game) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Game not found",
-        });
-      }
-
-      let currentBoard = JSON.parse(game.board) as Board;
-      let currentPlayer = game.currentPlayer as "red" | "black";
-      let moveCount = game.moveCount;
-
-      // Process each offline move
-      for (const move of input.moves) {
-        try {
-          // Apply move
-          const newBoard = makeMove(currentBoard, move);
-          const newCurrentPlayer = currentPlayer === "red" ? "black" : "red";
-
-          // Update database
-          await ctx.db.game.update({
-            where: { id: input.gameId },
-            data: {
-              board: JSON.stringify(newBoard),
-              currentPlayer: newCurrentPlayer,
-              moveCount: moveCount + 1,
-              version: game.version + 1,
-            },
-          });
-
-          // Save move to history
-          await ctx.db.gameMove.create({
-            data: {
-              gameId: input.gameId,
-              moveIndex: moveCount,
-              fromRow: move.from.row,
-              fromCol: move.from.col,
-              toRow: move.to.row,
-              toCol: move.to.col,
-              captures: move.captures ? JSON.stringify(move.captures) : null,
-            },
-          });
-
-          // Update state for next iteration
-          currentBoard = newBoard;
-          currentPlayer = newCurrentPlayer;
-          moveCount++;
-          successfulMoves.push(move);
-        } catch (error) {
-          console.error("Failed to sync offline move:", error);
-          failedMoves.push(move);
-        }
-      }
-
-      // Broadcast updated state to all tabs
-      const newGameState: InitialStatePayload = {
-        board: currentBoard,
-        currentPlayer,
-        moveCount,
-        winner: null, // TODO: Check for winner
-        gameStartTime: game.gameStartTime.toISOString(),
-        version: game.version + successfulMoves.length,
-      };
-
-      gameSessionManager.broadcastToTabs(input.gameId, {
-        type: "INITIAL_STATE",
-        payload: newGameState,
-        timestamp: new Date().toISOString(),
-        gameId: input.gameId,
-      });
-
-      return {
-        success: true,
-        syncedMoves: successfulMoves.length,
-        failedMoves: failedMoves.length,
-        gameState: newGameState,
-      };
-    }),
 });

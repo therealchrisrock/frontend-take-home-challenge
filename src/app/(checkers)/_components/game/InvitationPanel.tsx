@@ -1,23 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import {
+  Check,
+  CheckCircle,
+  Clock,
+  Copy,
+  ExternalLink,
+  Share2,
+  UserPlus,
+  Users
+} from "lucide-react";
+import { useState } from "react";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
-import { Badge } from "~/components/ui/badge";
-import { 
-  Copy, 
-  Check, 
-  Share2, 
-  Users, 
-  ExternalLink, 
-  QrCode,
-  Clock,
-  CheckCircle,
-  UserPlus
-} from "lucide-react";
 import { toast } from "~/hooks/use-toast";
 import { cn } from "~/lib/utils";
 
@@ -37,11 +36,11 @@ interface InvitationPanelProps {
   className?: string;
 }
 
-export function InvitationPanel({ 
-  invitation, 
-  onInviteFriends, 
+export function InvitationPanel({
+  invitation,
+  onInviteFriends,
   onGameReady,
-  className 
+  className
 }: InvitationPanelProps) {
   const [copied, setCopied] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
@@ -67,7 +66,7 @@ export function InvitationPanel({
 
   const handleInviteFriends = async () => {
     if (selectedFriends.length === 0) return;
-    
+
     setIsInvitingFriends(true);
     try {
       await onInviteFriends?.(selectedFriends);
@@ -89,12 +88,12 @@ export function InvitationPanel({
   const formatTimeRemaining = (expiresAt: Date) => {
     const now = new Date();
     const diff = expiresAt.getTime() - now.getTime();
-    
+
     if (diff <= 0) return "Expired";
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `Expires in ${hours}h ${minutes}m`;
     }
@@ -158,9 +157,9 @@ export function InvitationPanel({
                 size="sm"
                 className={cn(
                   "px-3 transition-all duration-200",
-                  copied 
-                    ? "bg-green-600 hover:bg-green-700" 
-                    : "bg-amber-600 hover:bg-amber-700"
+                  copied
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-primary hover:bg-primary"
                 )}
               >
                 {copied ? (

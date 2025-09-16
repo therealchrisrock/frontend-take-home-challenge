@@ -48,17 +48,15 @@ export function GameControls({
 
   const canInteract = !winner && !isViewingHistory && !isReviewMode;
 
-  const canRequestDraw = canInteract && gameMode === "local";
+  const canRequestDraw = canInteract && (gameMode === "local" || gameMode === "online");
 
-  const canResign =
-    canInteract &&
-    (gameMode === "local" ||
-      (gameMode === "ai" && currentPlayer === playerColor));
+  const canResign = canInteract && (gameMode === "local" || gameMode === "ai");
 
   const handleResign = () => {
     if (gameMode === "local") {
       onResign(currentPlayer);
     } else if (gameMode === "ai") {
+      // In AI mode, the human player can always resign regardless of turn
       onResign(playerColor);
     }
     setShowResignDialog(false);
@@ -108,7 +106,7 @@ export function GameControls({
               declare{" "}
               {gameMode === "local"
                 ? `${currentPlayer === "red" ? "Black" : "Red"}`
-                : "your opponent"}{" "}
+                : playerColor === "red" ? "Black (AI)" : "Red (AI)"}{" "}
               as the winner.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -124,19 +122,19 @@ export function GameControls({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Draw Request Dialog (for local play) */}
-      {gameMode === "local" && (
+      {/* Draw Request Dialog (for local and online play) */}
+      {(gameMode === "local" || gameMode === "online") && (
         <AlertDialog open={showDrawDialog} onOpenChange={() => onDeclineDraw()}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Draw Requested</AlertDialogTitle>
               <AlertDialogDescription>
-                {drawRequestedBy === currentPlayer
+                {drawRequestedBy === currentPlayer || (gameMode === "online" && drawRequestedBy === playerColor)
                   ? "Waiting for opponent to accept draw..."
                   : `${drawRequestedBy === "red" ? "Red" : "Black"} has requested a draw. Do you accept?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {drawRequestedBy !== currentPlayer && (
+            {drawRequestedBy !== currentPlayer && (gameMode === "local" || drawRequestedBy !== playerColor) && (
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={onDeclineDraw}>
                   Decline

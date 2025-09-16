@@ -27,6 +27,7 @@ export async function Header({ className }: { className?: string }) {
               width={170}
               height={48}
               className="rounded-lg"
+              priority
             />
           </Link>
 

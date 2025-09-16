@@ -185,6 +185,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => setShowFriends(!showFriends)}
+                        title="Friends"
                       >
                         <Users className="h-4 w-4" />
                       </Button>
@@ -199,6 +200,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                         size="icon"
                         className="relative h-8 w-8"
                         onClick={() => setShowNotifications(!showNotifications)}
+                        title="Notifications"
                       >
                         <Bell className="h-4 w-4" />
                         <m.span
@@ -218,6 +220,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => setShowSettings(!showSettings)}
+                        title="Settings"
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
@@ -232,6 +235,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => setIsMinimized(true)}
+                        title="Minimize"
                       >
                         <Minimize2 className="h-4 w-4" />
                       </Button>
@@ -274,7 +278,7 @@ export function MotionFloatingChat({ initialPosition }: FloatingChatProps) {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button type="submit" size="icon">
+                      <Button type="submit" size="icon" title="Send message">
                         <Send className="h-4 w-4" />
                       </Button>
                     </m.div>

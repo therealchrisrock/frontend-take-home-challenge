@@ -1,13 +1,12 @@
 "use client";
 
+import { PlayerTimer } from "~/app/(checkers)/_components/game/player-timer";
 import { PlayerCard } from "~/app/(checkers)/_components/game/PlayerCard";
 import { PlayerCardSkeleton } from "~/app/(checkers)/_components/game/PlayerCardSkeleton";
-import { AiThinkingIndicator } from "~/app/(checkers)/_components/game/AiThinkingIndicator";
 import { usePlayerCard } from "~/lib/game/hooks/use-player-card";
 import { type PieceColor } from "~/lib/game/logic";
 import { type PlayerInfo } from "~/lib/game/player-types";
 import { type TimeState } from "~/lib/game/time-control-types";
-import { PlayerTimer } from "~/app/(checkers)/_components/game/player-timer";
 
 interface PlayerCardContainerProps {
   player: PlayerInfo;
@@ -50,16 +49,17 @@ export function PlayerCardContainer({
   return (
     <div className={className}>
       <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-2">
-          <PlayerCard
-            player={viewModel}
-            color={color}
-            position={position}
-            isActive={isActive}
-          />
-          {timeState && <PlayerTimer timeState={timeState} color={color} />}
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <PlayerCard
+              player={viewModel}
+              color={color}
+              position={position}
+              isActive={isActive}
+            />
+            {timeState && <PlayerTimer timeState={timeState} color={color} />}
+          </div>
         </div>
-        {isAIThinking && <AiThinkingIndicator />}
       </div>
     </div>
   );

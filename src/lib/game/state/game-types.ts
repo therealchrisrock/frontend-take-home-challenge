@@ -11,6 +11,8 @@ import type { GamePlayers } from "~/lib/game/player-types";
 import type { GameAnalysis } from "~/lib/types/move-analysis";
 import type { AIDifficulty } from "~/lib/game/ai-engine";
 import type { DrawState, DrawResult } from "~/lib/game/draw-detection";
+import type { GameSyncState } from "~/lib/game/sync/game-sync-reducer";
+import type { OptimisticUpdate } from "~/lib/optimistic-updates";
 
 export type GameMode = "ai" | "local" | "online";
 
@@ -56,6 +58,9 @@ export interface GameState {
   gameAnalysis: GameAnalysis | null;
   isAnalyzing: boolean;
   analyzeProgress: number;
+
+  // Sync state (for online multiplayer)
+  syncState?: GameSyncState;
 
   // Misc
   gameStartTime: Date;
@@ -107,4 +112,42 @@ export type GameAction =
   | { type: "LOAD_SNAPSHOT"; payload: Partial<GameState> }
   | { type: "RESIGN"; payload: PieceColor }
   | { type: "REQUEST_DRAW" }
-  | { type: "ACCEPT_DRAW" };
+  | { type: "ACCEPT_DRAW" }
+  
+  // Sync-related actions for online multiplayer
+  | { type: "SYNC_STATE_UPDATE"; payload: Partial<GameSyncState> }
+  | { 
+      type: "OPTIMISTIC_MOVE_PREVIEW"; 
+      payload: { 
+        move: Move; 
+        updateId: string;
+        previewBoard: BoardType;
+      } 
+    }
+  | { type: "OPTIMISTIC_MOVE_ROLLBACK"; payload: { updateId: string } }
+  | { 
+      type: "SERVER_STATE_OVERRIDE"; 
+      payload: { 
+        board: BoardType; 
+        moveCount: number; 
+        currentPlayer: PieceColor;
+        moves?: Move[];
+        winner?: "red" | "black" | "draw" | null;
+      } 
+    }
+  | { type: "SYNC_DRAW_REQUEST"; payload: { requestedBy: PieceColor } }
+  | { type: "SYNC_DRAW_ACCEPTED"; payload: { acceptedBy: PieceColor } }
+  | { type: "SYNC_DRAW_DECLINED"; payload: { declinedBy: PieceColor } }
+  | { 
+      type: "CONFLICT_RESOLUTION"; 
+      payload: { 
+        strategy: 'optimistic' | 'server-wins'; 
+        conflictData: {
+          serverBoard: BoardType;
+          localBoard: BoardType;
+          serverMoveCount: number;
+          localMoveCount: number;
+        };
+      } 
+    }
+;

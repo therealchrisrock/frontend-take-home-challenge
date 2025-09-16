@@ -1,23 +1,18 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { randomBytes } from "crypto";
+import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
-import {
-  FriendRequestStatus,
-  GameInviteStatus,
-  NotificationType,
-} from "@prisma/client";
+import { FriendRequestStatus, NotificationType } from "@prisma/client";
+import { sseHub } from "~/lib/sse/sse-hub";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const friendRequestRouter = createTRPCRouter({
   send: protectedProcedure
-    .input(z.object({ 
-      userId: z.string(),
-      message: z.string().optional().nullable()
-    }))
+    .input(
+      z.object({
+        userId: z.string(),
+        message: z.string().optional().nullable(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       // Prevent self-friend request
       if (input.userId === ctx.session.user.id) {
@@ -30,7 +25,7 @@ export const friendRequestRouter = createTRPCRouter({
       // Check if target user exists
       const targetUser = await ctx.db.user.findUnique({
         where: { id: input.userId },
-        select: { id: true, username: true, name: true }
+        select: { id: true, username: true, name: true },
       });
 
       if (!targetUser) {
@@ -63,23 +58,37 @@ export const friendRequestRouter = createTRPCRouter({
         });
       }
 
-      // Check for existing friend request
+      // Check for existing friend request (excluding cancelled ones)
       const existingRequest = await ctx.db.friendRequest.findFirst({
         where: {
           OR: [
             {
               senderId: ctx.session.user.id,
               receiverId: input.userId,
+              status: {
+                in: [FriendRequestStatus.PENDING, FriendRequestStatus.ACCEPTED],
+              },
             },
             {
               senderId: input.userId,
               receiverId: ctx.session.user.id,
+              status: {
+                in: [FriendRequestStatus.PENDING, FriendRequestStatus.ACCEPTED],
+              },
             },
           ],
         },
       });
 
       if (existingRequest) {
+        // If it's accepted, they're already friends
+        if (existingRequest.status === FriendRequestStatus.ACCEPTED) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Already friends with this user",
+          });
+        }
+        // Otherwise it's a pending request
         throw new TRPCError({
           code: "CONFLICT",
           message: "Friend request already exists",
@@ -132,7 +141,7 @@ export const friendRequestRouter = createTRPCRouter({
         });
 
         // Create notification for receiver
-        await tx.notification.create({
+        const created = await tx.notification.create({
           data: {
             userId: input.userId,
             type: NotificationType.FRIEND_REQUEST,
@@ -149,61 +158,81 @@ export const friendRequestRouter = createTRPCRouter({
           },
         });
 
+        // Emit SSE for real-time delivery (best-effort)
+        try {
+          sseHub.broadcast("notifications", input.userId, {
+            type: "NOTIFICATION_CREATED",
+            payload: {
+              id: created.id,
+              type: "FRIEND_REQUEST",
+              title: created.title,
+              message: created.message,
+              metadata: created.metadata
+                ? JSON.parse(created.metadata as any)
+                : undefined,
+              relatedEntityId: created.relatedEntityId ?? undefined,
+              createdAt: created.createdAt.toISOString(),
+            },
+            timestamp: new Date().toISOString(),
+            userId: input.userId,
+          } as any);
+        } catch (err) {
+          console.error("Failed to broadcast FRIEND_REQUEST notification", err);
+        }
+
         return friendRequest;
       });
 
       return { success: true, friendRequest: result };
     }),
 
-  getPending: protectedProcedure
-    .query(async ({ ctx }) => {
-      const pendingRequests = await ctx.db.friendRequest.findMany({
-        where: {
-          receiverId: ctx.session.user.id,
-          status: FriendRequestStatus.PENDING,
-        },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              image: true,
-            },
+  getPending: protectedProcedure.query(async ({ ctx }) => {
+    const pendingRequests = await ctx.db.friendRequest.findMany({
+      where: {
+        receiverId: ctx.session.user.id,
+        status: FriendRequestStatus.PENDING,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            image: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-      return pendingRequests;
-    }),
+    return pendingRequests;
+  }),
 
-  getSent: protectedProcedure
-    .query(async ({ ctx }) => {
-      const sentRequests = await ctx.db.friendRequest.findMany({
-        where: {
-          senderId: ctx.session.user.id,
-          status: FriendRequestStatus.PENDING,
-        },
-        include: {
-          receiver: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              image: true,
-            },
+  getSent: protectedProcedure.query(async ({ ctx }) => {
+    const sentRequests = await ctx.db.friendRequest.findMany({
+      where: {
+        senderId: ctx.session.user.id,
+        status: FriendRequestStatus.PENDING,
+      },
+      include: {
+        receiver: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            image: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-      return sentRequests;
-    }),
+    return sentRequests;
+  }),
 
   accept: protectedProcedure
     .input(z.object({ friendRequestId: z.string() }))
@@ -263,7 +292,7 @@ export const friendRequestRouter = createTRPCRouter({
         });
 
         // Create notification for sender
-        await tx.notification.create({
+        const created = await tx.notification.create({
           data: {
             userId: friendRequest.senderId,
             type: NotificationType.FRIEND_REQUEST_ACCEPTED,
@@ -278,6 +307,31 @@ export const friendRequestRouter = createTRPCRouter({
             }),
           },
         });
+
+        // Emit SSE to sender
+        try {
+          sseHub.broadcast("notifications", friendRequest.senderId, {
+            type: "NOTIFICATION_CREATED",
+            payload: {
+              id: created.id,
+              type: "FRIEND_REQUEST_ACCEPTED",
+              title: created.title,
+              message: created.message,
+              metadata: created.metadata
+                ? JSON.parse(created.metadata as any)
+                : undefined,
+              relatedEntityId: created.relatedEntityId ?? undefined,
+              createdAt: created.createdAt.toISOString(),
+            },
+            timestamp: new Date().toISOString(),
+            userId: friendRequest.senderId,
+          } as any);
+        } catch (err) {
+          console.error(
+            "Failed to broadcast FRIEND_REQUEST_ACCEPTED notification",
+            err,
+          );
+        }
 
         // Mark original notification as read (optional cleanup)
         await tx.notification.updateMany({
@@ -336,14 +390,13 @@ export const friendRequestRouter = createTRPCRouter({
 
       // Decline request and clean up in a transaction
       await ctx.db.$transaction(async (tx) => {
-        // Update friend request status
-        await tx.friendRequest.update({
+        // Delete the friend request entirely
+        await tx.friendRequest.delete({
           where: { id: input.friendRequestId },
-          data: { status: FriendRequestStatus.DECLINED },
         });
 
         // Create notification for sender (optional - some apps don't notify on decline)
-        await tx.notification.create({
+        const created = await tx.notification.create({
           data: {
             userId: friendRequest.senderId,
             type: NotificationType.FRIEND_REQUEST_DECLINED,
@@ -358,6 +411,31 @@ export const friendRequestRouter = createTRPCRouter({
             }),
           },
         });
+
+        // Emit SSE to sender
+        try {
+          sseHub.broadcast("notifications", friendRequest.senderId, {
+            type: "NOTIFICATION_CREATED",
+            payload: {
+              id: created.id,
+              type: "FRIEND_REQUEST_DECLINED",
+              title: created.title,
+              message: created.message,
+              metadata: created.metadata
+                ? JSON.parse(created.metadata as any)
+                : undefined,
+              relatedEntityId: created.relatedEntityId ?? undefined,
+              createdAt: created.createdAt.toISOString(),
+            },
+            timestamp: new Date().toISOString(),
+            userId: friendRequest.senderId,
+          } as any);
+        } catch (err) {
+          console.error(
+            "Failed to broadcast FRIEND_REQUEST_DECLINED notification",
+            err,
+          );
+        }
 
         // Mark original notification as read
         await tx.notification.updateMany({
@@ -406,10 +484,9 @@ export const friendRequestRouter = createTRPCRouter({
 
       // Cancel request and clean up in a transaction
       await ctx.db.$transaction(async (tx) => {
-        // Update friend request status
-        await tx.friendRequest.update({
+        // Delete the friend request entirely
+        await tx.friendRequest.delete({
           where: { id: input.friendRequestId },
-          data: { status: FriendRequestStatus.CANCELLED },
         });
 
         // Remove related notifications
@@ -473,7 +550,10 @@ export const friendRequestRouter = createTRPCRouter({
         if (friendRequest.senderId === ctx.session.user.id) {
           return { status: "request_sent", friendRequestId: friendRequest.id };
         } else {
-          return { status: "request_received", friendRequestId: friendRequest.id };
+          return {
+            status: "request_received",
+            friendRequestId: friendRequest.id,
+          };
         }
       }
 
@@ -534,9 +614,31 @@ export const friendRequestRouter = createTRPCRouter({
         });
       }
 
-      // Remove friendship
-      await ctx.db.friendship.delete({
-        where: { id: friendship.id },
+      // Remove friendship and related friend request in a transaction
+      await ctx.db.$transaction(async (tx) => {
+        // Delete the friendship
+        await tx.friendship.delete({
+          where: { id: friendship.id },
+        });
+
+        // Also delete any accepted friend request between these users
+        // This allows for new friend requests to be sent after removal
+        await tx.friendRequest.deleteMany({
+          where: {
+            OR: [
+              {
+                senderId: ctx.session.user.id,
+                receiverId: input.userId,
+                status: FriendRequestStatus.ACCEPTED,
+              },
+              {
+                senderId: input.userId,
+                receiverId: ctx.session.user.id,
+                status: FriendRequestStatus.ACCEPTED,
+              },
+            ],
+          },
+        });
       });
 
       return { success: true };

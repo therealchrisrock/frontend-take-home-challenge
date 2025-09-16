@@ -24,6 +24,8 @@ export interface Move {
   to: Position;
   captures?: Position[];
   path?: Position[]; // Full path for multi-jump sequences, including from and to
+  isOptimistic?: boolean; // Flag to mark optimistic moves (not yet confirmed by server)
+  optimisticId?: string; // ID for tracking optimistic updates
 }
 
 export type Board = (Piece | null)[][];

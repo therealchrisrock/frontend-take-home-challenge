@@ -10,6 +10,19 @@ const config = {
     // Allow build to succeed even if type errors exist (pre-commit compile-only)
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // Allow build to succeed even if linting errors exist (pre-commit lint-only)
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    // Enable experimental features for better performance
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+  },
+  // Production optimizations
+  poweredByHeader: false,
+  compress: true,
+  // Enable static optimization where possible
+  output: "standalone",
 };
 
 export default config;

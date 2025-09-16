@@ -53,7 +53,7 @@ export function GameSettings({
 
   useEffect(() => {
     const controls = animate(volumeMotion, settings.sfxVolume, {
-      duration: 0.3,
+      duration: 0.1,
       ease: "easeOut",
     });
     return () => controls.stop();

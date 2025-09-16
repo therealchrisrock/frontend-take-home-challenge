@@ -1,23 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  UserCheck,
+import {
+  CheckCircle,
+  Clock,
+  Copy,
   Eye,
+  Loader2,
   PlayCircle,
   RefreshCw,
+  Share2,
+  UserCheck,
+  Users,
   X
 } from "lucide-react";
-import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { toast } from "~/hooks/use-toast";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
 interface Participant {
   id: string;
@@ -31,33 +36,38 @@ interface Participant {
 
 interface InviteStatusIndicatorProps {
   inviteId: string;
+  inviteUrl?: string;
   onGameReady?: (gameId: string) => void;
   onCancel?: () => void;
   className?: string;
   autoRefresh?: boolean;
+  showUrl?: boolean;
 }
 
-export function InviteStatusIndicator({ 
-  inviteId, 
-  onGameReady, 
+export function InviteStatusIndicator({
+  inviteId,
+  inviteUrl,
+  onGameReady,
   onCancel,
   className,
-  autoRefresh = true
+  autoRefresh = true,
+  showUrl = false
 }: InviteStatusIndicatorProps) {
   const router = useRouter();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [copyButtonText, setCopyButtonText] = useState("Copy");
 
   // Fetch invitation status
-  const { 
-    data: invitationStatus, 
-    isLoading, 
+  const {
+    data: invitationStatus,
+    isLoading,
     refetch,
-    error 
+    error
   } = api.gameInvite.getInvitationStatus.useQuery(
     { invitationId: inviteId },
-    { 
+    {
       enabled: !!inviteId,
       refetchInterval: autoRefresh ? 3000 : false, // Poll every 3 seconds
       refetchOnWindowFocus: true,
@@ -77,7 +87,7 @@ export function InviteStatusIndicator({
   useEffect(() => {
     if (invitationStatus) {
       setParticipants(invitationStatus.participants || []);
-      
+
       if (invitationStatus.gameId) {
         setGameId(invitationStatus.gameId);
         // Auto-navigate to game if ready
@@ -103,6 +113,26 @@ export function InviteStatusIndicator({
     }
   };
 
+  const handleCopyLink = async () => {
+    if (inviteUrl) {
+      try {
+        await navigator.clipboard.writeText(inviteUrl);
+        setCopyButtonText("Copied!");
+        toast({
+          title: "Link copied",
+          description: "Invite link has been copied to clipboard",
+        });
+        setTimeout(() => setCopyButtonText("Copy"), 2000);
+      } catch (err) {
+        toast({
+          title: "Failed to copy",
+          description: "Please copy the link manually",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -125,8 +155,8 @@ export function InviteStatusIndicator({
 
   const getStatusMessage = (status: string, participantCount: number) => {
     switch (status) {
-      case 'pending': 
-        return participantCount === 0 
+      case 'pending':
+        return participantCount === 0
           ? "Waiting for someone to join..."
           : `${participantCount} participant${participantCount !== 1 ? 's' : ''} joined. Waiting for game to start.`;
       case 'ready': return "Game is ready to start!";
@@ -153,9 +183,15 @@ export function InviteStatusIndicator({
     return (
       <Card className={className}>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-center space-x-2">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-muted-foreground">Checking status...</span>
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="relative">
+              <div className="h-16 w-16 rounded-full border-4 border-gray-200" />
+              <div className="absolute inset-0 h-16 w-16 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-900">Setting up your game...</p>
+              <p className="text-xs text-gray-500 mt-1">Preparing the board</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -204,6 +240,37 @@ export function InviteStatusIndicator({
             {getStatusMessage(status, participantCount)}
           </p>
         </div>
+
+        {/* Invite Link Display */}
+        {showUrl && inviteUrl && status === 'pending' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Share this link to invite someone:</label>
+            <div className="flex gap-2">
+              <Input
+                value={inviteUrl}
+                readOnly
+                className="flex-1 font-mono text-xs"
+                onClick={(e) => e.currentTarget.select()}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLink}
+              >
+                {copyButtonText === "Copied!" ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                <span className="ml-2">{copyButtonText}</span>
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <Share2 className="h-3 w-3" />
+              <span>Anyone with this link can join your game</span>
+            </div>
+          </div>
+        )}
 
         {/* Participants List */}
         {participants.length > 0 && (
@@ -260,7 +327,7 @@ export function InviteStatusIndicator({
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           {status === 'ready' && gameId && (
-            <Button 
+            <Button
               onClick={handleJoinGame}
               className="flex-1"
             >
@@ -268,10 +335,10 @@ export function InviteStatusIndicator({
               Join Game
             </Button>
           )}
-          
+
           {status === 'pending' && (
             <>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => refetch()}
                 size="sm"
@@ -279,8 +346,8 @@ export function InviteStatusIndicator({
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Refresh
               </Button>
-              
-              <Button 
+
+              <Button
                 variant="destructive"
                 onClick={handleCancel}
                 disabled={isCancelling}
@@ -304,7 +371,13 @@ export function InviteStatusIndicator({
               <Eye className="h-3 w-3" />
               <span className="font-medium">Waiting Room</span>
             </div>
-            <p>Players who join via your invitation link or accept your friend request will appear here. The game will start automatically when someone joins.</p>
+            <p>The game will start automatically when your opponent joins. You can cancel anytime before they accept.</p>
+            {participantCount === 1 && (
+              <div className="mt-2 flex items-center gap-1 text-primary-600">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Waiting for opponent...</span>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

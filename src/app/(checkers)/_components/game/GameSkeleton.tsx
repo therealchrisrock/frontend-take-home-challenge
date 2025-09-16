@@ -1,6 +1,6 @@
+import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
-import { getBoardGridStyleFromSize } from "~/app/(checkers)/_lib/board-style";
 
 interface GameSkeletonProps {
   size?: number;
@@ -69,7 +69,7 @@ export function GameSkeleton({ size = 8 }: GameSkeletonProps) {
 
           <div className="space-y-4">
             {/* Game Stats Skeleton */}
-            <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/10">
               <CardHeader className="pb-3">
                 <Skeleton className="h-6 w-32" />
               </CardHeader>
@@ -126,7 +126,7 @@ export function GameSkeleton({ size = 8 }: GameSkeletonProps) {
             </Card>
 
             {/* Game Controls Skeleton */}
-            <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/10">
               <CardHeader className="pb-3">
                 <Skeleton className="h-5 w-28" />
               </CardHeader>
@@ -143,7 +143,7 @@ export function GameSkeleton({ size = 8 }: GameSkeletonProps) {
             </Card>
 
             {/* Storage Skeleton */}
-            <Card className="border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/10">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-4 w-16" />

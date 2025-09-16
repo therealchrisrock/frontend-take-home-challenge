@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
-import { 
-  X, 
-  User, 
-  Trophy, 
-  Clock, 
-  Star,
+import {
   ArrowRight,
-  Gift
+  Clock,
+  Gift,
+  Star,
+  Trophy,
+  User,
+  X
 } from "lucide-react";
-import { getGuestStats, type GuestSession } from "~/lib/guest/sessionStorage";
+import { useEffect, useState } from "react";
 import { PostGameAccountFlow } from "~/components/guest/PostGameAccountFlow";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { getGuestStats, type GuestSession } from "~/lib/guest/sessionStorage";
 
 interface GuestConversionPromptProps {
   guestSession: GuestSession;
@@ -116,8 +116,8 @@ export function GuestConversionPrompt({
           <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
-                <Gift className="h-4 w-4 text-amber-700" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <Gift className="h-4 w-4 text-primary-700" />
               </div>
               <div>
                 <div className="font-medium text-sm">{getTriggerMessage()}</div>

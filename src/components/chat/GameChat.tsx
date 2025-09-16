@@ -63,7 +63,7 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
         <div className="mb-3 flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
-              <div className="py-8 text-center text-sm text-amber-600">
+              <div className="py-8 text-center text-sm text-primary-600">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>Start a conversation with your opponent</p>
               </div>
@@ -77,7 +77,7 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
                       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[75%] rounded-lg px-3 py-2 ${isCurrentUser ? "bg-amber-600 text-white" : "bg-white/70 text-amber-900"
+                        className={`max-w-[75%] rounded-lg px-3 py-2 ${isCurrentUser ? "bg-primary text-white" : "bg-white/70 text-primary-900"
                           }`}
                       >
                         {!isCurrentUser && (
@@ -86,7 +86,7 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
                           </p>
                         )}
                         <p className="text-sm break-words">{msg.content}</p>
-                        <p className={`mt-1 text-xs ${isCurrentUser ? "text-amber-100" : "text-amber-600"}`}>
+                        <p className={`mt-1 text-xs ${isCurrentUser ? "text-primary/10" : "text-primary-600"}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -106,13 +106,14 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="h-9 flex-1 border-amber-300 bg-white/70 text-sm focus:bg-white"
+            className="h-9 flex-1 border-primary/30 bg-white/70 text-sm focus:bg-white"
           />
           <Button
             onClick={handleSendMessage}
             disabled={!message.trim()}
             size="sm"
-            className="h-9 bg-amber-600 px-3 hover:bg-amber-700"
+            className="h-9 bg-primary px-3 hover:bg-primary-700"
+            title="Send message"
           >
             <Send className="h-4 w-4" />
           </Button>
@@ -122,19 +123,19 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
   }
 
   return (
-    <Card className="flex h-full flex-col border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100">
+    <Card className="flex h-full flex-col border-primary/30 bg-gradient-to-br from-primary/10 to-primary/10">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg text-amber-900">
+        <CardTitle className="flex items-center gap-2 text-lg text-primary-900">
           <MessageCircle className="h-5 w-5" />
           Game Chat
         </CardTitle>
-        <p className="text-xs text-amber-700">Chat with {opponentName}</p>
+        <p className="text-xs text-primary-700">Chat with {opponentName}</p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col overflow-hidden p-4 pt-0">
         <div className="mb-3 flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
-              <div className="py-8 text-center text-sm text-amber-600">
+              <div className="py-8 text-center text-sm text-primary-600">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>Start a conversation with your opponent</p>
               </div>
@@ -148,7 +149,7 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
                       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[75%] rounded-lg px-3 py-2 ${isCurrentUser ? "bg-amber-600 text-white" : "bg-white/70 text-amber-900"
+                        className={`max-w-[75%] rounded-lg px-3 py-2 ${isCurrentUser ? "bg-primary text-white" : "bg-white/70 text-primary-900"
                           }`}
                       >
                         {!isCurrentUser && (
@@ -157,7 +158,7 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
                           </p>
                         )}
                         <p className="text-sm break-words">{msg.content}</p>
-                        <p className={`mt-1 text-xs ${isCurrentUser ? "text-amber-100" : "text-amber-600"}`}>
+                        <p className={`mt-1 text-xs ${isCurrentUser ? "text-primary/10" : "text-primary-600"}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -177,13 +178,14 @@ export function GameChat({ opponentName = "Opponent", embedded = false }: GameCh
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="h-9 flex-1 border-amber-300 bg-white/70 text-sm focus:bg-white"
+            className="h-9 flex-1 border-primary/30 bg-white/70 text-sm focus:bg-white"
           />
           <Button
             onClick={handleSendMessage}
             disabled={!message.trim()}
             size="sm"
-            className="h-9 bg-amber-600 px-3 hover:bg-amber-700"
+            className="h-9 bg-primary px-3 hover:bg-primary-700"
+            title="Send message"
           >
             <Send className="h-4 w-4" />
           </Button>

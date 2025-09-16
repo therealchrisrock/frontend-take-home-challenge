@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { Clock, Loader2, Trophy, User } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
-import { Loader2, User, Clock, Trophy } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import {
+  GUEST_SESSION_CONSTANTS,
   guestSessionManager,
-  type GuestSessionData,
-  GUEST_SESSION_CONSTANTS
+  type GuestSessionData
 } from "~/lib/game/guest-session";
 
 interface GuestSessionManagerProps {
@@ -35,12 +35,40 @@ export function GuestSessionManager({
   const [storageAvailable, setStorageAvailable] = useState(true);
 
   useEffect(() => {
-    // Check if storage is available
-    setStorageAvailable(isStorageAvailable());
-    
+    // Check if storage is available (compute once)
+    const available = (() => {
+      try {
+        if (typeof window === "undefined" || !window.localStorage) return false;
+        const testKey = "__storage_test__";
+        window.localStorage.setItem(testKey, "1");
+        window.localStorage.removeItem(testKey);
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    setStorageAvailable(available);
+
     // Try to load existing session
     try {
-      const existingSession = getOrCreateGuestSession(initialDisplayName);
+      let existingSession: GuestSessionData | null = null;
+
+      if (typeof window !== "undefined" && window.localStorage) {
+        const prefix = GUEST_SESSION_CONSTANTS.STORAGE_KEY_PREFIX;
+        const foundKey = Object.keys(window.localStorage).find((k) => k.startsWith(prefix));
+        if (foundKey) {
+          const id = foundKey.substring(prefix.length);
+          existingSession = guestSessionManager.loadGuestSession(id);
+        }
+      }
+
+      if (!existingSession) {
+        const defaultName =
+          (initialDisplayName && initialDisplayName.trim()) ||
+          `Guest${Math.floor(Math.random() * 1000)}`;
+        existingSession = guestSessionManager.createGuestSession(defaultName);
+      }
+
       setSession(existingSession);
       setDisplayName(existingSession.displayName);
       onSessionReady(existingSession);
@@ -48,11 +76,13 @@ export function GuestSessionManager({
       setError("Failed to create guest session");
       console.error("Guest session creation failed:", err);
     }
-  }, [initialDisplayName, onSessionReady]);
+    // We intentionally only want to run this on mount and when initialDisplayName changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDisplayName]);
 
   const handleDisplayNameChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!displayName.trim()) {
       setError("Display name cannot be empty");
       return;
@@ -67,8 +97,16 @@ export function GuestSessionManager({
     setError(null);
 
     try {
-      const updatedSession = updateGuestDisplayName(displayName.trim());
-      if (updatedSession) {
+      if (!session) {
+        setError("No guest session found");
+        return;
+      }
+      const updatedSession: GuestSessionData = {
+        ...session,
+        displayName: displayName.trim(),
+      };
+      const saved = guestSessionManager.saveGuestSession(updatedSession);
+      if (saved) {
         setSession(updatedSession);
         setIsEditing(false);
         onSessionReady(updatedSession);
@@ -91,7 +129,7 @@ export function GuestSessionManager({
     setError(null);
   };
 
-  const guestStats = showStats && session ? getGuestStats() : null;
+  const guestStats = showStats && session ? guestSessionManager.getGuestStats(session.id) : null;
 
   if (!storageAvailable) {
     return (

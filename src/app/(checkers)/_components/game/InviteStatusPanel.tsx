@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  CheckCircle,
+  Clock,
+  Loader2,
+  RefreshCw,
+  Share2,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Progress } from "~/components/ui/progress";
-import {
-  Clock,
-  CheckCircle,
-  XCircle,
-  Users,
-  Loader2,
-  Share2,
-  RefreshCw,
-} from "lucide-react";
-import { api } from "~/trpc/react";
 import { toast } from "~/hooks/use-toast";
 import { cn } from "~/lib/utils";
 
@@ -45,12 +44,12 @@ export function InviteStatusPanel({
     expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
     gameId: inviteStatus === "ACCEPTED" ? "mock-game-123" : null,
   };
-  
+
   const refetchInvite = () => {
     // Mock refetch - simulate status changes for demo
     console.log("Mock refetch invite status");
   };
-  
+
   const isLoadingInvite = false;
 
   // Mock friend data for now (will be replaced with actual API)
@@ -107,14 +106,14 @@ export function InviteStatusPanel({
     switch (status) {
       case "PENDING":
         return {
-          icon: <Loader2 className="h-5 w-5 animate-spin text-amber-600" />,
+          icon: <Loader2 className="h-5 w-5 animate-spin text-primary" />,
           title: selectedFriend ? "Waiting for Response" : "Invitation Ready",
           description: selectedFriend
             ? `${selectedFriend.name ?? selectedFriend.username} hasn't responded yet`
             : "Share the invitation link to start playing",
           badgeVariant: "default" as const,
           badgeText: "Pending",
-          color: "amber",
+          color: "primary",
         };
       case "ACCEPTED":
         return {
@@ -151,7 +150,7 @@ export function InviteStatusPanel({
   };
 
   const statusConfig = getStatusConfig(inviteStatus);
-  const progressPercentage = timeRemaining > 0 
+  const progressPercentage = timeRemaining > 0
     ? ((timeRemaining / (15 * 60 * 1000)) * 100) // Assume 15 min expiry
     : 0;
 
@@ -166,7 +165,7 @@ export function InviteStatusPanel({
   if (isLoadingInvite) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <span className="ml-2 text-gray-600">Loading invitation status...</span>
       </div>
     );
@@ -183,7 +182,7 @@ export function InviteStatusPanel({
 
       {/* Status Card */}
       <Card className={cn("p-4 border-l-4", {
-        "border-l-amber-400 bg-amber-50": statusConfig.color === "amber",
+        "border-l-primary/50 bg-primary/10": statusConfig.color === "primary",
         "border-l-green-400 bg-green-50": statusConfig.color === "green",
         "border-l-red-400 bg-red-50": statusConfig.color === "red",
         "border-l-gray-400 bg-gray-50": statusConfig.color === "gray",
@@ -207,7 +206,7 @@ export function InviteStatusPanel({
               )}
             </div>
           </div>
-          
+
           {inviteStatus === "PENDING" && (
             <Button
               size="sm"
@@ -223,8 +222,8 @@ export function InviteStatusPanel({
         {/* Timer Progress Bar */}
         {timeRemaining > 0 && inviteStatus === "PENDING" && (
           <div className="mt-3">
-            <Progress 
-              value={progressPercentage} 
+            <Progress
+              value={progressPercentage}
               className="h-2"
             />
           </div>
@@ -273,7 +272,7 @@ export function InviteStatusPanel({
             Cancel Invitation
           </Button>
         )}
-        
+
         {inviteStatus === "ACCEPTED" && (
           <Button
             className="flex-1 bg-green-600 hover:bg-green-700"

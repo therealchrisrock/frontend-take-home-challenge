@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Alert, AlertDescription } from "~/components/ui/alert";
-import { Badge } from "~/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Loader2, Users, Clock, AlertCircle, CheckCircle, UserCheck } from "lucide-react";
-import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
-import { GuestSessionManager } from "~/components/guest/GuestSessionManager";
-import { api } from "~/trpc/react";
+import { AlertCircle, CheckCircle, Clock, Loader2, UserCheck, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
+import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
+import { GuestSessionManager } from "~/components/guest/GuestSessionManager";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import type { GuestSession } from "~/lib/guest/sessionStorage";
+import { api } from "~/trpc/react";
 
 interface InvitationData {
   id: string;
@@ -82,7 +82,7 @@ export default function InviteRedemptionPage() {
 
   const handleRedeemInvitation = async () => {
     if (!invitation) return;
-    
+
     setIsRedeeming(true);
     setRedemptionError(null);
 
@@ -117,12 +117,12 @@ export default function InviteRedemptionPage() {
   const formatTimeRemaining = (expiresAt: Date) => {
     const now = new Date();
     const diff = expiresAt.getTime() - now.getTime();
-    
+
     if (diff <= 0) return "Expired";
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m remaining`;
     }
@@ -176,7 +176,7 @@ export default function InviteRedemptionPage() {
   }
 
   // If invitation is already accepted and has a game, redirect to it
-  if (invitation.status === "ACCEPTED" && invitation.game) {
+  if ((invitation.status === "ACCEPTED" || invitation.status === "ready") && invitation.game) {
     router.push(`/game/${invitation.game.id}`);
     return null;
   }
@@ -194,7 +194,7 @@ export default function InviteRedemptionPage() {
                 Invitation {invitation.status === "EXPIRED" ? "Expired" : "Cancelled"}
               </CardTitle>
               <CardDescription>
-                {invitation.status === "EXPIRED" 
+                {invitation.status === "EXPIRED"
                   ? "This invitation has expired and can no longer be accepted."
                   : "This invitation has been cancelled by the host."
                 }
@@ -218,7 +218,7 @@ export default function InviteRedemptionPage() {
     <div className="flex min-h-screen justify-center overflow-hidden p-4">
       <GameWrapper>
         <BoardPreview size={8} />
-        
+
         <div className="w-full max-w-md space-y-4">
           {/* Main Invitation Card */}
           <Card>
@@ -238,9 +238,9 @@ export default function InviteRedemptionPage() {
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={invitation.inviter.image || undefined} />
                   <AvatarFallback>
-                    {invitation.inviter.username?.[0]?.toUpperCase() || 
-                     invitation.inviter.name?.[0]?.toUpperCase() || 
-                     "U"}
+                    {invitation.inviter.username?.[0]?.toUpperCase() ||
+                      invitation.inviter.name?.[0]?.toUpperCase() ||
+                      "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -331,10 +331,10 @@ export default function InviteRedemptionPage() {
                   </>
                 )}
               </Button>
-              
+
               {isGuest && !guestSession && (
-                <p 
-                  id="guest-session-help" 
+                <p
+                  id="guest-session-help"
                   className="text-xs text-muted-foreground mt-2 text-center"
                   role="status"
                   aria-live="polite"

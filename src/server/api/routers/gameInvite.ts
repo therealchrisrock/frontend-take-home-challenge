@@ -1,17 +1,22 @@
-import { z } from "zod";
+import type { NotificationType } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { GameConfigLoader } from "~/lib/game-engine/config-loader";
+import { createInitialBoard } from "~/lib/game/logic";
+import { sseHub } from "~/lib/sse/sse-hub";
+import { STORAGE_VERSION } from "~/lib/storage/types";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import type { GameInviteStatus, NotificationType } from "@prisma/client";
-import { nanoid } from "nanoid";
 
 const GameConfigSchema = z.object({
   timeLimit: z.number().optional(),
   variant: z.string().optional(),
   boardSize: z.number().optional(),
+  hostColor: z.enum(["red", "black", "random"]).optional(),
 });
 
 const GameInvitationResponseSchema = z.object({
@@ -21,9 +26,36 @@ const GameInvitationResponseSchema = z.object({
   expiresAt: z.date().nullable(),
   gameMode: z.string(),
   variant: z.string().nullable(),
+  gameId: z.string(),
 });
 
 export const gameInviteRouter = createTRPCRouter({
+  /**
+   * Return active pending invitation for current host, if any
+   */
+  getActiveInviteForHost: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const invitation = await ctx.db.gameInvite.findFirst({
+      where: {
+        inviterId: userId,
+        status: "PENDING",
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      orderBy: { createdAt: "desc" },
+      include: { game: { select: { id: true } } },
+    });
+
+    if (!invitation) return null;
+
+    return {
+      id: invitation.id,
+      inviteToken: invitation.inviteToken,
+      inviteUrl: `${process.env.NEXTAUTH_URL ?? ""}/game/invite/${invitation.inviteToken}`,
+      expiresAt: invitation.expiresAt,
+      gameId: invitation.game?.id ?? null,
+      status: invitation.status,
+    };
+  }),
   /**
    * Create a new game invitation
    * Can be sent to a specific friend or made as a shareable link
@@ -36,37 +68,35 @@ export const gameInviteRouter = createTRPCRouter({
         gameConfig: GameConfigSchema.optional(),
         message: z.string().optional(),
         expiresIn: z.number().default(24), // hours
-      })
+      }),
     )
-    .output(GameInvitationResponseSchema.extend({
-      friendInvitesSent: z.number().optional(),
-    }))
+    .output(
+      GameInvitationResponseSchema.extend({
+        friendInvitesSent: z.number().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
 
       // Handle backwards compatibility
-      const friendIds = input.friendIds || (input.friendId ? [input.friendId] : []);
+      const friendIds =
+        input.friendIds || (input.friendId ? [input.friendId] : []);
 
-      // Verify friendships exist for all provided friend IDs
+      // Validate provided user IDs exist (friendship not required)
       if (friendIds.length > 0) {
-        const friendships = await ctx.db.friendship.findMany({
-          where: {
-            OR: friendIds.flatMap(friendId => [
-              { senderId: userId, receiverId: friendId },
-              { senderId: friendId, receiverId: userId },
-            ]),
-          },
+        const users = await ctx.db.user.findMany({
+          where: { id: { in: friendIds } },
+          select: { id: true },
         });
 
-        const validFriendIds = new Set(
-          friendships.map(f => f.senderId === userId ? f.receiverId : f.senderId)
+        const existingUserIds = new Set(users.map((u) => u.id));
+        const invalidUserIds = friendIds.filter(
+          (id) => !existingUserIds.has(id),
         );
-
-        const invalidFriends = friendIds.filter(id => !validFriendIds.has(id));
-        if (invalidFriends.length > 0) {
+        if (invalidUserIds.length > 0) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `Friend${invalidFriends.length > 1 ? 's' : ''} not found: ${invalidFriends.join(', ')}`,
+            message: `User${invalidUserIds.length > 1 ? "s" : ""} not found: ${invalidUserIds.join(", ")}`,
           });
         }
 
@@ -80,90 +110,174 @@ export const gameInviteRouter = createTRPCRouter({
         });
 
         if (existingInvites.length > 0) {
-          const existingFriends = existingInvites.map(inv => inv.inviteeId).join(', ');
+          const existingInviteeIds = existingInvites
+            .map((inv) => inv.inviteeId)
+            .join(", ");
           throw new TRPCError({
             code: "CONFLICT",
-            message: `Active invitation${existingInvites.length > 1 ? 's' : ''} already exist${existingInvites.length === 1 ? 's' : ''} for: ${existingFriends}`,
+            message: `Active invitation${existingInvites.length > 1 ? "s" : ""} already exist${existingInvites.length === 1 ? "s" : ""} for: ${existingInviteeIds}`,
           });
         }
       }
 
-      // Generate unique invite token  
+      // If host already has an active pending invitation, return it (single-active-invite policy)
+      const existingActive = await ctx.db.gameInvite.findFirst({
+        where: {
+          inviterId: userId,
+          status: "PENDING",
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        orderBy: { createdAt: "desc" },
+        include: { game: true },
+      });
+
+      if (existingActive && existingActive.gameId) {
+        return {
+          inviteId: existingActive.id,
+          inviteToken: existingActive.inviteToken,
+          inviteUrl: `${process.env.NEXTAUTH_URL ?? ""}/game/invite/${existingActive.inviteToken}`,
+          expiresAt: existingActive.expiresAt,
+          gameMode: existingActive.gameMode,
+          variant: existingActive.variant,
+          gameId: existingActive.gameId,
+          friendInvitesSent: 0,
+        };
+      }
+
+      // Generate unique invite token
       const inviteToken = nanoid(12);
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + input.expiresIn);
 
-      // Create main invitation record (always created for shareable link)
-      const invitation = await ctx.db.gameInvite.create({
+      // Determine rules/config and create the lobby game up front (lobby-first)
+      const selectedVariant = input.gameConfig?.variant || "american";
+      const rules = await GameConfigLoader.loadVariant(selectedVariant);
+      const initialBoard = createInitialBoard(rules);
+
+      // Resolve host color selection
+      const hostSelectedColor = input.gameConfig?.hostColor ?? "red";
+      const hostColor =
+        hostSelectedColor === "random"
+          ? Math.random() < 0.5
+            ? "red"
+            : "black"
+          : hostSelectedColor;
+      const playerColor = hostColor;
+
+      const game = await ctx.db.game.create({
         data: {
-          inviterId: userId,
-          inviteeId: null, // Main invitation is not tied to specific user
-          inviteToken,
-          status: "PENDING",
-          message: input.message,
+          board: JSON.stringify(initialBoard),
+          currentPlayer: "red",
           gameMode: "online",
-          variant: input.gameConfig?.variant || null,
-          expiresAt,
-        },
+          moveCount: 0,
+          version: STORAGE_VERSION,
+          // Assign host to player1 if red, or hold spot for black (player2) if black
+          player1Id: hostColor === "red" ? userId : null,
+          player2Id: hostColor === "black" ? userId : null,
+          variant: selectedVariant.toUpperCase() as any,
+          playMode: "CASUAL" as any,
+          boardSize: rules.board.size,
+          gameConfig: JSON.stringify({
+            boardVariant: selectedVariant,
+            rules,
+            // For client initial orientation, set host's chosen color
+            playerColor,
+            isMultiplayer: true,
+            timeControl: input.gameConfig?.timeLimit
+              ? {
+                  format: "X+Y",
+                  initialMinutes: Math.floor(
+                    (input.gameConfig.timeLimit || 0) / 60,
+                  ),
+                  incrementSeconds: 0,
+                }
+              : null,
+            hostColor: hostSelectedColor,
+          }),
+        } as any,
       });
+
+      let invitation: {
+        id: string;
+        inviteToken: string;
+        expiresAt: Date | null;
+        gameMode: string;
+        variant: string | null;
+      };
 
       let friendInvitesSent = 0;
 
-      // Create specific invitations for friends
       if (friendIds.length > 0) {
-        const friendInvitations = await ctx.db.$transaction(
-          friendIds.map(friendId => 
-            ctx.db.gameInvite.create({
-              data: {
-                inviterId: userId,
-                inviteeId: friendId,
-                inviteToken: `${inviteToken}-${nanoid(4)}`, // Unique token for each friend
-                status: "PENDING",
-                message: input.message,
-                gameMode: "online",
-                variant: input.gameConfig?.variant || null,
-                expiresAt,
-              },
-            })
-          )
-        );
+        // SINGLE friend invite: create only one targeted invitation linked to the game (no extra shareable row)
+        const targetedToken = `${inviteToken}-${nanoid(4)}`;
+        const created = await ctx.db.gameInvite.create({
+          data: {
+            inviterId: userId,
+            inviteeId: friendIds[0],
+            inviteToken: targetedToken,
+            status: "PENDING",
+            message: input.message,
+            gameMode: "online",
+            variant: selectedVariant,
+            expiresAt,
+            gameId: game.id,
+          },
+        });
+        invitation = created;
+        friendInvitesSent = 1;
 
-        // Create notifications for each friend
-        await ctx.db.$transaction(
-          friendIds.map((friendId, index) =>
-            ctx.db.notification.create({
-              data: {
-                userId: friendId,
-                type: "GAME_INVITE" as NotificationType,
-                title: "Game Invitation",
-                message: `${ctx.session.user.username} invited you to play checkers`,
-                metadata: JSON.stringify({
-                  gameId: null,
-                  inviterId: userId,
-                  gameMode: "online",
-                  variant: input.gameConfig?.variant || null,
-                  inviteToken: friendInvitations[index]?.inviteToken,
-                  mainInviteToken: inviteToken, // Reference to shareable link
-                }),
-                relatedEntityId: friendInvitations[index]?.id,
-              },
-            })
-          )
-        );
-
-        friendInvitesSent = friendIds.length;
-
-        // TODO: Emit SSE events for real-time notifications
-        // This will be handled by the notification system
+        // Notification + SSE to that friend
+        await ctx.db.notification.create({
+          data: {
+            userId: friendIds[0]!,
+            type: "GAME_INVITE" as NotificationType,
+            title: "Game Invitation",
+            message: `${ctx.session.user.username} invited you to play checkers`,
+            metadata: JSON.stringify({
+              gameId: null,
+              inviterId: userId,
+              gameMode: "online",
+              variant: selectedVariant,
+              inviteToken: targetedToken,
+            }),
+            relatedEntityId: created.id,
+          },
+        });
+        sseHub.broadcast("notifications", friendIds[0]!, {
+          type: "notification",
+          data: {
+            subtype: "GAME_INVITE",
+            inviterId: userId,
+            inviteToken: targetedToken,
+            timestamp: Date.now(),
+          },
+        });
+      } else {
+        // Shareable link invite: create a single main invitation linked to the game
+        const created = await ctx.db.gameInvite.create({
+          data: {
+            inviterId: userId,
+            inviteeId: null,
+            inviteToken,
+            status: "PENDING",
+            message: input.message,
+            gameMode: "online",
+            variant: selectedVariant,
+            expiresAt,
+            gameId: game.id,
+          },
+        });
+        invitation = created;
       }
 
       return {
         inviteId: invitation.id,
         inviteToken: invitation.inviteToken,
-        inviteUrl: `${process.env.NEXTAUTH_URL}/game/invite/${invitation.inviteToken}`,
+        inviteUrl: `${process.env.NEXTAUTH_URL ?? ""}/game/invite/${invitation.inviteToken}`,
         expiresAt: invitation.expiresAt,
         gameMode: invitation.gameMode,
         variant: invitation.variant,
+        gameId: game.id,
         friendInvitesSent,
       };
     }),
@@ -181,7 +295,7 @@ export const gameInviteRouter = createTRPCRouter({
             displayName: z.string().min(1).max(20),
           })
           .optional(),
-      })
+      }),
     )
     .output(
       z.object({
@@ -189,7 +303,7 @@ export const gameInviteRouter = createTRPCRouter({
         playerRole: z.enum(["PLAYER_1", "PLAYER_2"]),
         isGuest: z.boolean(),
         inviteId: z.string(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       // Find the invitation
@@ -198,6 +312,7 @@ export const gameInviteRouter = createTRPCRouter({
         include: {
           inviter: true,
           invitee: true,
+          game: true,
         },
       });
 
@@ -248,47 +363,46 @@ export const gameInviteRouter = createTRPCRouter({
         });
       }
 
-      // Create the multiplayer game
-      const game = await ctx.db.game.create({
-        data: {
-          board: JSON.stringify([
-            [null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }],
-            [{ color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null],
-            [null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }, null, { color: "black", type: "regular" }],
-            [null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null],
-            [{ color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null],
-            [null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }],
-            [{ color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null, { color: "red", type: "regular" }, null],
-          ]),
-          currentPlayer: "red",
-          gameMode: "online",
-          moveCount: 0,
-          version: 1,
-          player1Id: invitation.inviterId, // Inviter is always player 1 (red)
-          player2Id: isGuest ? null : userId, // Guest players don't get userId assigned
-          variant: invitation.variant ? invitation.variant.toUpperCase() as any : "AMERICAN",
-          playMode: "CASUAL",
-          gameConfig: JSON.stringify({
-            boardVariant: invitation.variant || "american",
-            playerColor: "black", // Player 2 (redeemer) plays black
-            isMultiplayer: true,
-            guestInfo: isGuest ? input.guestInfo : null,
-          }),
-        },
-      });
+      // Use the pre-created game (lobby) and attach the redeemer to the open slot based on host color selection
+      const gameId = invitation.gameId;
+      if (!gameId) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invitation is missing game reference",
+        });
+      }
+
+      const game = await ctx.db.game.findUnique({ where: { id: gameId } });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      if (!isGuest && userId) {
+        // If player1 is empty, fill player1; else fill player2
+        if (!game.player1Id) {
+          await ctx.db.game.update({
+            where: { id: gameId },
+            data: { player1Id: userId },
+          });
+        } else if (!game.player2Id) {
+          await ctx.db.game.update({
+            where: { id: gameId },
+            data: { player2Id: userId },
+          });
+        }
+      }
 
       // Update invitation status and link to game
       await ctx.db.gameInvite.update({
         where: { id: invitation.id },
         data: {
           status: "ACCEPTED",
-          gameId: game.id,
+          gameId: gameId,
         },
       });
 
-      // Determine player role (inviter is always player 1, redeemer is player 2)
-      const playerRole = "PLAYER_2";
+      // Determine player role for redeemer by the slot filled
+      const playerRole = game.player1Id ? "PLAYER_2" : "PLAYER_1";
 
       // Create notification for inviter that invitation was accepted
       await ctx.db.notification.create({
@@ -296,22 +410,29 @@ export const gameInviteRouter = createTRPCRouter({
           userId: invitation.inviterId,
           type: "GAME_INVITE" as NotificationType,
           title: "Invitation Accepted",
-          message: `${isGuest ? (input.guestInfo?.displayName || "A guest") : ctx.session!.user.username} accepted your game invitation`,
+          message: `${isGuest ? input.guestInfo?.displayName || "A guest" : ctx.session!.user.username} accepted your game invitation`,
           metadata: JSON.stringify({
-            gameId: game.id,
+            gameId: gameId,
             inviterId: invitation.inviterId,
             gameMode: "online",
             playerRole: "PLAYER_1",
           }),
-          relatedEntityId: game.id,
+          relatedEntityId: gameId,
         },
       });
 
-      // TODO: Emit SSE events for real-time updates
-      // PLAYER_JOINED event to notify inviter
+      // Emit SSE event for player joining so host can transition out of waiting state
+      sseHub.broadcast("game", gameId, {
+        type: "PLAYER_JOINED",
+        data: {
+          playerRole: "PLAYER_2",
+          isGuest,
+          timestamp: Date.now(),
+        },
+      });
 
       return {
-        gameId: game.id,
+        gameId: gameId,
         playerRole,
         isGuest,
         inviteId: invitation.id,
@@ -326,17 +447,14 @@ export const gameInviteRouter = createTRPCRouter({
       z.object({
         limit: z.number().min(1).max(50).default(10),
         cursor: z.string().optional(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const invitations = await ctx.db.gameInvite.findMany({
         where: {
           inviterId: ctx.session.user.id,
           status: "PENDING",
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: new Date() } },
-          ],
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         },
         include: {
           invitee: {
@@ -545,15 +663,15 @@ export const gameInviteRouter = createTRPCRouter({
 
       // Build participant list
       const participants = [];
-      
+
       // Add inviter as participant
       participants.push({
         id: invitation.inviter.id,
         username: invitation.inviter.username,
         name: invitation.inviter.name,
         image: invitation.inviter.image,
-        role: 'inviter' as const,
-        status: 'ready' as const,
+        role: "inviter" as const,
+        status: "ready" as const,
         joinedAt: invitation.createdAt,
       });
 
@@ -575,8 +693,8 @@ export const gameInviteRouter = createTRPCRouter({
             username: player2.username,
             name: player2.name,
             image: player2.image,
-            role: 'invitee' as const,
-            status: 'joined' as const,
+            role: "invitee" as const,
+            status: "joined" as const,
             joinedAt: invitation.updatedAt,
           });
         }
@@ -585,7 +703,7 @@ export const gameInviteRouter = createTRPCRouter({
       // Determine overall status
       let overallStatus = invitation.status.toLowerCase();
       if (invitation.game && participants.length >= 2) {
-        overallStatus = 'ready';
+        overallStatus = "ready";
       }
 
       return {

@@ -26,6 +26,11 @@ function SignInInner() {
   const [error, setError] = useState<string | null>(null);
 
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  
+  // Build signup URL with preserved callbackUrl
+  const signupUrl = callbackUrl !== "/" 
+    ? `/auth/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/auth/signup";
 
   const signinForm = useForm<SigninData>({
     resolver: zodResolver(signinSchema),
@@ -110,7 +115,7 @@ function SignInInner() {
         </div>
         <div className="text-center text-sm text-gray-600">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/signup" className="text-blue-600 hover:underline">
+          <Link href={signupUrl} className="text-blue-600 hover:underline">
             Sign up
           </Link>
         </div>

@@ -1,39 +1,65 @@
 import { type NextRequest } from "next/server";
-import { gameConnectionManager } from "~/lib/sse/game-connection-manager";
+import { sseHub } from "~/lib/sse/sse-hub";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const { id: gameId } = await params;
+  const { id: gameId } = params;
   if (!gameId) return new Response("Missing gameId", { status: 400 });
 
+  let heartbeat: NodeJS.Timeout | undefined;
+  let clientId: string | undefined;
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const connectionId = gameConnectionManager.addConnection(
-        gameId,
-        controller,
-      );
-
-      // On cancel/close
-      // @ts-expect-error: controller has no typed signal here; handled via cancel
-      controller.connectionId = connectionId;
+      clientId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sseHub.addConnection("game", gameId, clientId, controller, { gameId });
+      // Emit connection established to mimic previous behavior
+      const init = `data: ${JSON.stringify({
+        type: "connection_established",
+        data: { connectionId: clientId, timestamp: Date.now() },
+      })}\n\n`;
+      const encoder = new TextEncoder();
+      controller.enqueue(encoder.encode(init));
+      // Per-route heartbeat every 30s (lowercase)
+      heartbeat = setInterval(() => {
+        const hb = `data: ${JSON.stringify({
+          type: "heartbeat",
+          data: { timestamp: Date.now() },
+        })}\n\n`;
+        try {
+          controller.enqueue(encoder.encode(hb));
+        } catch (_) {}
+      }, 30000);
     },
-    cancel(reason) {
-      // @ts-expect-error: custom property set in start
-      const connectionId: string | undefined = (this as any)?.controller
-        ?.connectionId;
-      if (connectionId)
-        gameConnectionManager.removeConnection(gameId, connectionId);
+    cancel() {
+      if (heartbeat) clearInterval(heartbeat);
+      if (clientId) sseHub.removeConnection("game", gameId, clientId);
     },
   });
 
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-store, must-revalidate, no-transform",
       Connection: "keep-alive",
       "Access-Control-Allow-Origin": "*",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+export async function HEAD() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-cache, no-store, must-revalidate, no-transform",
+      "X-Accel-Buffering": "no",
     },
   });
 }

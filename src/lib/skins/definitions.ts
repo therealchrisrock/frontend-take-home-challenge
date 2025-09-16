@@ -8,14 +8,14 @@ export const skins: Record<string, Skin> = {
     category: "classic",
     board: {
       lightSquare: {
-        from: "rgb(251, 191, 36)", // amber-400
-        to: "rgb(245, 158, 11)", // amber-500
+        from: "rgb(188, 222, 188)", // primary/20
+        to: "rgb(151, 201, 151)", // primary/30
       },
       darkSquare: {
-        from: "rgb(146, 64, 14)", // amber-800
-        to: "rgb(120, 53, 15)", // amber-900
+        from: "rgb(0, 115, 0)", // primary-700
+        to: "rgb(0, 97, 0)", // primary-800
       },
-      border: "rgb(92, 51, 23)", // amber-950
+      border: "rgb(0, 80, 0)", // primary-900
       selectedRing: "rgb(59, 130, 246)", // blue-500
       highlightedRing: "rgb(250, 204, 21)", // yellow-400
       possibleMove: "rgb(74, 222, 128)", // green-400
@@ -34,7 +34,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(153, 27, 27)",
         },
         border: "rgb(127, 29, 29)",
-        crown: "rgb(251, 191, 36)",
+        crown: "rgb(151, 201, 151)", // primary/30
       },
       black: {
         base: "rgb(23, 23, 23)",
@@ -43,7 +43,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(10, 10, 10)",
         },
         border: "rgb(0, 0, 0)",
-        crown: "rgb(251, 191, 36)",
+        crown: "rgb(151, 201, 151)", // primary/30
       },
     },
     ui: {
@@ -173,7 +173,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(49, 46, 129)",
         },
         border: "rgb(30, 27, 75)",
-        crown: "rgb(251, 191, 36)",
+        crown: "rgb(151, 201, 151)", // primary/30
       },
     },
     ui: {
@@ -291,9 +291,9 @@ export const skins: Record<string, Skin> = {
       possibleMove: "rgb(254, 240, 138)", // yellow-200
       possibleMoveGlow: "rgba(254, 240, 138, 0.5)",
       arrow: {
-        stroke: "rgb(251, 191, 36)", // amber-400
-        fill: "rgba(251, 191, 36, 0.8)", // amber-400 with transparency
-        glow: "rgba(251, 191, 36, 0.3)", // amber-400 glow
+        stroke: "rgb(251, 191, 36)", // primary/50
+        fill: "rgba(251, 191, 36, 0.8)", // primary/50 with transparency
+        glow: "rgba(251, 191, 36, 0.3)", // primary/50 glow
       },
     },
     pieces: {
@@ -313,7 +313,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(69, 26, 3)",
         },
         border: "rgb(41, 37, 36)",
-        crown: "rgb(251, 191, 36)",
+        crown: "rgb(151, 201, 151)", // primary/30
       },
     },
     ui: {
@@ -431,9 +431,9 @@ export const skins: Record<string, Skin> = {
       possibleMove: "rgb(251, 191, 36)",
       possibleMoveGlow: "rgba(251, 191, 36, 0.5)",
       arrow: {
-        stroke: "rgb(217, 119, 6)", // amber-600
-        fill: "rgba(217, 119, 6, 0.8)", // amber-600 with transparency
-        glow: "rgba(217, 119, 6, 0.3)", // amber-600 glow
+        stroke: "rgb(217, 119, 6)", // primary
+        fill: "rgba(217, 119, 6, 0.8)", // primary with transparency
+        glow: "rgba(217, 119, 6, 0.3)", // primary glow
       },
     },
     pieces: {
@@ -501,9 +501,9 @@ export const skins: Record<string, Skin> = {
       possibleMove: "rgb(254, 240, 138)",
       possibleMoveGlow: "rgba(254, 240, 138, 0.7)",
       arrow: {
-        stroke: "rgb(251, 191, 36)", // amber-400
-        fill: "rgba(251, 191, 36, 0.8)", // amber-400 with transparency
-        glow: "rgba(251, 191, 36, 0.3)", // amber-400 glow
+        stroke: "rgb(251, 191, 36)", // primary/50
+        fill: "rgba(251, 191, 36, 0.8)", // primary/50 with transparency
+        glow: "rgba(251, 191, 36, 0.3)", // primary/50 glow
       },
     },
     pieces: {
@@ -819,22 +819,22 @@ export const skins: Record<string, Skin> = {
     category: "classic",
     board: {
       lightSquare: {
-        from: "rgb(254, 243, 199)", // amber-100
-        to: "rgb(253, 230, 138)", // amber-200
+        from: "rgb(234, 243, 234)", // bg-primary/10
+        to: "rgb(188, 222, 188)", // primary/20
       },
       darkSquare: {
-        from: "rgb(180, 83, 9)", // amber-700
-        to: "rgb(146, 64, 14)", // amber-800
+        from: "rgb(0, 115, 0)", // primary-700
+        to: "rgb(0, 97, 0)", // primary-800
       },
-      border: "rgb(113, 63, 18)",
+      border: "rgb(0, 80, 0)", // primary-900
       selectedRing: "rgb(234, 88, 12)",
-      highlightedRing: "rgb(251, 191, 36)",
+      highlightedRing: "rgb(34, 139, 34)", // primary-600
       possibleMove: "rgb(253, 186, 116)",
       possibleMoveGlow: "rgba(253, 186, 116, 0.5)",
       arrow: {
-        stroke: "rgb(234, 88, 12)", // orange-600
-        fill: "rgba(234, 88, 12, 0.8)", // orange-600 with transparency
-        glow: "rgba(234, 88, 12, 0.3)", // orange-600 glow
+        stroke: "rgb(34, 139, 34)", // primary-600
+        fill: "rgba(34, 139, 34, 0.8)", // primary-600 with transparency
+        glow: "rgba(34, 139, 34, 0.3)", // primary-600 glow
       },
     },
     pieces: {
@@ -845,7 +845,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(154, 52, 18)",
         },
         border: "rgb(124, 45, 18)",
-        crown: "rgb(253, 230, 138)",
+        crown: "rgb(188, 222, 188)", // primary/20
       },
       black: {
         base: "rgb(120, 113, 108)",
@@ -854,7 +854,7 @@ export const skins: Record<string, Skin> = {
           to: "rgb(87, 83, 78)",
         },
         border: "rgb(68, 64, 60)",
-        crown: "rgb(253, 230, 138)",
+        crown: "rgb(188, 222, 188)", // primary/20
       },
     },
     ui: {

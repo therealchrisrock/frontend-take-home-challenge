@@ -1,24 +1,23 @@
-"use client";
-
-import Link from "next/link";
-import { Leaderboard } from "~/components/Leaderboard";
 import {
-  Users,
   Bot,
-  Wifi,
-  Crown,
   ChevronRight,
+  Crown,
   Trophy,
-  Mail,
-  Settings,
+  Users,
+  Wifi,
 } from "lucide-react";
-import { Card, CardContent } from "~/components/ui/card";
-import { Button } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
+import Link from "next/link";
+import { Suspense } from "react";
 import { PlayerCard } from "~/app/(checkers)/_components/game/PlayerCard";
-import { useSession } from "next-auth/react";
+import { ProfilePlayerCardSkeleton } from "~/app/(checkers)/_components/game/ProfilePlayerCardSkeleton";
+import { HomeNavIcons } from "~/app/(checkers)/_components/HomeNavIcons";
+import { QuickStats } from "~/app/(checkers)/_components/HomePageClient";
 import { mapUserToPlayerInfo } from "~/app/(checkers)/_lib/map-user-to-player-info";
-import { api } from "~/trpc/react";
+import { Leaderboard } from "~/components/Leaderboard";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { getServerAuthSession } from "~/server/auth";
 
 interface GameModeCardProps {
   href: string;
@@ -41,22 +40,20 @@ function GameModeCard({
 }: GameModeCardProps) {
   const content = (
     <Card
-      className={`group relative overflow-hidden transition-all duration-200 ${
-        disabled
-          ? "cursor-not-allowed opacity-50"
-          : "cursor-pointer hover:-translate-y-1 hover:border-amber-400 hover:shadow-lg"
-      } `}
+      className={`group relative overflow-hidden transition-all duration-200 ${disabled
+        ? "cursor-not-allowed opacity-50"
+        : "cursor-pointer hover:-translate-y-1 hover:border-primary/70 hover:shadow-lg"
+        } `}
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="mb-2 flex items-center gap-3">
               <div
-                className={`rounded-lg p-2 transition-colors ${
-                  disabled
-                    ? "bg-gray-100"
-                    : "bg-amber-100 group-hover:bg-amber-200"
-                } `}
+                className={`rounded-lg p-2 transition-colors ${disabled
+                  ? "bg-gray-100"
+                  : "bg-primary/10 group-hover:bg-primary/20"
+                  } `}
               >
                 {icon}
               </div>
@@ -70,7 +67,7 @@ function GameModeCard({
             <p className="text-sm text-gray-600">{description}</p>
           </div>
           <ChevronRight
-            className={`h-5 w-5 text-gray-400 transition-transform ${!disabled && "group-hover:translate-x-1 group-hover:text-amber-600"} `}
+            className={`h-5 w-5 text-gray-400 transition-transform ${!disabled && "group-hover:translate-x-1 group-hover:text-primary-600"} `}
           />
         </div>
       </CardContent>
@@ -84,10 +81,8 @@ function GameModeCard({
   return <Link href={href}>{content}</Link>;
 }
 
-export default function Home() {
-  const { data: session } = useSession();
-  const { data: quickStats, isLoading: statsLoading } =
-    api.user.getQuickStats.useQuery();
+export default async function Home() {
+  const session = await getServerAuthSession();
 
   return (
     <div className="px-4 py-8 lg:px-8">
@@ -96,41 +91,35 @@ export default function Home() {
           {/* Game Modes */}
           <div>
             <div className="flex items-center justify-between">
-              <PlayerCard
-                player={mapUserToPlayerInfo(session?.user)}
-                context="profile"
-                className="mb-4"
-              />
-              <div className="hidden items-center gap-6 text-gray-400 sm:flex">
-                <Link href="/friends" aria-label="Friends">
-                  <Users className="h-6 w-6 transition-colors hover:text-amber-600" />
-                </Link>
-                <Link href="/messages" aria-label="Messages">
-                  <Mail className="h-6 w-6 transition-colors hover:text-amber-600" />
-                </Link>
-                <Settings className="h-6 w-6" />
-              </div>
+              <Suspense fallback={<ProfilePlayerCardSkeleton className="mb-4" />}>
+                <PlayerCard
+                  player={mapUserToPlayerInfo(session?.user ?? undefined)}
+                  context="profile"
+                  className="mb-4"
+                />
+              </Suspense>
+              <HomeNavIcons />
             </div>
 
             <div className="grid gap-4">
               <GameModeCard
                 href="/game/local"
-                icon={<Users className="h-5 w-5 text-amber-700" />}
+                icon={<Users className="h-5 w-5 text-primary-700" />}
                 title="Play Local Game"
                 description="Challenge a friend on the same device"
               />
 
               <GameModeCard
                 href="/game/bot"
-                icon={<Bot className="h-5 w-5 text-amber-700" />}
+                icon={<Bot className="h-5 w-5 text-primary-700" />}
                 title="Play a Bot"
                 description="Test your skills against AI opponents"
               />
 
               <GameModeCard
-                href="/game/friend"
-                icon={<Wifi className="h-5 w-5 text-amber-700" />}
-                title="Play a Friend Online"
+                href="/game/online"
+                icon={<Wifi className="h-5 w-5 text-primary-700" />}
+                title="Play Online"
                 description="Challenge friends from anywhere"
                 badge="Beta"
                 badgeVariant="secondary"
@@ -138,7 +127,7 @@ export default function Home() {
 
               <GameModeCard
                 href="/game/royale"
-                icon={<Crown className="h-5 w-5 text-amber-700" />}
+                icon={<Crown className="h-5 w-5 text-primary-700" />}
                 title="Checkers Royale"
                 description="Battle royale mode with special rules"
                 badge="Coming Soon"
@@ -148,38 +137,7 @@ export default function Home() {
             </div>
 
             {/* Quick Stats */}
-            <div className="mt-8 grid grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {statsLoading
-                      ? "—"
-                      : (quickStats?.activePlayers?.toLocaleString() ?? "0")}
-                  </div>
-                  <div className="text-xs text-gray-600">Active Players</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {statsLoading
-                      ? "—"
-                      : (quickStats?.gamesToday?.toLocaleString() ?? "0")}
-                  </div>
-                  <div className="text-xs text-gray-600">Games Today</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {statsLoading
-                      ? "—"
-                      : (quickStats?.onlineNow?.toLocaleString() ?? "0")}
-                  </div>
-                  <div className="text-xs text-gray-600">Online Now</div>
-                </CardContent>
-              </Card>
-            </div>
+            <QuickStats />
 
             {/* Recent Updates */}
             {/* <div className="mt-8">

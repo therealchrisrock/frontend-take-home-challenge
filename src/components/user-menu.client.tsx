@@ -1,9 +1,10 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { History, LogOut, MessageSquare, Settings, User, Users } from "lucide-react";
 import { type Session } from "next-auth";
+import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
@@ -14,8 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { LoadingDots } from "~/components/ui/loading-dots";
 import { api } from "~/trpc/react";
-import { User, MessageSquare, Users, Settings, LogOut } from "lucide-react";
+import { GameSettings } from "~/app/(checkers)/_components/game/GameSettings";
 
 interface UserMenuClientProps {
   initialSession: Session | null;
@@ -24,7 +26,8 @@ interface UserMenuClientProps {
 export function UserMenuClient({ initialSession }: UserMenuClientProps) {
   const { data: liveSession } = useSession();
   const session = liveSession ?? initialSession ?? undefined;
-  const { } = api.message.getUnreadCount.useQuery({
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { } = api.message.getUnreadCount.useQuery(undefined, {
     enabled: !!session?.user,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
@@ -45,11 +48,16 @@ export function UserMenuClient({ initialSession }: UserMenuClientProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              <AvatarImage
-                src={user?.image ?? undefined}
-                alt={user?.name ?? ""}
-              />
-              <AvatarFallback>{initials}</AvatarFallback>
+              {user?.image ? (
+                <>
+                  <AvatarImage src={user.image ?? undefined} alt={user?.name ?? ""} />
+                  <AvatarFallback delayMs={100}>
+                    <LoadingDots size="sm" color="muted" />
+                  </AvatarFallback>
+                </>
+              ) : (
+                <AvatarFallback>{initials}</AvatarFallback>
+              )}
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -84,10 +92,19 @@ export function UserMenuClient({ initialSession }: UserMenuClientProps) {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+            <Link href="/history">
+              <History className="mr-2 h-4 w-4" />
+              <span>History</span>
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault();
+              setSettingsOpen(true);
+            }}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -99,6 +116,7 @@ export function UserMenuClient({ initialSession }: UserMenuClientProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <GameSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

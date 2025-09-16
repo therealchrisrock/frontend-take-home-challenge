@@ -73,6 +73,29 @@ export const userRouter = createTRPCRouter({
       return user;
     }),
 
+  getUserById: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findUnique({
+        where: { id: input.userId },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      });
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      return user;
+    }),
+
   searchUsers: publicProcedure
     .input(z.object({ query: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -512,7 +535,16 @@ export const userRouter = createTRPCRouter({
     return { activePlayers, gamesToday, onlineNow };
   }),
 
-  // Returns friends plus a computed `online` flag based on active NextAuth sessions
+  // Update user's lastActive timestamp for presence tracking
+  updatePresence: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.user.update({
+      where: { id: ctx.session.user.id },
+      data: { lastActive: new Date() },
+    });
+    return { success: true };
+  }),
+
+  // Returns friends plus a computed `online` flag based on lastActive timestamp
   getFriendsWithStatus: protectedProcedure.query(async ({ ctx }) => {
     const friendships = await ctx.db.friendship.findMany({
       where: {
@@ -523,10 +555,10 @@ export const userRouter = createTRPCRouter({
       },
       include: {
         sender: {
-          select: { id: true, username: true, name: true, image: true },
+          select: { id: true, username: true, name: true, image: true, lastActive: true },
         },
         receiver: {
-          select: { id: true, username: true, name: true, image: true },
+          select: { id: true, username: true, name: true, image: true, lastActive: true },
         },
       },
     });
@@ -538,20 +570,14 @@ export const userRouter = createTRPCRouter({
     if (friends.length === 0)
       return [] as Array<(typeof friends)[number] & { online: boolean }>;
 
-    const friendIds = friends.map((f) => f.id);
+    const now = new Date();
+    const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
-    // Consider a user online if they have at least one non-expired session
-    const activeSessions = await ctx.db.session.findMany({
-      where: {
-        userId: { in: friendIds },
-        expires: { gt: new Date() },
-      },
-      select: { userId: true },
-    });
-
-    const onlineSet = new Set(activeSessions.map((s) => s.userId));
-
-    return friends.map((f) => ({ ...f, online: onlineSet.has(f.id) }));
+    // Consider a user online if they were active within the last 2 minutes
+    return friends.map((f) => ({
+      ...f,
+      online: f.lastActive ? (now.getTime() - f.lastActive.getTime()) < ONLINE_THRESHOLD_MS : false,
+    }));
   }),
 
   // Player data procedures for PlayerCard component
@@ -1008,6 +1034,7 @@ export const userRouter = createTRPCRouter({
             lastSaved: true,
             player1Id: true,
             player2Id: true,
+            gameConfig: true,
             player1: {
               select: {
                 id: true,
@@ -1043,6 +1070,8 @@ export const userRouter = createTRPCRouter({
           player1Id: true,
           player2Id: true,
           moveCount: true,
+          gameMode: true,
+          gameConfig: true,
         },
       });
 
@@ -1058,8 +1087,22 @@ export const userRouter = createTRPCRouter({
           draws++;
           currentStreak = 0;
         } else {
-          const isPlayer1 = game.player1Id === input.userId;
-          const playerColor = isPlayer1 ? "red" : "black";
+          let playerColor = "red"; // default
+          
+          // For AI and local games, get the actual player color from game config
+          if ((game.gameMode === "ai" || game.gameMode === "local") && game.gameConfig) {
+            try {
+              const config = JSON.parse(game.gameConfig);
+              playerColor = config.playerColor || "red";
+            } catch (e) {
+              // Fall back to default if config parsing fails
+              playerColor = "red";
+            }
+          } else {
+            // For online games, determine color by player position
+            const isPlayer1 = game.player1Id === input.userId;
+            playerColor = isPlayer1 ? "red" : "black";
+          }
 
           if (game.winner === playerColor) {
             wins++;
