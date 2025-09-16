@@ -17,7 +17,7 @@ A comprehensive multiplayer checkers platform built with the [T3 Stack](https://
 ### Social & Community
 
 - ✅ **Friend System**: Add friends, send messages, manage relationships
-- ✅ **Real-time Notifications**: Server-Sent Events for instant updates
+- ✅ **Real-time Notifications**: Unified event system for instant updates
 - ✅ **Messaging**: Private conversations between players
 - ✅ **User Profiles**: Avatars, statistics, and match history
 
@@ -142,7 +142,7 @@ This application is built with the [T3 Stack](https://create.t3.gg/) and additio
 
 ### Real-time & Storage
 
-- **Server-Sent Events** - Real-time notifications and updates
+- **Unified Event System** - Real-time updates via tRPC subscriptions (SSE)
 - **[AWS S3](https://aws.amazon.com/s3)** - Avatar and file storage
 - **[Resend](https://resend.com)** - Email notifications
 
@@ -213,19 +213,22 @@ The application uses tRPC for type-safe API communication:
 - **`gameInvite`** - Game invitations and matchmaking
 - **`friendRequest`** - Friend request management
 - **`message`** - Private messaging system
-- **`notification`** - Real-time notification system
+- **`notification`** - Notification management
 - **`gameNotes`** - Game analysis and notes
+- **`events`** - Unified real-time event subscription
 
-### Real-time Endpoints
+### Real-time System
 
-- **`/api/notifications/stream`** - Server-Sent Events for notifications
-- **`/api/game/[id]/mp-stream`** - Real-time game state updates
-- **`/api/messages/stream`** - Real-time message delivery
+- **Single tRPC Subscription** - `api.events.onAllEvents` handles all real-time data
+- **Event-driven Architecture** - Notifications, messages, game moves, and presence updates
+- **Automatic Reconnection** - Built-in recovery with exponential backoff
 
 ## ⚠️ Known Issues & Limitations
 
 ### Multiplayer (Beta)
 
+- **Guest Games**: Currently do not fully support online multiplayer features to play anonymously in a game lobby
+- **First Move Sync**: The very first move in an online match may not sync properly until page refresh (fix deployed, monitoring ongoing)
 - **Sync conflicts** may occur with rapid consecutive moves
 - **Connection drops** can cause temporary desync (auto-recovery implemented)
 - **Move validation** occasionally allows illegal moves under race conditions
@@ -242,7 +245,7 @@ The application uses tRPC for type-safe API communication:
 
 - **Large game history** can slow down game loading (pagination planned)
 - **Simultaneous tournaments** may impact database performance
-- **Real-time scaling** tested up to 50 concurrent games
+- **Real-time scaling** tested up to 50 concurrent games (unified event system)
 
 ## 🚀 Deployment
 

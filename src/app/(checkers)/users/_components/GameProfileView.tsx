@@ -10,14 +10,14 @@ import {
   Swords,
   TrendingUp,
   Trophy,
-  Users,
-  Zap,
-  X,
   UserCheck,
   UserPlus,
+  Users,
+  X,
+  Zap,
 } from "lucide-react";
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -139,9 +139,9 @@ export default function GameProfileView({
 
   const sendFriendRequest = api.friendRequest.send.useMutation({
     onSuccess: async (data) => {
-      setFriendStatus({ 
-        status: "request_sent", 
-        friendRequestId: data.friendRequest.id 
+      setFriendStatus({
+        status: "request_sent",
+        friendRequestId: data.friendRequest.id
       });
       toast({
         title: "Friend request sent!",
@@ -202,24 +202,6 @@ export default function GameProfileView({
   });
 
   const router = useRouter();
-  
-  const createGameInvite = api.gameInvite.createInvitation.useMutation({
-    onSuccess: (data) => {
-      toast({
-        title: "Game invite sent!",
-        description: `You've challenged ${user.name ?? user.username} to a game.`,
-      });
-      // Navigate to the game page
-      router.push(data.inviteUrl);
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to send invite",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const winRate =
     stats.totalGames > 0
@@ -433,14 +415,10 @@ export default function GameProfileView({
                       )}
                       {friendStatus.status === "friends" && (
                         <>
-                          <Button 
+                          <Button
                             variant="outline"
-                            onClick={() => createGameInvite.mutate({
-                              friendIds: [user.id],
-                              message: "Let's play a game of checkers!",
-                              expiresIn: 24, // 24 hours
-                            })}
-                            disabled={createGameInvite.isPending}
+                            onClick={() => router.push(`/game/online?username=${user.username}`)}
+
                           >
                             <Gamepad2 className="h-4 w-4" />
                             Challenge

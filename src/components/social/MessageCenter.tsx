@@ -34,7 +34,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { toast } from "~/hooks/use-toast";
-import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { useMessages, useUnreadMessageCounts } from "~/hooks/useMessages";
 import { api } from "~/trpc/react";
 
 export function MessageCenter() {
@@ -42,8 +42,12 @@ export function MessageCenter() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sseClientRef = useRef<SSEClient | null>(null);
+  
+  // Get real-time message data
+  const { messages, unreadCount, typingUsers, sendMessage, markAsRead } = useMessages(selectedUserId ?? undefined);
+  const { counts: unreadCounts } = useUnreadMessageCounts();
 
   // API queries
   const { data: conversations, refetch: refetchConversations } =
@@ -58,90 +62,14 @@ export function MessageCenter() {
       { enabled: !!selectedUserId, refetchInterval: 5000 },
     );
 
-  // Enhanced SSE subscription for real-time message updates
+  // Refresh conversations when selected user changes
   useEffect(() => {
-    if (!session?.user?.id) {
-      // Clean up connection when user logs out
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-      return;
-    }
-
-    // Disconnect existing client if any
-    if (sseClientRef.current) {
-      sseClientRef.current.destroy();
-      sseClientRef.current = null;
-    }
-
-    const tabId = `message_center_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = `/api/messages/stream?tabId=${tabId}`;
-
-    sseClientRef.current = createSSEClient({
-      url,
-      onMessage: (event) => {
-        try {
-          const payload = JSON.parse(event.data) as { type: string; data?: any };
-          if (payload.type === "MESSAGE_CREATED") {
-            const { senderId, receiverId } = payload.data ?? {};
-            // Always refresh conversation list for unread counts and last message
-            void refetchConversations();
-            // If event is from/to the selected user, refresh thread
-            if (
-              selectedUserId &&
-              (senderId === selectedUserId || receiverId === selectedUserId)
-            ) {
-              void refetchConversation();
-            }
-          }
-          if (payload.type === "MESSAGE_READ") {
-            // Refresh counts and thread
-            void refetchConversations();
-            if (selectedUserId) void refetchConversation();
-          }
-        } catch (error) {
-          console.error("Error processing message center SSE message:", error);
-        }
-      },
-      onOpen: () => {
-        console.log("Message center SSE connected");
-      },
-      onError: (error) => {
-        console.error("Message center SSE error:", error);
-      },
-      autoConnect: true,
-    });
-
-    return () => {
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-    };
-  }, [session?.user?.id, selectedUserId, refetchConversations, refetchConversation]);
-
-  // API mutations
-  const sendMessageMutation = api.message.sendMessage.useMutation({
-    onSuccess: () => {
-      setMessageInput("");
+    if (selectedUserId) {
       void refetchConversation();
-      void refetchConversations();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const markAsReadMutation = api.message.markAsRead.useMutation({
-    onSuccess: () => {
-      void refetchConversations();
-    },
-  });
+      // Mark messages as read when viewing conversation
+      markAsRead();
+    }
+  }, [selectedUserId, refetchConversation, markAsRead]);
 
   // Auto-scroll to bottom when new messages arrive or when conversation changes
   useEffect(() => {
@@ -150,33 +78,27 @@ export function MessageCenter() {
     }
   }, [conversation?.messages, selectedUserId]);
 
-  // Mark messages as read when conversation is selected
-  useEffect(() => {
-    if (selectedUserId && conversation?.messages) {
-      const unreadMessages = conversation.messages.filter(
-        (msg) => msg.receiverId === session?.user?.id && !msg.read,
-      );
-
-      unreadMessages.forEach((msg) => {
-        markAsReadMutation.mutate({ messageId: msg.id });
-      });
-    }
-  }, [
-    selectedUserId,
-    conversation?.messages,
-    session?.user?.id,
-    markAsReadMutation,
-  ]);
 
   if (!session?.user) return null;
 
-  const handleSendMessage = () => {
-    if (!selectedUserId || !messageInput.trim()) return;
+  const handleSendMessage = async () => {
+    if (!selectedUserId || !messageInput.trim() || isSending) return;
 
-    sendMessageMutation.mutate({
-      receiverId: selectedUserId,
-      content: messageInput.trim(),
-    });
+    setIsSending(true);
+    try {
+      await sendMessage(selectedUserId, messageInput.trim());
+      setMessageInput("");
+      void refetchConversation();
+      void refetchConversations();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -402,7 +324,7 @@ export function MessageCenter() {
                             : "bg-accent"
                             }`}
                         >
-                          <p className="text-sm">{msg.content}</p>
+                          <p className="text-sm break-all overflow-wrap-anywhere">{msg.content}</p>
                           <p
                             className={`mt-1 text-xs ${isOwn ? "opacity-70" : "text-muted-foreground"}`}
                           >
@@ -427,12 +349,12 @@ export function MessageCenter() {
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
-                  disabled={sendMessageMutation.isPending}
+                  disabled={isSending}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={
-                    !messageInput.trim() || sendMessageMutation.isPending
+                    !messageInput.trim() || isSending
                   }
                 >
                   <Send className="h-4 w-4" />

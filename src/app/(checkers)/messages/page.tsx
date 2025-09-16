@@ -23,8 +23,8 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import { toast } from "~/components/ui/use-toast";
-import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
 import { api } from "~/trpc/react";
+import { useMessages } from "~/hooks/useMessages";
 
 export default function MessagesPage() {
   const { data: session } = useSession();
@@ -34,7 +34,6 @@ export default function MessagesPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const desktopMessagesEndRef = useRef<HTMLDivElement>(null);
   const mobileMessagesEndRef = useRef<HTMLDivElement>(null);
-  const sseClientRef = useRef<SSEClient | null>(null);
 
   const { data: conversations, refetch: refetchConversations } =
     api.message.getConversations.useQuery(undefined, {
@@ -47,65 +46,8 @@ export default function MessagesPage() {
       { enabled: !!selectedUserId },
     );
 
-  // Enhanced SSE subscription for live message updates
-  useEffect(() => {
-    if (!session?.user?.id) {
-      // Clean up connection when user logs out
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-      return;
-    }
-
-    // Disconnect existing client if any
-    if (sseClientRef.current) {
-      sseClientRef.current.destroy();
-      sseClientRef.current = null;
-    }
-
-    const tabId = `messages_page_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = `/api/messages/stream?tabId=${tabId}`;
-
-    sseClientRef.current = createSSEClient({
-      url,
-      onMessage: (event) => {
-        try {
-          const payload = JSON.parse(event.data) as { type: string; data?: any };
-          if (payload.type === "MESSAGE_CREATED") {
-            void refetchConversations();
-            const { senderId, receiverId } = payload.data ?? {};
-            if (
-              selectedUserId &&
-              (senderId === selectedUserId || receiverId === selectedUserId)
-            ) {
-              void refetchConversation();
-            }
-          }
-          if (payload.type === "MESSAGE_READ") {
-            void refetchConversations();
-            if (selectedUserId) void refetchConversation();
-          }
-        } catch (error) {
-          console.error("Error processing messages page SSE message:", error);
-        }
-      },
-      onOpen: () => {
-        console.log("Messages page SSE connected");
-      },
-      onError: (error) => {
-        console.error("Messages page SSE error:", error);
-      },
-      autoConnect: true,
-    });
-
-    return () => {
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-    };
-  }, [session?.user?.id, selectedUserId, refetchConversations, refetchConversation]);
+  // TODO: Update to use EventContext for real-time message updates
+  // For now, rely on the refetchInterval in queries
 
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {

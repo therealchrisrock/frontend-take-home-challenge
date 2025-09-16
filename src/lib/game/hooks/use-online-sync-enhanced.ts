@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from "react";
-import { useGameSyncEnhanced } from "~/hooks/useGameSyncEnhanced";
+import { useGameState } from "~/contexts/event-context";
 import type { Board, Move } from "~/lib/game/logic";
 import { makeMove } from "~/lib/game/logic";
 import { api } from "~/trpc/react";
@@ -10,259 +10,326 @@ export function useOnlineSyncEnhanced() {
 
   const enabled = state.gameMode === "online" && !!state.gameId;
   const joinGame = api.multiplayerGame.joinGame.useMutation();
-  const hasJoinedRef = React.useRef(false as boolean);
+  const hasJoinedRef = React.useRef(false);
+  const lastAppliedServerMoveCountRef = React.useRef<number | null>(null);
+  const latestLocalMoveCountRef = React.useRef<number>(state.moveCount);
 
-  // Enhanced conflict detection callback
-  const handleConflictDetected = useCallback(
-    (conflictData: {
-      serverBoard: Board;
-      localBoard: Board;
-      serverMoveCount: number;
-      localMoveCount: number;
-    }) => {
-      console.warn("Sync conflict detected:", conflictData);
+  // Keep a ref of the latest local moveCount to compare against server updates without causing effect loops
+  useEffect(() => {
+    latestLocalMoveCountRef.current = state.moveCount;
+  }, [state.moveCount]);
 
-      // Dispatch conflict resolution action to game state
-      dispatch({
-        type: "CONFLICT_RESOLUTION",
-        payload: {
-          strategy: "server-wins", // Default to server wins for now
-          conflictData,
-        },
-      });
-    },
-    [dispatch],
-  );
+  // Use EventContext for real-time game sync
+  const {
+    gameState: eventGameState,
+    isConnected,
+    isReconnecting,
+    connectionError,
+    sendMove: sendGameMove,
+    reconnect,
+  } = useGameState(enabled ? state.gameId : undefined, state.moveCount);
 
-  const [syncState, syncActions] = useGameSyncEnhanced({
-    gameId: state.gameId,
-    enabled,
-    onOpponentMove: (move: Move | null, newGameState: unknown) => {
-      // Check if this is a draw event
-      const raw: any = newGameState;
-      if (raw?.type === "DRAW_REQUEST") {
+  const normalizeColor = (value: unknown): "red" | "black" | undefined => {
+    return value === "red" || value === "black"
+      ? (value as "red" | "black")
+      : undefined;
+  };
+
+  const normalizeWinner = (
+    value: unknown,
+  ): "red" | "black" | "draw" | null | undefined => {
+    return value === "red" ||
+      value === "black" ||
+      value === "draw" ||
+      value === null
+      ? (value as "red" | "black" | "draw" | null)
+      : undefined;
+  };
+
+  // Handle game state updates from EventContext
+  useEffect(() => {
+    if (!eventGameState || !enabled) return;
+
+    // Check for draw events in game state
+    if (eventGameState.status === "DRAW_REQUESTED") {
+      const requestedBy = normalizeColor((eventGameState.state as any)?.drawRequestedBy);
+      if (requestedBy) {
         dispatch({
           type: "SYNC_DRAW_REQUEST",
-          payload: { requestedBy: raw.requestedBy },
+          payload: { requestedBy },
         });
-        return;
-      } else if (raw?.type === "DRAW_ACCEPTED") {
-        dispatch({
-          type: "SYNC_DRAW_ACCEPTED",
-          payload: { acceptedBy: raw.acceptedBy },
-        });
-        return;
-      } else if (raw?.type === "DRAW_DECLINED") {
-        dispatch({
-          type: "SYNC_DRAW_DECLINED",
-          payload: { declinedBy: raw.declinedBy },
-        });
-        return;
       }
-
-      // Otherwise handle as a normal move
-      // Normalize server payloads. Server may send as { data: { gameState } } or flat state
-      const gameData: any = (raw as any)?.gameState ?? raw;
-      let board: Board;
-      try {
-        board =
-          typeof gameData.board === "string"
-            ? (JSON.parse(gameData.board) as Board)
-            : (gameData.board as Board);
-      } catch {
-        return; // ignore malformed payload
-      }
-      const currentPlayer = gameData.currentPlayer as "red" | "black";
-      const moveCount = Number(gameData.moveCount ?? 0);
-      const winner = (gameData.winner ?? null) as "red" | "black" | "draw" | null;
-
-      // Don't update if user is viewing history
-      if (state.isViewingHistory) {
-        return;
-      }
-
-      // Ignore stale snapshots (server behind local optimistic state)
-      if (moveCount < state.moveCount) {
-        return;
-      }
-
-      // Prevent update loops: only dispatch when the snapshot advances
-      if (
-        moveCount === state.moveCount &&
-        currentPlayer === state.currentPlayer &&
-        winner === state.winner
-      ) {
-        return;
-      }
-
-      // Update game state only - sync state is managed independently
+      return;
+    } else if (eventGameState.status === "DRAW_ACCEPTED") {
       dispatch({
-        type: "SERVER_STATE_OVERRIDE",
-        payload: {
-          board,
-          currentPlayer,
-          moveCount,
-          winner,
-        },
+        type: "SYNC_DRAW_ACCEPTED",
+        payload: { acceptedBy: state.currentPlayer },
       });
-    },
-    onConnectionStatusChange: (connected: boolean) => {
-      console.log(`Enhanced game sync connection status: ${connected}`);
-      console.log(`Reducer connection status: ${syncState.connection.status}`);
-      console.log(
-        `isConnected computed value: ${syncState.connection.status === "connected"}`,
-      );
-      // Sync state is managed independently - no dispatch needed
-    },
-    onConflictDetected: handleConflictDetected,
-  });
-
-  // Ensure we join the multiplayer game to claim a player slot before sending moves
-  useEffect(() => {
-    if (!enabled || !state.gameId || hasJoinedRef.current) return;
-    hasJoinedRef.current = true;
-    void joinGame.mutateAsync({ gameId: state.gameId }).catch((err) => {
-      console.warn("Join game failed (non-fatal):", err);
-      hasJoinedRef.current = false; // allow retry on next effect
-    });
-  }, [enabled, state.gameId, joinGame]);
-
-  // Enhanced move sending with optimistic updates
-  const sendMoveWithOptimisticUpdate = useCallback(
-    async (move: Move): Promise<boolean> => {
-      if (!state.gameId || !enabled) return false;
-
-      try {
-        // Create optimistic update ID
-        const optimisticId = syncActions.createOptimisticUpdate(
-          move,
-          state.board,
-          state.currentPlayer,
-          state.moveCount,
-        );
-
-        // Apply optimistic move preview to game state
-        const previewBoard = makeMove(state.board, move, state.rules);
-
+      return;
+    } else if (eventGameState.status === "DRAW_DECLINED") {
+      dispatch({
+        type: "SYNC_DRAW_DECLINED",
+        payload: { declinedBy: state.currentPlayer },
+      });
+      return;
+    } else if (eventGameState.status === "COMPLETED" && (eventGameState.state as any)?.winner) {
+      // Handle resignation or game end
+      const winner = normalizeWinner((eventGameState.state as any).winner);
+      if (winner) {
         dispatch({
-          type: "OPTIMISTIC_MOVE_PREVIEW",
+          type: "SERVER_STATE_OVERRIDE",
           payload: {
-            move,
-            updateId: optimisticId,
-            previewBoard,
+            board: state.board, // Keep current board
+            moveCount: state.moveCount,
+            currentPlayer: state.currentPlayer,
+            winner,
           },
         });
+      }
+      return;
+    }
 
-        // Send move through enhanced sync
-        const success = await syncActions.sendMove(
-          move,
-          state.board,
-          state.currentPlayer,
-          state.moveCount,
-        );
+    // Handle server game updates (opponent moves or confirmations)
+    if (eventGameState.lastMove && eventGameState.state) {
+      const move = eventGameState.lastMove as Move;
 
-        if (!success) {
-          // Rollback optimistic update if send failed
-          dispatch({
-            type: "OPTIMISTIC_MOVE_ROLLBACK",
-            payload: { updateId: optimisticId },
+      // Apply the move to our local state
+      const boardState = eventGameState.state as any;
+      if (boardState.board) {
+        // Get server move count
+        const serverMoveCount: number | undefined =
+          typeof boardState.moveCount === "number"
+            ? boardState.moveCount
+            : undefined;
+
+        // Special handling for the first move: don't filter if lastAppliedServerMoveCountRef is null
+        const isFirstMove = lastAppliedServerMoveCountRef.current === null;
+
+        // Debug logging for first move synchronization
+        if (serverMoveCount === 1 || latestLocalMoveCountRef.current === 0) {
+          console.log("[OnlineSync] First move sync:", {
+            serverMoveCount,
+            localMoveCount: latestLocalMoveCountRef.current,
+            lastApplied: lastAppliedServerMoveCountRef.current,
+            isFirstMove,
           });
         }
 
+        // Only filter stale events if not the first move
+        if (!isFirstMove) {
+          // Ignore stale events: if server moveCount is behind our local moveCount (optimistic preview)
+          if (
+            serverMoveCount !== undefined &&
+            serverMoveCount < latestLocalMoveCountRef.current
+          ) {
+            console.log("[OnlineSync] Ignoring stale event:", {
+              serverMoveCount,
+              localMoveCount: latestLocalMoveCountRef.current,
+            });
+            return;
+          }
+
+          // Prevent re-applying the same server moveCount repeatedly
+          if (
+            serverMoveCount !== undefined &&
+            lastAppliedServerMoveCountRef.current === serverMoveCount
+          ) {
+            console.log("[OnlineSync] Ignoring duplicate event:", {
+              serverMoveCount,
+              lastApplied: lastAppliedServerMoveCountRef.current,
+            });
+            return;
+          }
+        }
+
+        // Parse the board if it's a JSON string
+        let board: Board;
+        try {
+          board =
+            typeof boardState.board === "string"
+              ? JSON.parse(boardState.board)
+              : boardState.board;
+        } catch (error) {
+          console.error("Failed to parse board state:", error);
+          return;
+        }
+
+        const nextPlayer =
+          normalizeColor(boardState.currentPlayer) || state.currentPlayer;
+        const winner = normalizeWinner(boardState.winner);
+        const moveCount =
+          typeof boardState.moveCount === "number"
+            ? boardState.moveCount
+            : latestLocalMoveCountRef.current + 1;
+
+        // Log the state override for debugging
+        console.log("[OnlineSync] Applying server state:", {
+          moveCount,
+          currentPlayer: nextPlayer,
+          hasWinner: winner !== undefined,
+        });
+
+        dispatch({
+          type: "SERVER_STATE_OVERRIDE",
+          payload: {
+            board,
+            moveCount,
+            currentPlayer: nextPlayer,
+            ...(winner !== undefined ? { winner } : {}),
+            lastMove: move,  // Include the move for sound playback
+          },
+        });
+
+        // Update the last applied server move count
+        if (serverMoveCount !== undefined) {
+          lastAppliedServerMoveCountRef.current = serverMoveCount;
+        }
+      }
+    }
+  }, [eventGameState, enabled, dispatch]);
+
+  // Handle connection state changes
+  useEffect(() => {
+    if (!enabled) return;
+
+    const status = isConnected
+      ? "connected"
+      : isReconnecting
+        ? "reconnecting"
+        : "disconnected";
+    dispatch({
+      type: "SYNC_STATE_UPDATE",
+      payload: {
+        connection: {
+          status,
+          error: connectionError ?? null,
+        },
+      },
+    });
+  }, [isConnected, isReconnecting, connectionError, enabled, dispatch]);
+
+  // Join game on mount if not already joined
+  useEffect(() => {
+    if (enabled && state.gameId && isConnected && !hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      joinGame
+        .mutateAsync({ gameId: state.gameId })
+        .then((result) => {
+          console.log("Successfully joined game");
+          // Initialize the lastAppliedServerMoveCountRef with the current game moveCount
+          // This prevents the first move from being incorrectly filtered
+          if (result && typeof result.gameState?.moveCount === "number") {
+            lastAppliedServerMoveCountRef.current = result.gameState.moveCount;
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to join game:", error);
+          hasJoinedRef.current = false;
+        });
+    }
+  }, [enabled, state.gameId, isConnected, joinGame]);
+
+  // Enhanced sendMove with optimistic updates
+  const sendMove = useCallback(
+    async (move: Move): Promise<boolean> => {
+      if (!state.gameId || !isConnected) {
+        console.log("Cannot send move: not connected or no gameId");
+        return false;
+      }
+
+      // Optimistically apply the move locally
+      const previewBoard = makeMove(state.board, move, state.rules as any);
+      const updateId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      dispatch({
+        type: "OPTIMISTIC_MOVE_PREVIEW",
+        payload: {
+          move,
+          updateId,
+          previewBoard,
+        },
+      });
+
+      // Send the move through EventContext with server version when available
+      const serverVersion = (() => {
+        const v = (eventGameState as any)?.state?.version;
+        // Use the current moveCount as version for the first move or when version is not available
+        return typeof v === "number" ? v : state.moveCount;
+      })();
+
+      try {
+        const success = await sendGameMove(move, serverVersion);
+
+        if (!success) {
+          // Only rollback if the move explicitly failed
+          console.log("Move failed, rolling back optimistic update");
+          dispatch({
+            type: "OPTIMISTIC_MOVE_ROLLBACK",
+            payload: { updateId },
+          });
+        }
+        // If successful, the server confirmation will override the optimistic update
+        // through the SERVER_STATE_OVERRIDE action
+
         return success;
       } catch (error) {
-        console.error("Failed to send move with optimistic update:", error);
+        console.error("Error sending move:", error);
+        // Rollback on error
+        dispatch({
+          type: "OPTIMISTIC_MOVE_ROLLBACK",
+          payload: { updateId },
+        });
         return false;
       }
     },
-    [state, syncActions, dispatch, enabled],
+    [
+      state.gameId,
+      state.board,
+      state.rules,
+      state.moveCount,
+      isConnected,
+      sendGameMove,
+      dispatch,
+      (eventGameState as any)?.state?.version,
+    ],
   );
 
-  // Note: Removed the useEffect that was causing infinite loops
-  // The syncState is now managed independently and accessed directly
-
-  // Fallback polling when SSE is not connected
-  const { data: polledState } = api.multiplayerGame.getGameState.useQuery(
-    { gameId: state.gameId as string },
-    {
-      enabled:
-        enabled &&
-        syncState.connection.status !== "connected" &&
-        !!state.gameId,
-      refetchOnWindowFocus: false,
-      refetchInterval: 2000,
-    },
-  );
-
-  // Handle polled data with enhanced conflict detection
+  // Process any queued moves when reconnected (using syncState.moveQueue.pending)
   useEffect(() => {
-    if (!polledState || !enabled) return;
-
-    // Don't update if user is viewing history
-    if (state.isViewingHistory) {
-      return;
-    }
-
-    // Check for conflicts between polled state and current state
-    const serverMoveCount = polledState.moveCount;
-    const localMoveCount = state.moveCount;
-
-    // Ignore stale polls (server behind local optimistic state)
-    if (serverMoveCount < localMoveCount) {
-      return;
-    }
-
-    // Prevent update loops: only dispatch when the snapshot advances
-    if (
-      polledState.moveCount === state.moveCount &&
-      polledState.currentPlayer === state.currentPlayer &&
-      polledState.winner === state.winner
-    ) {
-      return;
-    }
-
-    try {
-      const board =
-        typeof polledState.board === "string"
-          ? (JSON.parse(polledState.board) as Board)
-          : (polledState.board as unknown as Board);
-
-      dispatch({
-        type: "SERVER_STATE_OVERRIDE",
-        payload: {
-          board,
-          currentPlayer: polledState.currentPlayer,
-          moveCount: polledState.moveCount,
-          winner: polledState.winner,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to process polled state:", error);
+    const pending = state.syncState?.moveQueue?.pending ?? [];
+    if (isConnected && pending.length > 0) {
+      const processQueue = async () => {
+        for (const queuedMove of pending) {
+          await sendMove(queuedMove);
+        }
+        // Clear pending queue
+        const currentMoveQueue = state.syncState?.moveQueue ?? {
+          offline: [],
+          retry: [],
+          pending: [],
+        };
+        dispatch({
+          type: "SYNC_STATE_UPDATE",
+          payload: {
+            moveQueue: { ...currentMoveQueue, pending: [] },
+          } as any,
+        });
+      };
+      void processQueue();
     }
   }, [
-    polledState,
-    state.moveCount,
-    state.currentPlayer,
-    state.winner,
-    state.board,
-    state.isViewingHistory,
-    syncState,
+    isConnected,
+    state.syncState?.moveQueue?.pending,
+    sendMove,
     dispatch,
-    enabled,
-    handleConflictDetected,
+    state.syncState?.moveQueue,
   ]);
 
   return {
-    enabled,
-    canMoveThisTab: true, // Always allow moves - conflict resolution handles issues
-    syncState,
-    syncActions,
-    sendMoveWithOptimisticUpdate,
-    isConnected: syncState.connection.status === "connected",
-    isReconnecting: syncState.connection.status === "reconnecting",
-    hasOptimisticUpdates: syncState.optimistic.pendingCount > 0,
-    hasQueuedMoves:
-      syncState.moveQueue.offline.length + syncState.moveQueue.retry.length > 0,
-    isInConflictResolution: syncState.sync.isProcessingConflict,
-  } as const;
+    isConnected,
+    isReconnecting,
+    connectionError,
+    sendMove,
+    reconnect,
+  };
 }

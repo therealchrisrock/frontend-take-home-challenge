@@ -23,10 +23,10 @@ interface BoardProps {
   shouldFlip?: boolean;
   replayMode?: boolean;
   winner?: "red" | "black" | "draw" | null;
-  onSquareClick: (position: Position, event?: React.MouseEvent) => void;
-  onDragStart: (position: Position) => void;
-  onDragEnd: () => void;
-  onDrop: (position: Position) => void;
+  onSquareClick?: (position: Position, event?: React.MouseEvent) => void;
+  onDragStart?: (position: Position) => void;
+  onDragEnd?: () => void;
+  onDrop?: (position: Position) => void;
 }
 
 export function Board({
@@ -181,10 +181,10 @@ export function Board({
                 position={position}
                 isBlack={isBlack}
                 isHighlighted={false}
-                isSelected={isSelected}
-                isPossibleMove={isPossibleMove}
-                isKeyboardFocused={isKeyboardFocused}
-                onClick={() => onSquareClick(position)}
+                isSelected={isSelected && !replayMode}
+                isPossibleMove={isPossibleMove && !replayMode}
+                isKeyboardFocused={isKeyboardFocused && !replayMode}
+                onClick={() => !replayMode && onSquareClick && onSquareClick(position)}
                 onKeyDown={(e) => {
                   if (replayMode) return;
                   if (
@@ -194,7 +194,9 @@ export function Board({
                     (e).code === "Space"
                   ) {
                     e.preventDefault();
-                    onSquareClick(position);
+                    if (onSquareClick) {
+                      onSquareClick(position);
+                    }
                     return;
                   }
                   if (e.key === "ArrowUp") {
@@ -232,7 +234,7 @@ export function Board({
                 ariaColIndex={actualCol + 1}
                 ref={(node) => setSquareRef(key, node)}
                 onDrop={
-                  replayMode
+                  replayMode || !onDrop
                     ? undefined
                     : (e) => {
                       e.preventDefault();
@@ -249,7 +251,7 @@ export function Board({
                     mustCapture={mustCapture}
                     hasOtherMustCapture={mustCapturePositions.length > 0}
                     onDragStart={
-                      replayMode
+                      replayMode || !onDragStart
                         ? undefined
                         : (e: React.DragEvent) => {
                           e.dataTransfer.effectAllowed = "move";
@@ -257,7 +259,7 @@ export function Board({
                         }
                     }
                     onDragEnd={
-                      replayMode
+                      replayMode || !onDragEnd
                         ? undefined
                         : (_e: React.DragEvent) => {
                           // ignore event, just delegate to parent

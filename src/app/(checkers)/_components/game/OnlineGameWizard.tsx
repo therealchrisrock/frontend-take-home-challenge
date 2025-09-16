@@ -2,7 +2,7 @@
 
 import { AnimatePresence, m } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Session } from "next-auth";
 import { useToast } from "~/hooks/use-toast";
@@ -63,6 +63,15 @@ export function OnlineGameWizard({
     setIsTransitioning(false);
   }, [stepParam]);
 
+  // Cleanup any pending copy reset timer on unmount
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Game configuration state
   const [selectedFriend, setSelectedFriend] = useState<{
     id: string;
@@ -74,6 +83,9 @@ export function OnlineGameWizard({
   const [variant, setVariant] = useState<BoardVariant>("american");
   const [timeControl, setTimeControl] = useState<TimeControl | null>(null);
   const [hostColor, setHostColor] = useState<"red" | "black" | "random">("red");
+  // Copy-to-clipboard UI state
+  const [copied, setCopied] = useState(false);
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Invitation state
   const [invitation, setInvitation] = useState<{
@@ -369,12 +381,35 @@ export function OnlineGameWizard({
                               />
                               <button
                                 type="button"
-                                className="px-3 py-2 border rounded-md"
+                                className="h-9 px-3 border rounded-md w-20 flex items-center justify-center leading-none text-sm"
                                 onClick={async () => {
                                   await navigator.clipboard.writeText(invitation.inviteUrl);
-                                  toast({ title: "Copied!", description: "Invitation link copied" });
+                                  setCopied(true);
+                                  if (copyResetTimeoutRef.current) {
+                                    clearTimeout(copyResetTimeoutRef.current);
+                                  }
+                                  copyResetTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
                                 }}
-                              >Copy</button>
+                                aria-label={copied ? "Copied" : "Copy"}
+                                title={copied ? "Copied" : "Copy"}
+                              >
+                                {copied ? (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-4 w-4"
+                                  >
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                ) : (
+                                  "Copy"
+                                )}
+                              </button>
                             </div>
                           </div>
                         )}

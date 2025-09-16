@@ -7,7 +7,7 @@ A comprehensive social system that enables player interaction through friends, m
 The social platform provides multiple interfaces for player interaction:
 - **Friend Management**: Add, remove, block/unblock users, manage friend requests
 - **Real-time Messaging**: Send messages, view conversations, instant chat
-- **Notification System**: Real-time updates via Server-Sent Events
+- **Notification System**: Real-time updates via unified Event System
 - **Game Integration**: Social features accessible during gameplay
 
 ## Component Architecture
@@ -145,11 +145,11 @@ function App() {
 
 ## Real-time Integration
 
-### Server-Sent Events (SSE)
-The social system uses SSE for real-time updates:
+### Real-time Event System
+The social system uses the unified EventContext for real-time updates:
 
-- **Notification Stream** (`/api/notifications/stream`) - Friend requests, messages, system notifications
-- **Message Stream** (`/api/messages/stream`) - Real-time message delivery and read receipts
+- **Notification Events** - Friend requests, messages, system notifications via `api.events.onAllEvents`
+- **Message Events** - Real-time message delivery and read receipts via EventContext
 - **Connection Management** - Automatic reconnection with exponential backoff
 
 ### tRPC API Integration
@@ -223,7 +223,7 @@ Uses Tailwind CSS with Shadcn/ui components:
 
 ### ✅ Implemented Features
 - Complete friend management system
-- Real-time messaging with SSE
+- Real-time messaging with EventContext
 - Notification system with multiple types
 - User search and discovery
 - Block/unblock functionality
@@ -236,7 +236,7 @@ Uses Tailwind CSS with Shadcn/ui components:
 
 ### 🚧 Known Issues
 - **Message ordering** - Occasional race conditions in high-frequency messaging
-- **SSE reconnection** - May require page refresh in some edge cases
+- **Event reconnection** - Automatic recovery with exponential backoff
 - **Mobile notifications** - Push notifications not yet implemented
 - **Large conversation loading** - Performance optimization needed for 1000+ messages
 
@@ -253,6 +253,6 @@ Uses Tailwind CSS with Shadcn/ui components:
 
 ### Performance Improvements
 - **Message virtualization** - Efficient rendering of large conversation histories
-- **Connection pooling** - Optimized SSE connection management
+- **Single connection** - Unified event subscription for all real-time data
 - **Caching strategies** - Redis integration for improved response times
 - **Image optimization** - CDN integration for avatar and file storage

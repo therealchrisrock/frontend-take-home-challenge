@@ -18,6 +18,7 @@ import { useGameTimers } from "~/lib/game/hooks/use-game-timers";
 import { useMustCapture } from "~/lib/game/hooks/use-must-capture";
 import { useOnlineMultiplayer } from "~/lib/game/hooks/use-online-multiplayer";
 import { useOnlineSyncEnhanced } from "~/lib/game/hooks/use-online-sync-enhanced";
+import { useTurnWinnerCheck } from "~/lib/game/hooks/use-turn-winner-check";
 import { useGame } from "~/lib/game/state/game-context";
 
 
@@ -35,9 +36,9 @@ export function GameScreen() {
   const { mustCapturePositions, onSquareClick, onDragStart, onDrop } =
     useMustCapture(async (move) => {
       if (state.gameMode === "online" && state.gameId) {
-        // Prefer enhanced sync when enabled; otherwise use legacy send
-        if (enhancedSync.enabled) {
-          await enhancedSync.sendMoveWithOptimisticUpdate(move);
+        // Use enhanced sync for sending moves
+        if (enhancedSync.isConnected) {
+          await enhancedSync.sendMove(move);
         } else {
           await sendMove(move, { gameVersion: state.moveCount });
         }
@@ -48,21 +49,20 @@ export function GameScreen() {
     volume: settings.sfxVolume / 100,
   });
 
-  // Play start game sound immediately for non-online
+  // Play start game sound immediately when game starts
   useEffect(() => {
-    if (state.gameMode !== "online" && state.moveCount === 0 && !state.winner) {
+    if (state.moveCount === 0 && !state.winner) {
       playStartGame();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useAI();
   useAutoSave(); // Auto-save game state
+  useTurnWinnerCheck(); // Check for winners at turn start
 
   // Use enhanced sync for all game modes
-  const { enabled: onlineEnabled, canMoveThisTab } = {
-    enabled: enhancedSync.enabled,
-    canMoveThisTab: enhancedSync.canMoveThisTab
-  };
+  const onlineEnabled = enhancedSync.isConnected;
+  const canMoveThisTab = true; // EventContext handles tab synchronization internally
   const timer = useGameTimers();
   const showPostGameAnalysis =
     state.winner &&
@@ -311,6 +311,7 @@ export function GameScreen() {
         boardVariant={state.boardVariant}
         aiDifficulty={state.aiDifficulty}
         timeControl={state.timeControl}
+        gameId={state.gameId ?? undefined}
       />
 
     </div>

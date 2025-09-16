@@ -185,7 +185,7 @@ output: {
 
 ### Real-time Updates
 
-The components expect real-time updates via Server-Sent Events (SSE) for:
+The components expect real-time updates via the unified EventContext for:
 
 - Invitation status changes
 - Game readiness notifications
@@ -197,9 +197,9 @@ The components expect real-time updates via Server-Sent Events (SSE) for:
 
 The multiplayer system uses multiple channels for real-time updates:
 
-#### Server-Sent Events (SSE)
-- **Game State Updates** (`/api/game/[id]/mp-stream`) - Real-time move synchronization
-- **Invitation Status** (`/api/notifications/stream`) - Invitation acceptance/decline
+#### Unified Event System (via tRPC Subscriptions)
+- **Game State Updates** - Real-time move synchronization via EventContext
+- **Invitation Status** - Invitation acceptance/decline via notification events
 - **Connection Status** - Player connection monitoring
 
 #### tRPC Procedures
@@ -240,15 +240,15 @@ The system supports guest players through:
 
 ### Browser Compatibility
 - **Safari Mobile**: Drag-and-drop occasionally fails on iOS Safari
-- **Firefox**: SSE connections may timeout more frequently
+- **Firefox**: Event connections may timeout more frequently
 - **WebKit**: Some animation artifacts on older WebKit versions
 
 ## 🏗️ Architectural Decisions
 
 ### Real-time Synchronization Strategy
 
-**Decision**: Hybrid SSE + Optimistic Updates
-- **Server-Sent Events** for authoritative game state broadcasts
+**Decision**: Hybrid Event System + Optimistic Updates
+- **Unified Event System** for authoritative game state broadcasts
 - **Optimistic Updates** for immediate UI feedback
 - **Conflict Resolution** through server-side validation and rollback
 
@@ -284,8 +284,8 @@ The system supports guest players through:
 
 ### Spectating Architecture (IN PROGRESS)
 
-**Decision**: Read-only SSE Streams with Permission Gates
-- **Separate Streams**: Spectator-specific SSE endpoints
+**Decision**: Read-only Event Streams with Permission Gates
+- **Channel-based Events**: Spectator-specific event channels
 - **Permission System**: View access based on game visibility settings
 - **Minimal State**: Spectators receive move events, not full game state
 
@@ -307,7 +307,7 @@ The system supports guest players through:
 - **Lazy Loading**: Code splitting for invitation and game components
 
 ### Network Efficiency
-- **SSE Heartbeats**: Efficient connection monitoring
+- **Event Heartbeats**: Efficient connection monitoring
 - **Differential Updates**: Only broadcast changed game state
 - **Compression**: Gzip compression for move data
 
@@ -316,7 +316,7 @@ The system supports guest players through:
 ### Current Technical Debt
 - **Error Boundary Coverage**: Inconsistent error handling across components
 - **Test Coverage**: Integration tests needed for multiplayer flows
-- **Type Safety**: Some any types in SSE event handling
+- **Type Safety**: Some any types in event handling
 - **Performance Monitoring**: Need metrics for sync latency and conflicts
 
 ### Planned Refactoring
@@ -330,12 +330,12 @@ The system supports guest players through:
 ### Key Metrics (Planned)
 - **Game Completion Rate**: Percentage of started games that finish
 - **Sync Conflict Frequency**: Rate of move conflicts requiring resolution
-- **Connection Stability**: SSE disconnection and reconnection rates
+- **Connection Stability**: Event connection disconnection and reconnection rates
 - **Invitation Conversion**: Rate of sent invitations that result in games
 
 ### Error Tracking
 - Move validation failures
-- SSE connection errors
+- Event connection errors
 - State synchronization conflicts
 - Client-server state mismatches
 

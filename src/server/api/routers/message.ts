@@ -2,8 +2,9 @@ import { NotificationType } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { sseHub } from "~/lib/sse/sse-hub";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { eventEmitter } from "~/server/event-emitter";
+import { createEvent, SSEEventType } from "~/types/sse-events";
 
 export const messageRouter = createTRPCRouter({
   sendMessage: protectedProcedure
@@ -85,39 +86,37 @@ export const messageRouter = createTRPCRouter({
           },
         });
 
-        // Broadcast via the notifications SSE namespace for NotificationProvider consumers
-        sseHub.broadcast("notifications", input.receiverId, {
-          type: "NOTIFICATION_CREATED",
-          data: {
-            id: createdNotification.id,
-            type: "MESSAGE",
-            title: createdNotification.title,
-            message: createdNotification.message,
-            metadata: createdNotification.metadata
-              ? JSON.parse(createdNotification.metadata as any)
-              : undefined,
-            relatedEntityId: createdNotification.relatedEntityId ?? undefined,
-            createdAt: createdNotification.createdAt.toISOString(),
-          },
+        // Emit notification event
+        const notificationEvent = createEvent(SSEEventType.NOTIFICATION_CREATED, {
+          id: createdNotification.id,
+          type: "MESSAGE" as any,
+          title: createdNotification.title,
+          message: createdNotification.message ?? "",
+          read: createdNotification.read,
+          createdAt: createdNotification.createdAt.toISOString(),
+          relatedEntityId: createdNotification.relatedEntityId,
+          relatedEntityType: createdNotification.relatedEntityType,
+          metadata: createdNotification.metadata ? JSON.parse(createdNotification.metadata as string) : undefined,
         });
+        eventEmitter.emitToUser(input.receiverId, notificationEvent);
       } catch (err) {
         console.error("Failed to create/broadcast message notification", err);
       }
 
-      // Broadcast to both participants so UIs can refetch
-      sseHub.broadcastMany(
-        "messages",
-        [ctx.session.user.id, input.receiverId],
-        {
-          type: "MESSAGE_CREATED",
-          data: {
-            messageId: message.id,
-            senderId: message.senderId,
-            receiverId: message.receiverId,
-            createdAt: message.createdAt.toISOString(),
-          },
-        },
-      );
+      // Emit message event to both participants
+      const messageEvent = createEvent(SSEEventType.MESSAGE_RECEIVED, {
+        id: message.id,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        content: message.content,
+        createdAt: message.createdAt.toISOString(),
+        read: message.read,
+        chatId: input.receiverId,
+        senderName: ctx.session.user.name ?? ctx.session.user.username ?? "Unknown",
+        senderAvatar: ctx.session.user.image,
+      });
+      eventEmitter.emitToUser(input.receiverId, messageEvent);
+      eventEmitter.emitToUser(ctx.session.user.id, messageEvent);
 
       return message;
     }),
@@ -331,17 +330,14 @@ export const messageRouter = createTRPCRouter({
         where: { id: input.messageId },
       });
       if (updated) {
-        sseHub.broadcastMany(
-          "messages",
-          [updated.senderId, updated.receiverId],
-          {
-            type: "MESSAGE_READ",
-            data: {
-              messageId: input.messageId,
-              readAt: new Date().toISOString(),
-            },
-          },
-        );
+        // Emit message read event
+        const readEvent = createEvent(SSEEventType.MESSAGE_READ, {
+          messageId: input.messageId,
+          userId: ctx.session.user.id,
+          chatId: updated.senderId,
+        });
+        eventEmitter.emitToUser(updated.senderId, readEvent);
+        eventEmitter.emitToUser(updated.receiverId, readEvent);
       }
 
       return { success: true };

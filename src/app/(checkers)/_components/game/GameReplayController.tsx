@@ -4,6 +4,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Keyboard,
   Pause,
   Play,
   SkipBack,
@@ -13,7 +14,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -27,6 +28,12 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Slider } from "~/components/ui/slider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import type {
   Board as BoardType,
   Move,
@@ -197,10 +204,74 @@ export default function GameReplayController({
     setIsPlaying(false);
   };
 
-  const handleSquareClick = (position: Position) => {
-    const piece = board[position.row]?.[position.col];
+  // Keyboard navigation handlers
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Prevent keyboard navigation when typing in inputs
+    if (event.target instanceof HTMLInputElement || 
+        event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
 
-    if (piece && analysisMode) {
+    switch (event.key) {
+      case "ArrowLeft":
+        event.preventDefault();
+        if (currentMoveIndex > 0) {
+          setCurrentMoveIndex((prev) => prev - 1);
+        }
+        break;
+      case "ArrowRight":
+        event.preventDefault();
+        if (gameData?.moves && currentMoveIndex < gameData.moves.length) {
+          setCurrentMoveIndex((prev) => prev + 1);
+        }
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setCurrentMoveIndex(0);
+        setIsPlaying(false);
+        break;
+      case "ArrowDown":
+        event.preventDefault();
+        if (gameData?.moves) {
+          setCurrentMoveIndex(gameData.moves.length);
+        }
+        break;
+      case " ": // Spacebar
+        event.preventDefault();
+        if (gameData?.moves && currentMoveIndex < gameData.moves.length) {
+          setIsPlaying((prev) => !prev);
+        }
+        break;
+      case "Home":
+        event.preventDefault();
+        setCurrentMoveIndex(0);
+        setIsPlaying(false);
+        break;
+      case "End":
+        event.preventDefault();
+        if (gameData?.moves) {
+          setCurrentMoveIndex(gameData.moves.length);
+        }
+        break;
+    }
+  }, [currentMoveIndex, gameData?.moves]);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
+  const handleSquareClick = (position: Position) => {
+    // Disable all interaction in replay mode unless analysis mode is enabled
+    if (!analysisMode) {
+      return;
+    }
+    
+    const piece = board[position.row]?.[position.col];
+    if (piece) {
       setSelectedPosition(position);
       const moves = getValidMoves(board, position, currentPlayer);
       setValidMoves(moves);
@@ -292,18 +363,12 @@ export default function GameReplayController({
                   <Board
                     board={board}
                     currentPlayer={currentPlayer}
-                    onSquareClick={analysisMode ? handleSquareClick : () => undefined}
+                    onSquareClick={analysisMode ? handleSquareClick : undefined}
                     selectedPosition={analysisMode ? selectedPosition : null}
                     validMoves={analysisMode ? validMoves : []}
-                    onDragStart={() => {
-                      /* No-op in replay mode */
-                    }}
-                    onDragEnd={() => {
-                      /* No-op in replay mode */
-                    }}
-                    onDrop={() => {
-                      /* No-op in replay mode */
-                    }}
+                    onDragStart={undefined}
+                    onDragEnd={undefined}
+                    onDrop={undefined}
                     draggingPosition={null}
                     mustCapturePositions={[]}
                     replayMode={true}
@@ -323,9 +388,30 @@ export default function GameReplayController({
                     <span>
                       Move {currentMoveIndex} of {moves.length}
                     </span>
-                    <span>
-                      {currentPlayer === "red" ? "Red" : "Black"} to move
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {currentPlayer === "red" ? "Red" : "Black"} to move
+                      </span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-5 w-5">
+                              <Keyboard className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            <div className="space-y-1 text-xs">
+                              <p className="font-semibold">Keyboard Shortcuts:</p>
+                              <p>← / → : Previous/Next move</p>
+                              <p>↑ : Jump to start</p>
+                              <p>↓ : Jump to end</p>
+                              <p>Space : Play/Pause</p>
+                              <p>Home/End : First/Last move</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <Slider
                     value={[currentMoveIndex]}

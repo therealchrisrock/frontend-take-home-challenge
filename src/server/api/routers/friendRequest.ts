@@ -2,7 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { FriendRequestStatus, NotificationType } from "@prisma/client";
-import { sseHub } from "~/lib/sse/sse-hub";
+import { eventEmitter } from "~/server/event-emitter";
+import { 
+  createEvent, 
+  SSEEventType,
+  type FriendRequestPayload,
+  type NotificationPayload,
+} from "~/types/sse-events";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const friendRequestRouter = createTRPCRouter({
@@ -158,11 +164,29 @@ export const friendRequestRouter = createTRPCRouter({
           },
         });
 
-        // Emit SSE for real-time delivery (best-effort)
+        // Emit events for real-time delivery
         try {
-          sseHub.broadcast("notifications", input.userId, {
-            type: "NOTIFICATION_CREATED",
-            payload: {
+          // Emit friend request event
+          const friendRequestEvent = createEvent<FriendRequestPayload>(
+            SSEEventType.FRIEND_REQUEST_RECEIVED,
+            {
+              requestId: friendRequest.id,
+              senderId: ctx.session.user.id,
+              senderName: friendRequest.sender.name,
+              senderUsername: friendRequest.sender.username,
+              senderImage: friendRequest.sender.image,
+              message: input.message,
+              status: 'PENDING',
+              createdAt: friendRequest.createdAt.toISOString(),
+            },
+            { userId: input.userId }
+          );
+          eventEmitter.emitToUser(input.userId, friendRequestEvent);
+          
+          // Emit notification event
+          const notificationEvent = createEvent<NotificationPayload>(
+            SSEEventType.NOTIFICATION_CREATED,
+            {
               id: created.id,
               type: "FRIEND_REQUEST",
               title: created.title,
@@ -173,11 +197,12 @@ export const friendRequestRouter = createTRPCRouter({
               relatedEntityId: created.relatedEntityId ?? undefined,
               createdAt: created.createdAt.toISOString(),
             },
-            timestamp: new Date().toISOString(),
-            userId: input.userId,
-          } as any);
+            { userId: input.userId }
+          );
+          eventEmitter.emitToUser(input.userId, notificationEvent);
+          
         } catch (err) {
-          console.error("Failed to broadcast FRIEND_REQUEST notification", err);
+          console.error("Failed to emit FRIEND_REQUEST events", err);
         }
 
         return friendRequest;
@@ -308,11 +333,25 @@ export const friendRequestRouter = createTRPCRouter({
           },
         });
 
-        // Emit SSE to sender
+        // Emit events to sender
         try {
-          sseHub.broadcast("notifications", friendRequest.senderId, {
-            type: "NOTIFICATION_CREATED",
-            payload: {
+          // Emit friend request accepted event
+          const acceptedEvent = createEvent<FriendRequestPayload>(
+            SSEEventType.FRIEND_REQUEST_ACCEPTED,
+            {
+              requestId: friendRequest.id,
+              senderId: friendRequest.senderId,
+              receiverId: ctx.session.user.id,
+              status: 'ACCEPTED',
+            },
+            { userId: friendRequest.senderId }
+          );
+          eventEmitter.emitToUser(friendRequest.senderId, acceptedEvent);
+          
+          // Emit notification event
+          const notificationEvent = createEvent<NotificationPayload>(
+            SSEEventType.NOTIFICATION_CREATED,
+            {
               id: created.id,
               type: "FRIEND_REQUEST_ACCEPTED",
               title: created.title,
@@ -323,12 +362,13 @@ export const friendRequestRouter = createTRPCRouter({
               relatedEntityId: created.relatedEntityId ?? undefined,
               createdAt: created.createdAt.toISOString(),
             },
-            timestamp: new Date().toISOString(),
-            userId: friendRequest.senderId,
-          } as any);
+            { userId: friendRequest.senderId }
+          );
+          eventEmitter.emitToUser(friendRequest.senderId, notificationEvent);
+          
         } catch (err) {
           console.error(
-            "Failed to broadcast FRIEND_REQUEST_ACCEPTED notification",
+            "Failed to emit FRIEND_REQUEST_ACCEPTED events",
             err,
           );
         }
@@ -412,11 +452,25 @@ export const friendRequestRouter = createTRPCRouter({
           },
         });
 
-        // Emit SSE to sender
+        // Emit events to sender
         try {
-          sseHub.broadcast("notifications", friendRequest.senderId, {
-            type: "NOTIFICATION_CREATED",
-            payload: {
+          // Emit friend request declined event
+          const declinedEvent = createEvent<FriendRequestPayload>(
+            SSEEventType.FRIEND_REQUEST_DECLINED,
+            {
+              requestId: friendRequest.id,
+              senderId: friendRequest.senderId,
+              receiverId: ctx.session.user.id,
+              status: 'DECLINED',
+            },
+            { userId: friendRequest.senderId }
+          );
+          eventEmitter.emitToUser(friendRequest.senderId, declinedEvent);
+          
+          // Emit notification event
+          const notificationEvent = createEvent<NotificationPayload>(
+            SSEEventType.NOTIFICATION_CREATED,
+            {
               id: created.id,
               type: "FRIEND_REQUEST_DECLINED",
               title: created.title,
@@ -427,12 +481,13 @@ export const friendRequestRouter = createTRPCRouter({
               relatedEntityId: created.relatedEntityId ?? undefined,
               createdAt: created.createdAt.toISOString(),
             },
-            timestamp: new Date().toISOString(),
-            userId: friendRequest.senderId,
-          } as any);
+            { userId: friendRequest.senderId }
+          );
+          eventEmitter.emitToUser(friendRequest.senderId, notificationEvent);
+          
         } catch (err) {
           console.error(
-            "Failed to broadcast FRIEND_REQUEST_DECLINED notification",
+            "Failed to emit FRIEND_REQUEST_DECLINED events",
             err,
           );
         }

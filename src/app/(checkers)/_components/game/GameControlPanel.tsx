@@ -52,7 +52,7 @@ export function GameControlPanel({ }: GameControlPanelProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { data: session } = useSession();
-  const { sendDrawRequest, sendDrawResponse } = useOnlineMultiplayer({ 
+  const { sendDrawRequest, sendDrawResponse, sendResign } = useOnlineMultiplayer({ 
     gameId: state.gameMode === "online" ? state.gameId : undefined 
   });
 
@@ -90,15 +90,23 @@ export function GameControlPanel({ }: GameControlPanelProps) {
   const canResign =
     canInteract &&
     !!state.currentPlayer &&
-    (state.gameMode === "local" || state.gameMode === "ai");
+    (state.gameMode === "local" || state.gameMode === "ai" || state.gameMode === "online");
 
-  const handleResign = () => {
+  const handleResign = async () => {
     if (!state.currentPlayer) return;
     if (state.gameMode === "local") {
       dispatch({ type: "RESIGN", payload: state.currentPlayer });
     } else if (state.gameMode === "ai") {
       // In AI mode, the human player can always resign regardless of turn
       dispatch({ type: "RESIGN", payload: state.playerColor as PieceColor });
+    } else if (state.gameMode === "online") {
+      // For online mode, send resignation to server
+      const playerId = session?.user?.id ?? null;
+      const success = await sendResign(playerId);
+      if (!success) {
+        // Handle error if resignation fails
+        console.error("Failed to resign from online game");
+      }
     }
     setShowResignDialog(false);
   };
@@ -298,7 +306,9 @@ export function GameControlPanel({ }: GameControlPanelProps) {
                 declare{" "}
                 {state.gameMode === "local"
                   ? `${state.currentPlayer === "red" ? "Black" : "Red"}`
-                  : state.playerColor === "red" ? "Black (AI)" : "Red (AI)"}{" "}
+                  : state.gameMode === "ai" 
+                    ? state.playerColor === "red" ? "Black (AI)" : "Red (AI)"
+                    : "your opponent"}{" "}
                 as the winner.
               </AlertDialogDescription>
             </AlertDialogHeader>

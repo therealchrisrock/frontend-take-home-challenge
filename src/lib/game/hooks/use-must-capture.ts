@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import {
-  checkWinner,
   getMustCapturePositions,
   getValidMoves,
   makeMove,
@@ -31,14 +30,12 @@ export function useMustCapture(onMoveApplied?: (move: Move) => void) {
       } else {
         // Local/AI games: apply move immediately
         const newBoard = makeMove(state.board, move, state.rules);
-        // Pass draw state to check for draw conditions after the move is applied
-        // Note: The draw state will be updated in the reducer after this move
-        const winner = checkWinner(newBoard, state.rules, state.drawState);
-        dispatch({ type: "APPLY_MOVE", payload: { newBoard, move, winner } });
+        // Don't check winner here - let turn-based checking handle it
+        dispatch({ type: "APPLY_MOVE", payload: { newBoard, move, winner: null } });
         if (onMoveApplied) onMoveApplied(move);
       }
     },
-    [dispatch, state.board, state.rules, state.drawState, state.gameMode, onMoveApplied],
+    [dispatch, state.board, state.rules, state.gameMode, onMoveApplied],
   );
 
   const onSquareClick = useCallback(

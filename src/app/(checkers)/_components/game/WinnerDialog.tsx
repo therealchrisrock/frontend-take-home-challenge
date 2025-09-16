@@ -34,6 +34,7 @@ interface WinnerDialogProps {
     incrementSeconds: number;
     preset?: "bullet" | "blitz" | "rapid" | "classical" | "custom";
   } | null;
+  gameId?: string;
 }
 
 export function WinnerDialog({
@@ -47,6 +48,7 @@ export function WinnerDialog({
   boardVariant = "american",
   aiDifficulty = "medium",
   timeControl = null,
+  gameId,
 }: WinnerDialogProps) {
   const router = useRouter();
   const [isCreatingGame, setIsCreatingGame] = useState(false);
@@ -173,9 +175,9 @@ export function WinnerDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <div className="flex w-full gap-2">
-            {onStartAnalysis && (
+            {gameId && (
               <Button
-                onClick={onStartAnalysis}
+                onClick={() => router.push(`/game/${gameId}/replay?analysis=true`)}
                 variant="outline"
                 className="flex-1"
               >
@@ -196,13 +198,15 @@ export function WinnerDialog({
             >
               Game Config
             </Button>
-            <AlertDialogAction
-              onClick={handlePlayAgain}
-              className="flex-1"
-              disabled={isCreatingGame}
-            >
-              {isCreatingGame ? "Creating..." : "Rematch"}
-            </AlertDialogAction>
+            {gameMode !== "online" && (
+              <AlertDialogAction
+                onClick={handlePlayAgain}
+                className="flex-1"
+                disabled={isCreatingGame}
+              >
+                {isCreatingGame ? "Creating..." : "Rematch"}
+              </AlertDialogAction>
+            )}
           </div>
         </AlertDialogFooter>
       </AlertDialogContent>

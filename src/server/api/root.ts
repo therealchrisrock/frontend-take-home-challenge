@@ -1,4 +1,5 @@
 import { authRouter } from "~/server/api/routers/auth";
+import { eventsRouter } from "~/server/api/routers/events";
 import { friendRequestRouter } from "~/server/api/routers/friendRequest";
 import { gameRouter } from "~/server/api/routers/game";
 import { gameInviteRouter } from "~/server/api/routers/gameInvite";
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   multiplayerGame: multiplayerGameRouter,
   gameNotes: gameNotesRouter,
   notification: notificationRouter,
+  events: eventsRouter, // New unified events router
 });
 
 // export type definition of API

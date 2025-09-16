@@ -1,13 +1,14 @@
-import { useNotifications as useNotificationContext } from "~/contexts/notification-context";
+import { useMemo, useCallback } from 'react';
+import { useEventContext } from '~/contexts/event-context';
+import { api } from '~/trpc/react';
 
 /**
  * Hook that provides notification state and actions.
  * 
  * Features:
- * - Real-time notifications via SSE
+ * - Real-time notifications via tRPC SSE subscription
  * - Automatic reconnection with exponential backoff
- * - Single-tab enforcement (prevents multiple connections)
- * - Toast notifications for new friend requests
+ * - Toast notifications for new notifications
  * - Optimistic updates for read/dismiss actions
  * - Integration with tRPC for server state
  * 
@@ -29,4 +30,64 @@ import { useNotifications as useNotificationContext } from "~/contexts/notificat
  * }
  * ```
  */
-export const useNotifications = useNotificationContext;
+export function useNotifications() {
+  const context = useEventContext();
+  const utils = api.useUtils();
+  
+  // Create a refetch function that can refresh notifications from the server
+  const refetch = useCallback(async () => {
+    // In a real-time system, this is mostly unnecessary but kept for compatibility
+    // It can trigger a re-query of the initial notifications
+    await utils.notification.getAll.invalidate();
+    return { data: context.notifications, error: null };
+  }, [utils, context.notifications]);
+  
+  // Create connection state object for compatibility with notification-bell
+  const connectionState = useMemo(() => ({
+    connected: context.connectionState === 'connected',
+    reconnecting: context.connectionState === 'reconnecting',
+    error: context.error,
+  }), [context.connectionState, context.error]);
+  
+  return useMemo(() => ({
+    notifications: context.notifications,
+    unreadCount: context.unreadNotificationCount,
+    markAsRead: context.markNotificationRead,
+    markAllAsRead: context.markAllNotificationsRead,
+    dismiss: context.deleteNotification,
+    connectionState,
+    refetch,
+  }), [
+    context.notifications,
+    context.unreadNotificationCount,
+    context.markNotificationRead,
+    context.markAllNotificationsRead,
+    context.deleteNotification,
+    connectionState,
+    refetch,
+  ]);
+}
+
+/**
+ * Get notifications by type
+ */
+export function useNotificationsByType(type: string) {
+  const { notifications } = useNotifications();
+  
+  return useMemo(
+    () => notifications.filter(n => n.type === type),
+    [notifications, type]
+  );
+}
+
+/**
+ * Get unread notifications only
+ */
+export function useUnreadNotifications() {
+  const { notifications } = useNotifications();
+  
+  return useMemo(
+    () => notifications.filter(n => !n.read),
+    [notifications]
+  );
+}

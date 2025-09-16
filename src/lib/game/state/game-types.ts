@@ -66,6 +66,26 @@ export interface GameState {
   gameStartTime: Date;
 }
 
+// Minimal GameSyncState type for backwards compatibility
+// Real-time sync now handled by EventContext
+export interface GameSyncState {
+  connection: {
+    status: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
+    error: string | null;
+    reconnectAttempts: number;
+    lastHeartbeat: Date | null;
+  };
+  moveQueue: {
+    offline: Move[];
+    retry: Move[];
+    pending: Move[];
+  };
+  optimisticUpdates: any[];
+  pendingCount: number;
+  conflict: any;
+  syncErrors: any[];
+}
+
 export type GameAction =
   | { type: "SET_RULES"; payload: VariantConfig }
   | { type: "RESET"; payload: { initialBoard: BoardType } }
@@ -133,6 +153,7 @@ export type GameAction =
         currentPlayer: PieceColor;
         moves?: Move[];
         winner?: "red" | "black" | "draw" | null;
+        lastMove?: Move;
       } 
     }
   | { type: "SYNC_DRAW_REQUEST"; payload: { requestedBy: PieceColor } }

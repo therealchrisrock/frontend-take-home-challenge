@@ -4,7 +4,7 @@ import { Bell, Gamepad2, MessageSquare, User, UserMinus } from "lucide-react";
 import { AnimatePresence, motion, Reorder } from "motion/react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -23,7 +23,8 @@ import {
   TabsUnderlineTrigger,
 } from "~/components/ui/tabs";
 import { useChatContext } from "~/contexts/ChatContext";
-import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { useEventContext } from "~/contexts/event-context";
+import { useUnreadMessageCounts } from "~/hooks/useMessages";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -69,13 +70,8 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
       },
     );
 
-  // Unread messages count for bell badge
-  const { data: unreadMsgCount } = api.message.getUnreadCount.useQuery(
-    undefined,
-    {
-      enabled: !!session?.user,
-    },
-  );
+  // Unread messages from EventContext for instant updates
+  const { totalUnread } = useUnreadMessageCounts();
 
   const utils = api.useContext();
   const removeFriendMutation = api.friendRequest.removeFriend.useMutation({
@@ -114,7 +110,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
   const [reorderableFriends, setReorderableFriends] = useState<Friend[]>([]);
 
   // Update reorderable list when friends data changes
-  useMemo(() => {
+  useEffect(() => {
     if (friends && friends.length > 0) {
       const sorted = [...friends].sort(
         (a, b) => Number(b.online) - Number(a.online),
@@ -123,82 +119,8 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
     }
   }, [friends]);
 
-  // Enhanced SSE subscription for real-time notifications
-  const sseClientRef = useRef<SSEClient | null>(null);
-  const tabIdRef = useRef<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && !tabIdRef.current) {
-      tabIdRef.current = `tab_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!session?.user?.id) {
-      // Clean up connection if user logs out
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-      return;
-    }
-
-    // Disconnect existing client if any
-    if (sseClientRef.current) {
-      sseClientRef.current.destroy();
-      sseClientRef.current = null;
-    }
-
-    const url = `/api/notifications/stream?tabId=${tabIdRef.current}`;
-
-    sseClientRef.current = createSSEClient({
-      url,
-      onMessage: (event) => {
-        console.log("friends drawer notification stream event", event);
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg?.type === "NOTIFICATION_CREATED") {
-            const payload = msg?.payload ?? msg?.data; // accept either key during transition
-            const ntype = payload?.type as string | undefined;
-            if (
-              ntype === "FRIEND_REQUEST" ||
-              ntype === "FRIEND_REQUEST_ACCEPTED" ||
-              ntype === "FRIEND_REQUEST_DECLINED"
-            ) {
-              void utils.user.getFriendRequestNotificationCount.invalidate();
-              void utils.user.getFriendRequestNotifications.invalidate();
-              if (ntype === "FRIEND_REQUEST_ACCEPTED") {
-                void utils.user.getFriendsWithStatus.invalidate();
-              }
-            }
-            if (ntype === "MESSAGE") {
-              // Refresh unread message count
-              void utils.message.getUnreadCount.invalidate();
-            }
-          }
-          if (msg?.type === "presence") {
-            void utils.user.getFriendsWithStatus.invalidate();
-          }
-        } catch (error) {
-          console.error("Error processing friends drawer notification:", error);
-        }
-      },
-      onOpen: () => {
-        console.log("Friends drawer notification SSE connected");
-      },
-      onError: (error) => {
-        console.error("Friends drawer notification SSE error:", error);
-      },
-      autoConnect: true,
-    });
-
-    return () => {
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-    };
-  }, [session?.user?.id, utils.user, utils.message]);
+  // TODO: Update to use EventContext for real-time updates
+  // For now, rely on polling via refetchInterval
 
   // Hover/open state controls staging and ensures we always open on Friends tab
   const [isOpen, setIsOpen] = useState(false);
@@ -215,7 +137,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
     setAvatarLoadedMap((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
 
   // Effect to close drawer when dropdown closes if not hovering
-  useMemo(() => {
+  useEffect(() => {
     if (!openDropdownId && !isOpen) {
       setIsOpen(false);
     }
@@ -263,7 +185,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                 >
                   <Bell className="h-6 w-6 text-gray-700" />
                   {(() => {
-                    const total = (friendReqCount?.count ?? 0) + (unreadMsgCount?.count ?? 0);
+                    const total = (friendReqCount?.count ?? 0) + (totalUnread ?? 0);
                     return total > 0 ? (
                       <Badge className="absolute -top-2 -right-2 h-5 min-w-5 rounded-full border-0 bg-red-600 px-1 text-[10px] text-white">
                         {total > 99 ? "99+" : total}
@@ -304,7 +226,7 @@ export function FriendsMiniDrawer({ className }: FriendsMiniDrawerProps) {
                         <span>Notifications</span>
                         <span aria-hidden className="absolute -top-2 -right-2">
                           {(() => {
-                            const total = (friendReqCount?.count ?? 0) + (unreadMsgCount?.count ?? 0);
+                            const total = (friendReqCount?.count ?? 0) + (totalUnread ?? 0);
                             return total > 0 ? (
                               <Badge className="h-5 min-w-5 rounded-full border-0 bg-red-600 px-1 text-[10px] text-white">
                                 {total > 99 ? "99+" : total}
@@ -506,6 +428,7 @@ function ExpandedContent({
   setOpenDropdownId: (id: string | null) => void;
 }) {
   const router = useRouter();
+  const eventCtx = useEventContext();
   const { openChat } = useChatContext();
   const utils = api.useContext();
 
@@ -700,8 +623,10 @@ function ExpandedContent({
                             onClick={() => {
                               // Find if there's an active conversation with unread messages
                               const conversation = conversations.find(c => c.userId === f.id);
-                              if (conversation && conversation.unreadCount > 0) {
+                              const derivedUnread = eventCtx.unreadMessageCounts.get(f.id) ?? conversation?.unreadCount ?? 0;
+                              if (derivedUnread > 0) {
                                 markConversationAsReadMutation.mutate({ userId: f.id });
+                                eventCtx.markMessagesRead(f.id);
                               }
 
                               openChat({
@@ -783,49 +708,57 @@ function ExpandedContent({
                 </motion.div>
               ))}
 
-              {conversations.map((c) => (
-                <motion.div
-                  key={c.userId}
-                  className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 cursor-pointer"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.15 }}
-                  onClick={() => {
-                    // Mark conversation as read if there are unread messages
-                    if (c.unreadCount > 0) {
-                      markConversationAsReadMutation.mutate({ userId: c.userId });
-                    }
+              {conversations.map((c) => {
+                const ctxUnread = eventCtx.unreadMessageCounts.get(c.userId) ?? 0;
+                const unread = Math.max(ctxUnread, c.unreadCount);
+                const liveMsgs = eventCtx.messages.get(c.userId) ?? [];
+                const liveLast = liveMsgs.length > 0 ? liveMsgs[liveMsgs.length - 1] : null;
+                const preview = liveLast?.content ?? c.lastMessage.content;
+                return (
+                  <motion.div
+                    key={c.userId}
+                    className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 cursor-pointer"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => {
+                      // Mark conversation as read if there are unread messages
+                      if (unread > 0) {
+                        markConversationAsReadMutation.mutate({ userId: c.userId });
+                        eventCtx.markMessagesRead(c.userId);
+                      }
 
-                    openChat({
-                      id: c.userId,
-                      username: c.user.username,
-                      name: c.user.name,
-                      image: c.user.image,
-                    });
-                  }}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={c.user.image ?? undefined} />
-                    <AvatarFallback>
-                      {c.user.name?.[0] ?? c.user.username?.[0] ?? "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      {c.user.name ?? c.user.username}
+                      openChat({
+                        id: c.userId,
+                        username: c.user.username,
+                        name: c.user.name,
+                        image: c.user.image,
+                      });
+                    }}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={c.user.image ?? undefined} />
+                      <AvatarFallback>
+                        {c.user.name?.[0] ?? c.user.username?.[0] ?? "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {c.user.name ?? c.user.username}
+                      </div>
+                      <div className="max-w-[170px] truncate text-xs text-gray-500">
+                        {preview}
+                      </div>
                     </div>
-                    <div className="max-w-[170px] truncate text-xs text-gray-500">
-                      {c.lastMessage.content}
-                    </div>
-                  </div>
-                  {c.unreadCount > 0 && (
-                    <Badge className="ml-auto" variant="secondary">
-                      {c.unreadCount}
-                    </Badge>
-                  )}
-                </motion.div>
-              ))}
+                    {unread > 0 && (
+                      <Badge className="ml-auto" variant="secondary">
+                        {unread}
+                      </Badge>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </AnimatePresence>

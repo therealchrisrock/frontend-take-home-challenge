@@ -5,7 +5,7 @@ import { type ReactNode } from "react";
 import { PresenceProvider } from "~/components/PresenceProvider";
 import { Toaster } from "~/components/ui/toaster";
 import { ChatProvider } from "~/contexts/ChatContext";
-import { NotificationProvider } from "~/contexts/notification-context";
+import { EventProvider } from "~/contexts/event-context";
 import { SettingsProvider } from "~/contexts/settings-context";
 import { MotionProvider } from "~/lib/motion";
 import { SkinProvider } from "~/lib/skins/skin-context";
@@ -18,14 +18,14 @@ export function Providers({ children }: { children: ReactNode }) {
         <SkinProvider>
           <MotionProvider>
             <TRPCReactProvider>
-              <NotificationProvider>
+              <EventProvider>
                 <PresenceProvider>
                   <ChatProvider>
                     {children}
                     <Toaster />
                   </ChatProvider>
                 </PresenceProvider>
-              </NotificationProvider>
+              </EventProvider>
             </TRPCReactProvider>
           </MotionProvider>
         </SkinProvider>

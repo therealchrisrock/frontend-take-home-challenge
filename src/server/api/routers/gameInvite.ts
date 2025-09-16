@@ -4,13 +4,14 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 import { createInitialBoard } from "~/lib/game/logic";
-import { sseHub } from "~/lib/sse/sse-hub";
 import { STORAGE_VERSION } from "~/lib/storage/types";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { eventEmitter } from "~/server/event-emitter";
+import { createEvent, SSEEventType } from "~/types/sse-events";
 
 const GameConfigSchema = z.object({
   timeLimit: z.number().optional(),
@@ -42,10 +43,25 @@ export const gameInviteRouter = createTRPCRouter({
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       orderBy: { createdAt: "desc" },
-      include: { game: { select: { id: true } } },
+      include: {
+        game: {
+          select: { id: true, winner: true, player1Id: true, player2Id: true },
+        },
+      },
     });
 
     if (!invitation) return null;
+
+    // Do not surface invites that point to completed or corrupted games
+    if (invitation.game) {
+      const g = invitation.game;
+      const isCompleted = g.winner !== null;
+      const isCorrupted =
+        !!g.player1Id && !!g.player2Id && g.player1Id === g.player2Id;
+      if (isCompleted || isCorrupted) {
+        return null;
+      }
+    }
 
     return {
       id: invitation.id,
@@ -226,8 +242,8 @@ export const gameInviteRouter = createTRPCRouter({
         invitation = created;
         friendInvitesSent = 1;
 
-        // Notification + SSE to that friend
-        await ctx.db.notification.create({
+        // Notification + Event to that friend
+        const notification = await ctx.db.notification.create({
           data: {
             userId: friendIds[0]!,
             type: "GAME_INVITE" as NotificationType,
@@ -243,15 +259,24 @@ export const gameInviteRouter = createTRPCRouter({
             relatedEntityId: created.id,
           },
         });
-        sseHub.broadcast("notifications", friendIds[0]!, {
-          type: "notification",
-          data: {
-            subtype: "GAME_INVITE",
-            inviterId: userId,
-            inviteToken: targetedToken,
-            timestamp: Date.now(),
+
+        // Emit notification event
+        const notificationEvent = createEvent(
+          SSEEventType.NOTIFICATION_CREATED,
+          {
+            id: notification.id,
+            type: "GAME_INVITE" as any,
+            title: notification.title,
+            message: notification.message ?? "",
+            read: notification.read,
+            createdAt: notification.createdAt.toISOString(),
+            relatedEntityId: notification.relatedEntityId,
+            metadata: notification.metadata
+              ? JSON.parse(notification.metadata as string)
+              : undefined,
           },
-        });
+        );
+        eventEmitter.emitToUser(friendIds[0]!, notificationEvent);
       } else {
         // Shareable link invite: create a single main invitation linked to the game
         const created = await ctx.db.gameInvite.create({
@@ -421,15 +446,22 @@ export const gameInviteRouter = createTRPCRouter({
         },
       });
 
-      // Emit SSE event for player joining so host can transition out of waiting state
-      sseHub.broadcast("game", gameId, {
-        type: "PLAYER_JOINED",
-        data: {
-          playerRole: "PLAYER_2",
-          isGuest,
-          timestamp: Date.now(),
-        },
+      // Emit game event for player joining so host can transition out of waiting state
+      const gameEvent = createEvent(SSEEventType.PLAYER_JOINED, {
+        gameId: gameId,
+        playerId: userId ?? "guest",
+        playerName: isGuest
+          ? (input.guestInfo?.displayName ?? "Guest")
+          : (ctx.session?.user.username ?? "Player"),
+        playerRole: "PLAYER_2" as any,
+        isGuest,
       });
+      // Emit to game channel for all players watching this game
+      eventEmitter.emitToChannel(`game:${gameId}`, gameEvent);
+      // Also emit to the inviter directly
+      if (invitation.inviterId) {
+        eventEmitter.emitToUser(invitation.inviterId, gameEvent);
+      }
 
       return {
         gameId: gameId,
@@ -437,6 +469,82 @@ export const gameInviteRouter = createTRPCRouter({
         isGuest,
         inviteId: invitation.id,
       };
+    }),
+
+  /**
+   * Decline a game invitation (by token)
+   */
+  declineInvitation: protectedProcedure
+    .input(z.object({ inviteToken: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const invitation = await ctx.db.gameInvite.findUnique({
+        where: { inviteToken: input.inviteToken },
+      });
+
+      if (!invitation) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invitation not found",
+        });
+      }
+
+      if (invitation.status !== "PENDING") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invitation is no longer valid",
+        });
+      }
+
+      // Only the targeted invitee (if specified) can decline
+      if (
+        invitation.inviteeId &&
+        ctx.session?.user?.id !== invitation.inviteeId
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invitation is not for you",
+        });
+      }
+
+      await ctx.db.gameInvite.update({
+        where: { id: invitation.id },
+        data: { status: "DECLINED" },
+      });
+
+      // Notify inviter
+      const notification = await ctx.db.notification.create({
+        data: {
+          userId: invitation.inviterId,
+          type: "GAME_INVITE" as NotificationType,
+          title: "Invitation Declined",
+          message: `${ctx.session.user.username} declined your game invitation`,
+          metadata: JSON.stringify({
+            gameId: invitation.gameId,
+            inviterId: invitation.inviterId,
+            gameMode: "online",
+            declined: true,
+            inviteToken: input.inviteToken,
+          }),
+          relatedEntityId: invitation.id,
+        },
+      });
+
+      // Emit notification event to inviter
+      const notificationEvent = createEvent(SSEEventType.NOTIFICATION_CREATED, {
+        id: notification.id,
+        type: "GAME_INVITE" as any,
+        title: notification.title,
+        message: notification.message ?? "",
+        read: notification.read,
+        createdAt: notification.createdAt.toISOString(),
+        relatedEntityId: notification.relatedEntityId,
+        metadata: notification.metadata
+          ? JSON.parse(notification.metadata as string)
+          : undefined,
+      });
+      eventEmitter.emitToUser(invitation.inviterId, notificationEvent);
+
+      return { success: true };
     }),
 
   /**
@@ -702,7 +810,17 @@ export const gameInviteRouter = createTRPCRouter({
 
       // Determine overall status
       let overallStatus = invitation.status.toLowerCase();
-      if (invitation.game && participants.length >= 2) {
+      const isCompleted = invitation.game?.winner != null;
+      const isCorrupted =
+        !!invitation.game?.player1Id &&
+        !!invitation.game?.player2Id &&
+        invitation.game?.player1Id === invitation.game?.player2Id;
+      if (isCompleted) {
+        overallStatus = "completed";
+      } else if (isCorrupted) {
+        // Mark corrupted lobbies as invalid so clients don't redirect
+        overallStatus = "invalid";
+      } else if (invitation.game && participants.length >= 2) {
         overallStatus = "ready";
       }
 
@@ -713,6 +831,7 @@ export const gameInviteRouter = createTRPCRouter({
         participants,
         expiresAt: invitation.expiresAt,
         message: invitation.message,
+        gameWinner: invitation.game?.winner ?? null,
       };
     }),
 });

@@ -7,13 +7,12 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
-  type ReactNode,
+  type ReactNode
 } from "react";
 import { z } from "zod";
 import { MinimizedChatTab, PopupChat } from "~/components/chat/PopupChat";
-import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { useEventContext } from "~/contexts/event-context";
 import { api } from "~/trpc/react";
 
 // Zod schemas for validation
@@ -135,9 +134,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const router = useRouter();
   const [chats, setChats] = useState<Record<string, ChatState>>({});
   const [isHydrated, setIsHydrated] = useState(false);
+  const eventCtx = useEventContext();
 
-  // Enhanced SSE client for real-time chat updates
-  const sseClientRef = useRef<SSEClient | null>(null);
 
   // Get unread counts for minimized chats
   const { data: conversations } = api.message.getConversations.useQuery(
@@ -173,38 +171,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     }
   }, [session?.user]);
 
-  // Handle cross-tab synchronization
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === CHAT_STATE_KEY && e.newValue) {
-        try {
-          const newState = JSON.parse(e.newValue);
-          const validatedChats: Record<string, ChatState> = {};
-
-          Object.entries(newState).forEach(([key, chat]) => {
-            try {
-              const validated = ChatStateSchema.parse(chat);
-              validatedChats[key] = validated;
-            } catch {
-              // Skip invalid chat state from other tab
-            }
-          });
-
-          setChats(validatedChats);
-        } catch (error) {
-          console.error("Failed to sync chat state from other tab:", error);
-        }
-      } else if (e.key === CHAT_STATE_KEY && !e.newValue) {
-        // Storage was cleared in another tab
-        setChats({});
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [isHydrated]);
+  // Cross-tab synchronization disabled - only persist on refresh
 
   // Update unread counts when conversations change
   useEffect(() => {
@@ -273,6 +240,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
     // Mark conversation as read
     markConversationAsReadMutation.mutate({ userId: user.id });
+    // Also clear unread in EventContext so badges update instantly
+    eventCtx.markMessagesRead(user.id);
   }, [markConversationAsReadMutation]);
 
   const closeChat = useCallback((userId: string) => {
@@ -317,6 +286,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
         return compacted;
       });
+      
     }, 220); // slightly longer than 0.2s transition
   }, []);
 
@@ -343,6 +313,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
     // Mark conversation as read
     markConversationAsReadMutation.mutate({ userId });
+    // Also clear unread in EventContext so badges update instantly
+    eventCtx.markMessagesRead(userId);
   }, [markConversationAsReadMutation]);
 
   const handleExternalOpen = useCallback(
@@ -359,102 +331,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
     [router]
   );
 
-  // Enhanced SSE subscription for real-time chat updates
-  useEffect(() => {
-    if (!session?.user?.id || !isHydrated) {
-      // Clean up existing connection if user logs out or not hydrated
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-      return;
-    }
-
-    // Disconnect existing client if any
-    if (sseClientRef.current) {
-      sseClientRef.current.destroy();
-      sseClientRef.current = null;
-    }
-
-    const tabId = `chat_context_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = `/api/messages/stream?tabId=${tabId}`;
-
-    sseClientRef.current = createSSEClient({
-      url,
-      onMessage: (event) => {
-        try {
-          const data = JSON.parse(event.data) as { type: string; data?: any };
-
-          if (data.type === "MESSAGE_CREATED") {
-            const { senderId, receiverId, senderUsername } = data.data ?? {};
-
-            // Check if this message is relevant to any of our chats
-            setChats((prevChats) => {
-              const updatedChats = { ...prevChats };
-
-              // Check if we have a chat with the sender (incoming message)
-              if (senderId && updatedChats[senderId]) {
-                const chat = updatedChats[senderId];
-                // Only increment unread if chat is minimized
-                if (!chat.isOpen) {
-                  updatedChats[senderId] = {
-                    ...chat,
-                    unreadCount: chat.unreadCount + 1,
-                    lastActivity: new Date().toISOString(),
-                  };
-                }
-              }
-
-              // Check if we have a chat with the receiver (for sent messages)
-              if (receiverId && updatedChats[receiverId]) {
-                const chat = updatedChats[receiverId];
-                updatedChats[receiverId] = {
-                  ...chat,
-                  lastActivity: new Date().toISOString(),
-                };
-              }
-
-              return updatedChats;
-            });
-          }
-
-          if (data.type === "MESSAGE_READ") {
-            const { userId } = data.data ?? {};
-            if (userId) {
-              setChats((prevChats) => {
-                if (prevChats[userId]) {
-                  return {
-                    ...prevChats,
-                    [userId]: {
-                      ...prevChats[userId],
-                      unreadCount: 0, // Reset unread count when messages are read
-                    },
-                  };
-                }
-                return prevChats;
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Error processing chat SSE message:", error);
-        }
-      },
-      onOpen: () => {
-        console.log("Chat SSE connection opened");
-      },
-      onError: (error) => {
-        console.error("Chat SSE connection error:", error);
-      },
-      autoConnect: true,
-    });
-
-    return () => {
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-    };
-  }, [session?.user?.id, isHydrated]);
+  // TODO: Update to use EventContext for real-time message updates
+  // For now, rely on the refetchInterval in the conversations query
 
   // Calculate positions for minimized tabs
   const minimizedChats = Object.entries(chats).filter(([_, chat]) => !chat.isOpen);

@@ -23,6 +23,7 @@ export function useOnlineMultiplayer({ gameId }: UseOnlineMultiplayerOptions) {
   const makeMove = api.multiplayerGame.makeMove.useMutation();
   const requestDraw = api.multiplayerGame.requestDraw.useMutation();
   const respondToDraw = api.multiplayerGame.respondToDraw.useMutation();
+  const resign = api.multiplayerGame.resign.useMutation();
 
   const sendMove = useCallback(
     async (
@@ -86,6 +87,24 @@ export function useOnlineMultiplayer({ gameId }: UseOnlineMultiplayerOptions) {
     [gameId, respondToDraw],
   );
 
+  const sendResign = useCallback(
+    async (playerId?: string | null, guestSessionId?: string) => {
+      if (!gameId) return false;
+      try {
+        const res = await resign.mutateAsync({
+          gameId,
+          playerId: playerId ?? null,
+          guestSessionId,
+        });
+        return res.success;
+      } catch (e) {
+        console.error("Failed to send resignation:", e);
+        return false;
+      }
+    },
+    [gameId, resign],
+  );
+
   // Note: SSE connection is now handled by useGameSync hook
   // This hook only handles sending moves via tRPC
   return {
@@ -93,5 +112,6 @@ export function useOnlineMultiplayer({ gameId }: UseOnlineMultiplayerOptions) {
     sendMove,
     sendDrawRequest,
     sendDrawResponse,
+    sendResign,
   } as const;
 }

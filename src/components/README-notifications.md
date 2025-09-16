@@ -1,294 +1,670 @@
-# Notification System - Real-time User Notifications
+# Notification System Architecture
 
-This directory contains the complete notification system for the checkers platform, providing real-time updates for friend requests, messages, game invitations, and system events.
+This document describes the real-time notification system architecture for the checkers platform, providing comprehensive documentation on how notifications, messages, game events, and presence updates work together through a unified event system.
 
-## 📁 Directory Structure
+## 🏗️ Core Architecture
+
+### Unified Event System
+The notification system is built on a **unified real-time event architecture** that consolidates all real-time communications through a single tRPC subscription endpoint using Server-Sent Events (SSE).
 
 ```text
-src/components/
-├── notifications/
-│   ├── notification-bell.tsx      # Dropdown notification center
-│   ├── notification-item.tsx      # Individual notification display
-│   ├── notification-demo.tsx      # Demo/testing component
-│   └── index.ts                   # Exports
-├── social/
-│   ├── friend-request-card.tsx    # Friend request display & actions
-│   ├── friend-request-list.tsx    # List of friend requests
-│   ├── send-friend-request-dialog.tsx # Send friend request modal
-│   └── index.ts                   # Exports
-└── ui/
-    └── textarea.tsx               # Added textarea component
+┌─────────────────────────────────────────────────────────┐
+│                    CLIENT SIDE                          │
+├─────────────────────────────────────────────────────────┤
+│  EventContext (Single SSE Connection)                   │
+│  └── tRPC Subscription: api.events.onAllEvents          │
+│      ├── Notifications                                  │
+│      ├── Messages                                       │
+│      ├── Game Events                                    │
+│      ├── Friend Requests                                │
+│      └── Presence Updates                               │
+├─────────────────────────────────────────────────────────┤
+│                    SERVER SIDE                          │
+├─────────────────────────────────────────────────────────┤
+│  EventEmitter (Central Event Hub)                       │
+│  ├── User Channels (user:userId)                        │
+│  ├── Game Channels (game:gameId)                        │
+│  └── Chat Channels (chat:chatId)                        │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 🔔 Notification Components
+### Key Components
 
-### NotificationBell
-A dropdown notification center component that:
-- Shows unread notification badge with count
-- Displays real-time connection status indicator
-- Lists recent notifications (up to 5)
-- Provides "Mark all as read" and refresh actions
-- Links to full notifications page
-- Handles empty states gracefully
+#### 1. EventContext (`/src/contexts/event-context.tsx`)
+The central hub for all real-time data on the client side:
+- **Single SSE Connection**: One connection per browser (respects ~6 connection limit)
+- **State Management**: Centralized reducer for all event types
+- **Type Safety**: Full TypeScript support with discriminated unions
+- **Auto-reconnection**: Built-in reconnection with exponential backoff
+- **Hooks**: Specialized hooks for different features
 
-**Usage:**
+#### 2. Event Router (`/src/server/api/routers/events.ts`)
+The tRPC router that manages the unified subscription:
+- **Single Endpoint**: `onAllEvents` subscription handles everything
+- **Observable Pattern**: Uses RxJS observables for event streaming
+- **Channel Subscriptions**: Automatic subscription to relevant channels
+- **Heartbeat**: Periodic keepalive to maintain connection
+
+#### 3. Event Emitter (`/src/server/event-emitter.ts`)
+Server-side event distribution system:
+- **Channel-based**: Events targeted to specific channels or users
+- **Type-safe**: Strongly typed event payloads
+- **Efficient**: Single event can reach multiple subscribers
+
+## 📁 File Structure
+
+```text
+src/
+├── contexts/
+│   └── event-context.tsx           # Unified event context & hooks
+├── hooks/
+│   ├── useNotifications.ts         # Notification-specific hook
+│   ├── useMessages.ts              # Message-specific hook
+│   ├── useFriendRequests.ts        # Friend request hook
+│   └── useGameState.ts             # Game state hook
+├── components/
+│   ├── notifications/
+│   │   ├── notification-bell.tsx   # Notification dropdown UI
+│   │   └── notification-item.tsx   # Individual notification
+│   └── social/
+│       ├── friend-request-card.tsx # Friend request UI
+│       └── friend-request-list.tsx # Friend request list
+├── server/
+│   ├── api/
+│   │   └── routers/
+│   │       ├── events.ts           # Unified event router
+│   │       ├── notification.ts     # Notification mutations
+│   │       ├── friendRequest.ts    # Friend request mutations
+│   │       └── message.ts          # Message mutations
+│   └── event-emitter.ts            # Server event emitter
+└── types/
+    └── sse-events.ts               # Event type definitions
+```
+
+## 🔔 How Notifications Work
+
+### 1. Event Flow
+
+```typescript
+// User Action → Server Mutation → Database Update → Event Emission → Client Update
+
+// Example: Friend Request Flow
+1. User clicks "Add Friend" 
+2. Calls api.friendRequest.send mutation
+3. Server creates friend request in database
+4. Server emits FRIEND_REQUEST_RECEIVED event
+5. EventEmitter broadcasts to recipient's channel
+6. EventContext receives event via SSE subscription
+7. Reducer updates local state
+8. React components re-render with new data
+9. User sees notification bell update + toast
+```
+
+### 2. Event Types
+
+All events are defined in `/src/types/sse-events.ts`:
+
+```typescript
+export enum SSEEventType {
+  // Notifications
+  NOTIFICATION_CREATED = "NOTIFICATION_CREATED",
+  NOTIFICATION_READ = "NOTIFICATION_READ",
+  NOTIFICATION_DELETED = "NOTIFICATION_DELETED",
+  
+  // Messages
+  MESSAGE_RECEIVED = "MESSAGE_RECEIVED",
+  TYPING_START = "TYPING_START",
+  TYPING_STOP = "TYPING_STOP",
+  
+  // Games
+  GAME_MOVE = "GAME_MOVE",
+  GAME_INVITE = "GAME_INVITE",
+  GAME_ENDED = "GAME_ENDED",
+  
+  // Friend Requests
+  FRIEND_REQUEST_RECEIVED = "FRIEND_REQUEST_RECEIVED",
+  FRIEND_REQUEST_ACCEPTED = "FRIEND_REQUEST_ACCEPTED",
+  
+  // Presence
+  USER_ONLINE = "USER_ONLINE",
+  USER_OFFLINE = "USER_OFFLINE",
+}
+```
+
+### 3. Channel System
+
+Events are distributed through channels:
+
+```typescript
+// User-specific channel (private events)
+`user:${userId}` // Notifications, friend requests, direct messages
+
+// Game channel (game participants)
+`game:${gameId}` // Moves, draw requests, game state
+
+// Chat channel (conversation participants)
+`chat:${chatId}` // Messages, typing indicators
+```
+
+## 🎯 Using the System
+
+### For Notifications
+
 ```tsx
-import { NotificationBell } from "~/components/notifications";
+import { useNotifications } from "~/hooks/useNotifications";
 
-function Header() {
+function MyComponent() {
+  const { 
+    notifications,      // All notifications
+    unreadCount,        // Number of unread
+    connectionState,    // SSE connection status
+    markAsRead,        // Mark notification as read
+    markAllAsRead,     // Mark all as read
+    dismiss,           // Remove notification
+    refetch            // Manual refresh
+  } = useNotifications();
+  
+  return <NotificationBell />;
+}
+```
+
+### For Messages
+
+```tsx
+import { useMessages } from "~/hooks/useMessages";
+
+function ChatComponent() {
+  const {
+    messages,           // Message history
+    unreadCounts,      // Unread per conversation
+    sendMessage,       // Send new message
+    markAsRead,        // Mark messages read
+    setTyping,         // Update typing status
+  } = useMessages();
+}
+```
+
+### For Game State
+
+```tsx
+import { useGameState } from "~/contexts/event-context";
+
+function GameComponent() {
+  const {
+    gameState,         // Current game state
+    isConnected,       // Connection status
+    sendMove,          // Make a move
+    reconnect,         // Force reconnection
+  } = useGameState(gameId);
+}
+```
+
+### For Friend Requests
+
+```tsx
+import { useFriendRequests } from "~/hooks/useFriendRequests";
+
+function FriendsComponent() {
+  const {
+    requests,          // Pending friend requests
+    totalPending,      // Count of pending
+    accept,            // Accept request
+    decline,           // Decline request
+    cancel,            // Cancel sent request
+  } = useFriendRequests();
+}
+```
+
+## ⚡ Performance & Optimization
+
+### Browser SSE Limits
+- **6 Connection Limit**: Browsers limit SSE connections per domain
+- **Solution**: Single unified subscription for all events
+- **Result**: One connection handles everything
+
+### State Updates
+- **Optimistic Updates**: UI updates immediately, rolls back on error
+- **Batched Renders**: React 18 automatic batching
+- **Memoization**: Components use React.memo where appropriate
+
+### Connection Management
+- **Auto-reconnect**: Exponential backoff (1s, 2s, 4s, 8s...)
+- **Heartbeat**: Keeps connection alive (30s intervals)
+- **State Recovery**: Fetches missed events on reconnect
+
+## 🔄 Trade-offs & Performance Considerations
+
+### Current Architecture Benefits
+The unified EventContext with reducer pattern provides several advantages:
+
+✅ **Single SSE Connection**: Solves browser connection limits
+✅ **Centralized State**: Predictable state updates via reducer pattern
+✅ **Type Safety**: Full TypeScript support with discriminated unions
+✅ **Batched Updates**: React 18 automatic batching reduces render frequency
+✅ **Simplified Debugging**: Single place to monitor all real-time events
+
+### Performance Trade-offs
+
+#### 1. Cross-Domain Re-renders
+Every event triggers the entire EventContext provider to re-render, causing all consuming components to re-evaluate:
+
+```typescript
+// Problem: Game components receive message events
+function GameComponent() {
+  const { gameState } = useGameState(gameId); // Re-runs on message events
+  // Component re-evaluates even for unrelated message updates
+}
+
+// Problem: Chat components receive game events
+function ChatComponent() {
+  const { messages } = useMessages(); // Re-runs on game move events
+  // Component re-evaluates even for unrelated game moves
+}
+```
+
+#### 2. Context Provider Overhead
+The reducer pattern helps but doesn't eliminate the core issue:
+
+```typescript
+// Current unified state structure
+interface EventState {
+  notifications: Notification[];
+  messages: Message[];
+  gameStates: Record<string, GameState>;
+  friendRequests: FriendRequest[];
+  connectionState: ConnectionState;
+}
+
+// Any change creates new state object → all consumers re-evaluate
+const reducer = (state: EventState, action: EventAction) => {
+  switch (action.type) {
+    case 'MESSAGE_RECEIVED':
+      return { ...state, messages: [...state.messages, action.payload] };
+      // ^ This triggers re-evaluation in game components too
+  }
+};
+```
+
+#### 3. State Coupling
+Components become indirectly coupled through shared context state:
+
+- Game components depend on message state structure
+- Chat components depend on notification state structure
+- Changes in one domain can affect components in another domain
+
+### Current Mitigation Strategies
+
+#### 1. Specialized Hooks
+Individual hooks provide some isolation but still depend on context updates:
+
+```typescript
+export function useNotifications() {
+  const context = useEventContext();
+  return useMemo(() => ({
+    notifications: context.notifications,
+    unreadCount: context.notifications.filter(n => !n.read).length,
+    // Memoization helps but context still updates on every event
+  }), [context.notifications]);
+}
+```
+
+#### 2. React.memo Usage
+Components can be memoized but context changes still propagate:
+
+```typescript
+const GameComponent = React.memo(({ gameId }) => {
+  const { gameState } = useGameState(gameId);
+  // Still re-renders when messages update context
+});
+```
+
+### Scaling Considerations
+
+Performance issues become noticeable with:
+
+1. **High-frequency Events**: Rapid game moves, typing indicators (>10/second)
+2. **Many Active Components**: Multiple game tabs, chat windows, notification panels
+3. **Large State Objects**: Extensive message history, game state complexity
+4. **Complex UI Trees**: Deep component hierarchies consuming context
+
+### Alternative Solutions
+
+#### Option 1: Zustand with Selective Subscriptions
+
+```typescript
+// Separate stores for different domains
+const useNotificationStore = create((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+  addNotification: (notification) => set(state => ({
+    notifications: [...state.notifications, notification],
+    unreadCount: state.unreadCount + 1
+  }))
+}));
+
+const useMessageStore = create((set) => ({
+  messages: [],
+  addMessage: (message) => set(state => ({
+    messages: [...state.messages, message]
+  }))
+}));
+
+// Components only subscribe to relevant stores
+function NotificationBell() {
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+  // Only re-renders on notification changes
+}
+
+function ChatWindow() {
+  const messages = useMessageStore(state => state.messages);
+  // Only re-renders on message changes
+}
+```
+
+#### Option 2: Split Contexts
+
+```typescript
+// Domain-specific contexts
+const NotificationContext = createContext();
+const MessageContext = createContext();
+const GameContext = createContext();
+
+// Single SSE connection distributes to multiple contexts
+function EventDistributor({ children }) {
+  const subscription = useUnifiedEventSubscription();
+
+  useEffect(() => {
+    subscription.on('notification', (event) => {
+      notificationStore.dispatch(event);
+    });
+    subscription.on('message', (event) => {
+      messageStore.dispatch(event);
+    });
+  }, [subscription]);
+
   return (
-    <div className="flex items-center gap-4">
-      <NotificationBell />
-    </div>
+    <NotificationProvider>
+      <MessageProvider>
+        <GameProvider>
+          {children}
+        </GameProvider>
+      </MessageProvider>
+    </NotificationProvider>
   );
 }
 ```
 
-### NotificationItem
-Individual notification display component featuring:
-- Dynamic avatars based on sender info
-- Notification type icons and styling
-- Read/unread state management
-- Relative timestamps
-- Dismiss and mark-as-read actions
-- Click-to-navigate functionality
-- Optimistic updates with error rollback
+#### Option 3: Event Filtering
 
-**Props:**
-- `notification`: Notification data object
-- `onClose`: Callback when notification is dismissed
-- `showDismiss`: Whether to show dismiss button (default: true)
+```typescript
+// Client-side event filtering
+function useSelectiveEvents(eventTypes: EventType[]) {
+  const allEvents = useEventContext();
 
-## 👥 Social Components
+  return useMemo(() => {
+    return allEvents.filter(event => eventTypes.includes(event.type));
+  }, [allEvents, eventTypes]);
+}
 
-### FriendRequestCard
-Displays individual friend requests with:
-- User avatar and profile information
-- Request message display
-- Accept/Decline/Cancel actions based on context
-- Status badges (Pending, Accepted, Declined, Cancelled)
-- Relative timestamps
-- Loading states during actions
-- Error handling with toast feedback
+// Usage
+function GameComponent() {
+  const gameEvents = useSelectiveEvents(['GAME_MOVE', 'GAME_ENDED']);
+  // Only processes game-related events
+}
+```
 
-**Props:**
-- `friendRequest`: Friend request data object
-- `variant`: "received" | "sent" (default: "received")
-- `onUpdate`: Callback when request status changes
+### Migration Strategy
 
-### FriendRequestList
-Manages lists of friend requests featuring:
-- Separate views for received/sent requests
-- Loading skeletons
-- Empty state messaging
-- Error handling with retry
-- Refresh functionality
-- Request count display
+#### Phase 1: Add Performance Monitoring
+```typescript
+// Add render tracking to identify hotspots
+const useRenderCounter = (componentName: string) => {
+  const renderCount = useRef(0);
+  renderCount.current++;
+  console.log(`${componentName} rendered ${renderCount.current} times`);
+};
+```
 
-**Props:**
-- `type`: "received" | "sent"
-- `className`: Optional CSS classes
+#### Phase 2: Gradual Store Migration
+```typescript
+// Start with high-frequency event types
+const useOptimizedMessages = () => {
+  // Try Zustand store first, fallback to context
+  return useMessageStore() || useMessages();
+};
+```
 
-### SendFriendRequestDialog
-Modal for sending friend requests with:
-- User search by name/email
-- Real-time search results
-- Duplicate request prevention
-- Optional personal message
-- Form validation with Zod
-- Loading states and error handling
-- Friend status checking
+#### Phase 3: Event Distribution Layer
+```typescript
+// Add distribution layer while keeping existing context
+function EnhancedEventProvider({ children }) {
+  return (
+    <EventDistributor>
+      <LegacyEventContext> {/* Keep for backward compatibility */}
+        {children}
+      </LegacyEventContext>
+    </EventDistributor>
+  );
+}
+```
 
-**Props:**
-- `children`: Trigger element
-- `onSuccess`: Callback on successful send
+### Performance Monitoring
 
-## 🎨 Design Patterns
+#### Key Metrics to Track
+- **Render Frequency**: Components/second per event type
+- **Context Update Rate**: Updates/second during peak usage
+- **Memory Usage**: Context state size over time
+- **User Experience**: Perceived lag during high activity
 
-### Component Styling
-- Uses Shadcn/ui component library exclusively
-- Follows existing color scheme and spacing
-- Consistent with app's design system
-- Responsive design with mobile-first approach
-- Framer Motion animations for smooth interactions
+#### Monitoring Implementation
+```typescript
+// Add to EventContext reducer
+const reducer = (state: EventState, action: EventAction) => {
+  // Track performance metrics
+  performance.mark(`event-${action.type}-start`);
 
-### State Management
-- Optimistic updates for better UX
-- Error rollback on failed operations
-- Loading states for all async operations
-- Real-time updates via SSE integration
+  const newState = handleAction(state, action);
 
-### Accessibility
-- Proper ARIA labels and roles
-- Keyboard navigation support
-- Screen reader friendly
-- Focus management
-- High contrast support
+  performance.mark(`event-${action.type}-end`);
+  performance.measure(
+    `event-${action.type}`,
+    `event-${action.type}-start`,
+    `event-${action.type}-end`
+  );
 
-## 🔗 Integration Points
+  return newState;
+};
+```
 
-### Hooks
-- `useNotifications`: Main notification hook from context
-- `useToast`: Shadcn toast notifications
-- tRPC hooks for server communication
+### Recommendations
 
-### Context Dependencies
-- Requires `NotificationProvider` in app root
-- Depends on `SessionProvider` for authentication
-- Uses tRPC client configuration
+#### Current System (Good for)
+- ✅ Prototyping and initial development
+- ✅ Small to medium user bases (<100 concurrent)
+- ✅ Low to moderate event frequency (<5 events/second)
+- ✅ Simple UI hierarchies
 
-### Navigation
-- Integrates with Next.js App Router
-- Links to `/friends/requests` page
-- Click-to-navigate functionality
+#### Consider Migration When
+- ❌ High render frequency impact on UX
+- ❌ Memory usage growth from large state
+- ❌ Complex component trees with deep nesting
+- ❌ Real-time performance requirements
 
-## 📱 Responsive Design
+The reducer pattern provides a solid foundation, but architectural evolution may be needed as the platform scales. The key is measuring actual performance impact before premature optimization.
 
-### Mobile Optimizations
-- Touch-friendly button sizes
-- Responsive dropdown positioning
-- Optimized spacing for small screens
-- Swipe gestures support (future enhancement)
+## 🔒 Security
 
-### Desktop Features
-- Hover states and tooltips
-- Keyboard shortcuts
-- Right-click context menus (future enhancement)
-- Multi-tab synchronization
+### Authentication
+- All subscriptions require authenticated session
+- User can only receive their own events
+- Channel access validated server-side
 
-## 🧪 Testing Components
+### Event Validation
+- Zod schemas validate all payloads
+- Type guards ensure type safety
+- Sanitization of user-generated content
 
-### NotificationDemo
-A comprehensive demo component showcasing:
-- All notification features
-- System status monitoring
-- Interactive friend request management
-- Real-time connection status
-- Quick action buttons
+## 🧪 Testing
 
-**Usage:**
+### Manual Testing
+Use the NotificationDemo component:
+
 ```tsx
+// Add to any page for testing
 import { NotificationDemo } from "~/components/notifications/notification-demo";
 
-// Add to any page for testing
 <NotificationDemo />
 ```
 
-## 📋 Props & Types
+### Triggering Test Events
 
-### Notification Types
 ```typescript
-interface NotificationState {
+// Server-side event emission for testing
+import { eventEmitter } from "~/server/event-emitter";
+import { createEvent, SSEEventType } from "~/types/sse-events";
+
+// Send test notification
+const event = createEvent(SSEEventType.NOTIFICATION_CREATED, {
+  id: "test-123",
+  title: "Test Notification",
+  message: "This is a test",
+  type: "SYSTEM",
+});
+eventEmitter.emitToUser(userId, event);
+```
+
+## 🚀 Adding New Event Types
+
+### 1. Define the Event Type
+
+```typescript
+// In src/types/sse-events.ts
+export enum SSEEventType {
+  // ... existing types
+  MY_NEW_EVENT = "MY_NEW_EVENT",
+}
+
+export interface MyNewEventPayload {
   id: string;
-  type: "FRIEND_REQUEST" | "FRIEND_REQUEST_ACCEPTED" | "FRIEND_REQUEST_DECLINED";
-  title: string;
-  message: string;
-  read: boolean;
-  metadata?: Record<string, unknown>;
-  relatedEntityId?: string;
-  createdAt: string;
-  readAt?: string;
+  data: any;
 }
 ```
 
-### Friend Request Types
+### 2. Handle in EventContext
+
 ```typescript
-interface FriendRequest {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
-  message?: string | null;
-  createdAt: Date;
-  sender: User;
-  receiver: User;
+// In src/contexts/event-context.tsx reducer
+case SSEEventType.MY_NEW_EVENT: {
+  const payload = event.payload as MyNewEventPayload;
+  return {
+    ...state,
+    myNewData: payload.data,
+  };
 }
 ```
 
-## 🏗️ System Architecture
+### 3. Emit from Server
 
-### Real-time Infrastructure
-- **Server-Sent Events (SSE)** - Primary real-time communication channel
-- **Connection Management** - Automatic reconnection with exponential backoff
-- **Event Broadcasting** - Efficient server-side event distribution
-- **Client Synchronization** - Single-tab enforcement with cross-tab communication
+```typescript
+// In your tRPC router
+const event = createEvent(SSEEventType.MY_NEW_EVENT, {
+  id: "123",
+  data: { /* your data */ }
+});
+eventEmitter.emitToUser(userId, event);
+```
 
-### Notification Types
-- **FRIEND_REQUEST** - New friend request notifications
-- **FRIEND_REQUEST_ACCEPTED** - Friend request acceptance
-- **FRIEND_REQUEST_DECLINED** - Friend request rejection
-- **MESSAGE** - New private message notifications
-- **GAME_INVITE** - Game invitation notifications
-- **SYSTEM** - Platform announcements and updates
+### 4. Create Hook (Optional)
 
-### State Management
-- **Optimistic Updates** - Immediate UI feedback with server validation
-- **Error Rollback** - Automatic reversion on failed operations
-- **Persistence Layer** - Database storage with efficient querying
-- **Cache Strategy** - Smart invalidation and background refresh
+```typescript
+// In src/hooks/useMyFeature.ts
+export function useMyFeature() {
+  const context = useEventContext();
+  return {
+    data: context.myNewData,
+    // ... other methods
+  };
+}
+```
 
-## ⚡ Performance Optimizations
+## 🐛 Troubleshooting
 
-### Current Optimizations
-- **React.memo** for notification items to prevent unnecessary re-renders
-- **Debounced operations** for search and batch actions
-- **Optimistic updates** with rollback for immediate user feedback
-- **Efficient queries** with proper database indexing
-- **Connection pooling** for SSE stream management
+### Connection Issues
+- Check browser console for SSE errors
+- Verify authentication status
+- Check network tab for 200 status on `/api/trpc/events.onAllEvents`
 
-### Planned Improvements
-- **Virtual scrolling** for large notification lists (1000+ items)
-- **Background sync** for offline notification queuing
-- **Push notification** integration for better mobile experience
-- **Notification batching** to reduce server load
-- **Redis caching** for high-frequency notification scenarios
+### Missing Events
+- Ensure event is emitted to correct channel
+- Verify user has permission for channel
+- Check event payload matches type definition
 
-## 🚧 Known Issues & Limitations
+### Performance Issues
+- Monitor number of re-renders with React DevTools
+- Check for unnecessary state updates
+- Verify memoization is working
 
-### Current Issues
-- **SSE reconnection** may occasionally require manual page refresh
-- **Notification ordering** can be inconsistent during high-frequency events
-- **Mobile push notifications** not yet implemented
-- **Notification persistence** limited to database storage
+## 📊 Monitoring
 
-### Technical Debt
-- **Error boundary coverage** needs improvement
-- **Type safety** in SSE event handlers could be enhanced
-- **Test coverage** for edge cases needs expansion
-- **Performance monitoring** metrics not yet implemented
+### Key Metrics to Track
+- Connection uptime percentage
+- Average reconnection time
+- Event delivery latency
+- Missed event rate
+- Concurrent connections
 
-## 🚀 Future Enhancements
+### Logging
+```typescript
+// Client-side
+console.log("[EventContext]", "Connection state:", state);
 
-### Planned Features
-- **Notification grouping** by type and time for better organization
-- **Bulk actions** (mark all as read, delete multiple)
-- **User preferences** for notification types and delivery methods
-- **Sound notifications** with customizable audio cues
-- **Browser push notifications** for offline engagement
-- **Email digests** for important missed notifications
+// Server-side
+console.log("[EventEmitter]", "Emitting to channel:", channel);
+```
 
-### Advanced Features
-- **Smart filtering** with machine learning for notification relevance
-- **Notification templates** for consistent messaging
-- **A/B testing** framework for notification effectiveness
-- **Analytics dashboard** for notification engagement metrics
+## 🔄 Migration Notes
 
-## 🔧 Development Notes
+### From Old SSE System
+The system has been migrated from multiple SSE endpoints to a unified subscription:
 
-### Required Dependencies
-- All dependencies already available in project
-- Uses existing Shadcn/ui components
-- Leverages tRPC and React Query
-- Integrates with Framer Motion animations
+**Old Architecture:**
+- `/api/notifications/stream` - Notification SSE
+- `/api/messages/stream` - Message SSE  
+- `/api/game/[id]/mp-stream` - Game SSE
 
-### Code Quality
-- Full TypeScript coverage
-- ESLint compliant
-- Consistent naming conventions
-- Comprehensive error handling
-- Loading state management
+**New Architecture:**
+- `/api/trpc/events.onAllEvents` - Everything
 
-### Browser Support
-- Modern browsers (Chrome 91+, Firefox 90+, Safari 14+)
-- Progressive enhancement
-- Graceful degradation for older browsers
+### Benefits of Migration
+1. **Reduced Connections**: 1 instead of 3+
+2. **Simplified State**: Single source of truth
+3. **Better Types**: Full type safety with tRPC
+4. **Easier Debugging**: One place to monitor
+5. **Cross-Feature Events**: Events can trigger multiple updates
+
+## 📝 Best Practices
+
+1. **Always use EventContext hooks** instead of direct API calls for real-time data
+2. **Implement optimistic updates** for better UX
+3. **Handle connection states** in UI (show indicators)
+4. **Use proper TypeScript types** for all events
+5. **Test reconnection scenarios** during development
+6. **Monitor event delivery** in production
+7. **Document new event types** when adding features
+
+## 🚧 Known Limitations
+
+1. **Browser SSE Limits**: ~6 connections per domain (solved with unified approach)
+2. **No Offline Queue**: Events missed while offline are not replayed
+3. **Single Tab**: Multiple tabs compete for connection (by design)
+4. **No Compression**: SSE doesn't support compression (HTTP/2 helps)
+
+## 🔮 Future Enhancements
+
+- **WebSocket Upgrade**: For bidirectional communication
+- **Event Replay**: Store and replay missed events
+- **Offline Support**: Queue events for offline users
+- **Push Notifications**: Browser push for critical events
+- **Analytics**: Event delivery metrics and monitoring
+- **Rate Limiting**: Prevent event spam
+- **Event Filtering**: Client-side event subscription preferences

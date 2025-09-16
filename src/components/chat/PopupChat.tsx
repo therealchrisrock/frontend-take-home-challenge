@@ -17,7 +17,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { createSSEClient, type SSEClient } from "~/lib/sse/enhanced-client";
+import { useMessages } from "~/hooks/useMessages";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -52,7 +52,10 @@ export function PopupChat({
   const { data: session } = useSession();
   const [messageInput, setMessageInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sseClientRef = useRef<SSEClient | null>(null);
+  const prevIsOpenRef = useRef(isOpen);
+  const prevMessageCountRef = useRef(0);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { data: conversation, refetch: refetchConversation } =
     api.message.getConversation.useQuery(
@@ -60,63 +63,8 @@ export function PopupChat({
       { enabled: isOpen && !!session?.user }
     );
 
-  // Enhanced SSE subscription for real-time message updates
-  // Keep connection alive even when minimized for real-time updates
-  useEffect(() => {
-    if (!session?.user?.id) {
-      // Clean up connection when user logs out
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-      return;
-    }
-
-    // Disconnect existing client if any
-    if (sseClientRef.current) {
-      sseClientRef.current.destroy();
-      sseClientRef.current = null;
-    }
-
-    const tabId = `popup_chat_${user.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = `/api/messages/stream?tabId=${tabId}`;
-
-    sseClientRef.current = createSSEClient({
-      url,
-      onMessage: (event) => {
-        try {
-          console.log("popup chat message stream event", event);
-          const data = JSON.parse(event.data) as { type: string; data?: any };
-          if (data.type === "MESSAGE_CREATED") {
-            const { senderId, receiverId } = data.data ?? {};
-            if (senderId === user.id || receiverId === user.id) {
-              void refetchConversation();
-            }
-          }
-          if (data.type === "MESSAGE_READ") {
-            // Re-fetch to update read state if visible
-            void refetchConversation();
-          }
-        } catch (error) {
-          console.error("Error processing popup chat SSE message:", error);
-        }
-      },
-      onOpen: () => {
-        console.log(`Popup chat SSE connected for user ${user.username}`);
-      },
-      onError: (error) => {
-        console.error(`Popup chat SSE error for user ${user.username}:`, error);
-      },
-      autoConnect: true,
-    });
-
-    return () => {
-      if (sseClientRef.current) {
-        sseClientRef.current.destroy();
-        sseClientRef.current = null;
-      }
-    };
-  }, [session?.user?.id, user.id, user.username, refetchConversation]);
+  // Live messages from EventContext for instant UI updates
+  const { messages: liveMessages, markAsRead } = useMessages(user.id);
 
   const sendMessageMutation = api.message.sendMessage.useMutation({
     onSuccess: () => {
@@ -141,12 +89,89 @@ export function PopupChat({
     }
   };
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when chat first opens
   useEffect(() => {
-    if (messagesEndRef.current) {
+    const wasOpen = prevIsOpenRef.current;
+    const isNowOpen = isOpen;
+    
+    if (!wasOpen && isNowOpen && messagesEndRef.current) {
+      // Chat just opened, scroll to bottom and reset user scroll state
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      setUserHasScrolled(false);
+    }
+    
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Auto-scroll to bottom when new messages arrive (only if user hasn't manually scrolled up)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const currentMessageCount = (conversation?.messages?.length ?? 0) + liveMessages.length;
+    const prevMessageCount = prevMessageCountRef.current;
+    
+    if (currentMessageCount > prevMessageCount && !userHasScrolled && messagesEndRef.current) {
+      // New message(s) added and user hasn't scrolled up, scroll to bottom
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [conversation?.messages]);
+    
+    prevMessageCountRef.current = currentMessageCount;
+  }, [isOpen, conversation?.messages?.length, liveMessages.length, userHasScrolled]);
+
+  // Auto-scroll when user sends a message
+  useEffect(() => {
+    if (sendMessageMutation.isSuccess && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      setUserHasScrolled(false); // Reset scroll state when user sends message
+    }
+  }, [sendMessageMutation.isSuccess]);
+
+  // Detect when user manually scrolls up
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50; // 50px threshold
+    
+    if (!isAtBottom && !userHasScrolled) {
+      setUserHasScrolled(true);
+    } else if (isAtBottom && userHasScrolled) {
+      setUserHasScrolled(false); // Reset when user scrolls back to bottom
+    }
+  };
+
+  // Mark as read in EventContext when the chat is open and new messages arrive
+  useEffect(() => {
+    if (!isOpen) return;
+    if (liveMessages.length > 0) {
+      markAsRead();
+    }
+  }, [isOpen, liveMessages, markAsRead]);
+
+  // Merge server conversation with live EventContext messages for display
+  const displayMessages = (() => {
+    const serverMsgs = (conversation?.messages ?? []).map((m) => ({
+      id: m.id,
+      senderId: m.senderId,
+      content: m.content,
+      createdAt: new Date(m.createdAt),
+    }));
+    const live = liveMessages.map((m) => ({
+      id: m.id,
+      senderId: m.senderId,
+      content: m.content,
+      createdAt: new Date(m.createdAt),
+    }));
+
+    const byId = new Map<string, { id: string; senderId: string; content: string; createdAt: Date }>();
+    for (const m of [...serverMsgs, ...live]) {
+      const existing = byId.get(m.id);
+      if (!existing || existing.createdAt < m.createdAt) {
+        byId.set(m.id, m);
+      }
+    }
+    const merged = Array.from(byId.values());
+    merged.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return merged;
+  })();
 
   if (!session?.user) return null;
 
@@ -158,7 +183,7 @@ export function PopupChat({
           initial={{ opacity: 0, scale: 0.95, y: 0, originY: 1 }}
           animate={{ opacity: 1, scale: 1, y: 0, originY: 1 }}
           exit={{ opacity: 0, scale: 0.9, y: 0, originY: 1 }}
-          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.15, ease: "easeInOut" }}
           className={cn(
             "fixed bottom-4 left-4 z-50 flex h-[500px] w-80 flex-col overflow-hidden rounded-lg border bg-background shadow-2xl origin-bottom transform-gpu",
             className
@@ -168,7 +193,7 @@ export function PopupChat({
           {/* Header */}
           <div className="flex items-center gap-3 border-b bg-muted/30 px-3 py-2">
             <Link
-              href={`/profile/${user.username}`}
+              href={`/users/${user.username}`}
               className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
             >
               <Avatar className="h-8 w-8">
@@ -229,38 +254,42 @@ export function PopupChat({
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-3">
+          <ScrollArea className="flex-1 p-3" onScrollCapture={handleScroll}>
             <div className="space-y-3">
-              {conversation?.messages.length === 0 && (
+              {displayMessages.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground py-8">
                   Start a conversation with {user.name ?? user.username}
                 </div>
               )}
-              {conversation?.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex",
-                    msg.senderId === session.user.id
-                      ? "justify-end"
-                      : "justify-start"
-                  )}
-                >
+              {displayMessages.map((msg, index) => {
+                const time = msg.createdAt instanceof Date ? msg.createdAt.getTime() : new Date(msg.createdAt as any).getTime();
+                const compositeKey = `${msg.id ?? "no-id"}-${time}-${index}`;
+                return (
                   <div
+                    key={compositeKey}
                     className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-2",
+                      "flex",
                       msg.senderId === session.user.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        ? "justify-end"
+                        : "justify-start"
                     )}
                   >
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
-                    <p className="mt-1 text-xs opacity-70">
-                      {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
-                    </p>
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-lg px-3 py-2",
+                        msg.senderId === session.user.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      )}
+                    >
+                      <p className="text-sm leading-relaxed break-all overflow-wrap-anywhere whitespace-pre-wrap">{msg.content}</p>
+                      <p className="mt-1 text-xs opacity-70">
+                        {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>

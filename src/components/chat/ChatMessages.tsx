@@ -111,7 +111,7 @@ export function ChatMessages({
               )}
 
               <div
-                className={`max-w-full rounded-lg px-3 py-2 break-words ${getFontSize()} ${getMessageBubbleClasses(isOwnMessage)} ${isOwnMessage ? "rounded-br-sm" : "rounded-bl-sm"} `}
+                className={`max-w-full rounded-lg px-3 py-2 break-all overflow-wrap-anywhere ${getFontSize()} ${getMessageBubbleClasses(isOwnMessage)} ${isOwnMessage ? "rounded-br-sm" : "rounded-bl-sm"} `}
               >
                 {message.content}
               </div>

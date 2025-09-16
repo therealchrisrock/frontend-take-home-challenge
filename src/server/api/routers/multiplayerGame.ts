@@ -9,16 +9,17 @@ import {
   type Move,
   type Position,
 } from "~/lib/game/logic";
-import { sseHub } from "~/lib/sse/sse-hub";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { eventEmitter } from "~/server/event-emitter";
+import { createEvent, SSEEventType } from "~/types/sse-events";
 
 const PositionSchema = z.object({
-  row: z.number().int().min(0).max(7),
-  col: z.number().int().min(0).max(7),
+  row: z.number().int().min(0),
+  col: z.number().int().min(0),
 });
 
 const MoveSchema = z.object({
@@ -320,6 +321,33 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
       }
 
+      // Determine board size and validate move bounds dynamically (supports 8/10/12 etc.)
+      const boardSize: number =
+        typeof (game as any).boardSize === "number" &&
+        (game as any).boardSize > 0
+          ? (game as any).boardSize
+          : Array.isArray(currentBoard)
+            ? (currentBoard as any[]).length
+            : 8;
+
+      const positionsToCheck = [
+        input.move.from,
+        input.move.to,
+        ...(input.move.captures ?? []),
+      ];
+
+      const outOfBounds = positionsToCheck.some(
+        (p) =>
+          p.row < 0 || p.col < 0 || p.row >= boardSize || p.col >= boardSize,
+      );
+
+      if (outOfBounds) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Move is out of bounds",
+        });
+      }
+
       // Validate move by checking if it's in the list of valid moves
       const validMoves = getValidMoves(
         currentBoard,
@@ -373,18 +401,19 @@ export const multiplayerGameRouter = createTRPCRouter({
 
       // Update game in database with transaction
       const updatedGame = await ctx.db.$transaction(async (tx) => {
-        // Get the next move index atomically to prevent race conditions
-        const nextMoveIndex = await tx.$queryRaw<{ nextIndex: bigint }[]>`
-          SELECT COALESCE(MAX(moveIndex), -1) + 1 as nextIndex
-          FROM GameMove
-          WHERE gameId = ${input.gameId}
-        `;
+        // Get the next move index using Prisma to avoid case-sensitive raw SQL issues
+        const lastMove = await tx.gameMove.findFirst({
+          where: { gameId: input.gameId },
+          orderBy: { moveIndex: "desc" },
+          select: { moveIndex: true },
+        });
+        const nextMoveIndex = (lastMove?.moveIndex ?? -1) + 1;
 
         // Save the move
         await tx.gameMove.create({
           data: {
             gameId: input.gameId,
-            moveIndex: Number(nextMoveIndex[0]?.nextIndex ?? 0),
+            moveIndex: nextMoveIndex,
             fromRow: input.move.from.row,
             fromCol: input.move.from.col,
             toRow: input.move.to.row,
@@ -454,16 +483,30 @@ export const multiplayerGameRouter = createTRPCRouter({
         },
       };
 
-      // Emit SSE event for real-time synchronization (minimal)
-      sseHub.broadcast("game", input.gameId, {
-        type: "GAME_MOVE",
-        data: {
-          move: input.move,
-          gameState: newGameState,
-          playerId: userId,
-          timestamp: Date.now(),
-        },
+      // Emit game move event for real-time synchronization
+      const gameMoveEvent = createEvent(SSEEventType.GAME_MOVE, {
+        gameId: input.gameId,
+        move: input.move,
+        playerId: userId,
+        playerColor: playerColor!,
+        newBoard: newGameState.board,
+        currentPlayer: newGameState.currentPlayer,
+        winner: newGameState.winner,
+        moveCount: newGameState.moveCount,
+        version: newGameState.version,
       });
+      // Broadcast to all players watching this game
+      eventEmitter.emitToChannel(`game:${input.gameId}`, gameMoveEvent);
+      // Also emit to both players directly
+      if (updatedGame.player1Id) {
+        eventEmitter.emitToUser(updatedGame.player1Id, gameMoveEvent);
+      }
+      if (
+        updatedGame.player2Id &&
+        updatedGame.player2Id !== updatedGame.player1Id
+      ) {
+        eventEmitter.emitToUser(updatedGame.player2Id, gameMoveEvent);
+      }
 
       // If game ended, notify players
       if (winnerToSave) {
@@ -471,8 +514,8 @@ export const multiplayerGameRouter = createTRPCRouter({
           winnerToSave === "red"
             ? updatedGame.player1?.username || "Red Player"
             : winnerToSave === "black"
-            ? updatedGame.player2?.username || "Black Player"
-            : "Draw";
+              ? updatedGame.player2?.username || "Black Player"
+              : "Draw";
 
         // Notify both players
         if (updatedGame.player1Id) {
@@ -778,7 +821,8 @@ export const multiplayerGameRouter = createTRPCRouter({
       // Determine which player is requesting
       const userId = ctx.session?.user?.id;
       const isPlayer1 = userId === game.player1Id;
-      const isPlayer2 = userId === game.player2Id || (!userId && input.guestSessionId);
+      const isPlayer2 =
+        userId === game.player2Id || (!userId && input.guestSessionId);
 
       if (!isPlayer1 && !isPlayer2) {
         throw new TRPCError({
@@ -790,7 +834,9 @@ export const multiplayerGameRouter = createTRPCRouter({
       const requestingPlayer = isPlayer1 ? "red" : "black";
 
       // Store draw request in syncMetadata
-      const syncMetadata = game.syncMetadata ? JSON.parse(game.syncMetadata) : {};
+      const syncMetadata = game.syncMetadata
+        ? JSON.parse(game.syncMetadata)
+        : {};
       syncMetadata.drawRequestedBy = requestingPlayer;
       syncMetadata.drawRequestTime = new Date().toISOString();
 
@@ -801,14 +847,20 @@ export const multiplayerGameRouter = createTRPCRouter({
         },
       });
 
-      // Broadcast draw request via SSE
-      sseHub.broadcast("game", input.gameId, {
-        type: "DRAW_REQUEST",
-        data: {
-          requestedBy: requestingPlayer,
-          timestamp: new Date().toISOString(),
-        },
+      // Broadcast draw request event
+      const drawRequestEvent = createEvent(SSEEventType.DRAW_REQUEST, {
+        gameId: input.gameId,
+        requestedBy: requestingPlayer,
+        timestamp: new Date().toISOString(),
       });
+      eventEmitter.emitToChannel(`game:${input.gameId}`, drawRequestEvent);
+      // Also emit to both players directly
+      if (game.player1Id) {
+        eventEmitter.emitToUser(game.player1Id, drawRequestEvent);
+      }
+      if (game.player2Id && game.player2Id !== game.player1Id) {
+        eventEmitter.emitToUser(game.player2Id, drawRequestEvent);
+      }
 
       return { success: true, requestedBy: requestingPlayer };
     }),
@@ -852,8 +904,10 @@ export const multiplayerGameRouter = createTRPCRouter({
       }
 
       // Parse syncMetadata to check for draw request
-      const syncMetadata = game.syncMetadata ? JSON.parse(game.syncMetadata) : {};
-      
+      const syncMetadata = game.syncMetadata
+        ? JSON.parse(game.syncMetadata)
+        : {};
+
       if (!syncMetadata.drawRequestedBy) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -864,7 +918,8 @@ export const multiplayerGameRouter = createTRPCRouter({
       // Determine which player is responding
       const userId = ctx.session?.user?.id;
       const isPlayer1 = userId === game.player1Id;
-      const isPlayer2 = userId === game.player2Id || (!userId && input.guestSessionId);
+      const isPlayer2 =
+        userId === game.player2Id || (!userId && input.guestSessionId);
 
       if (!isPlayer1 && !isPlayer2) {
         throw new TRPCError({
@@ -898,13 +953,18 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
 
         // Broadcast draw acceptance
-        sseHub.broadcast("game", input.gameId, {
-          type: "DRAW_ACCEPTED",
-          data: {
-            acceptedBy: respondingPlayer,
-            timestamp: new Date().toISOString(),
-          },
+        const drawAcceptedEvent = createEvent(SSEEventType.DRAW_ACCEPTED, {
+          gameId: input.gameId,
+          acceptedBy: respondingPlayer,
+          timestamp: new Date().toISOString(),
         });
+        eventEmitter.emitToChannel(`game:${input.gameId}`, drawAcceptedEvent);
+        if (game.player1Id) {
+          eventEmitter.emitToUser(game.player1Id, drawAcceptedEvent);
+        }
+        if (game.player2Id && game.player2Id !== game.player1Id) {
+          eventEmitter.emitToUser(game.player2Id, drawAcceptedEvent);
+        }
 
         return { success: true, result: "accepted" };
       } else {
@@ -920,15 +980,150 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
 
         // Broadcast draw decline
-        sseHub.broadcast("game", input.gameId, {
-          type: "DRAW_DECLINED",
-          data: {
-            declinedBy: respondingPlayer,
-            timestamp: new Date().toISOString(),
-          },
+        const drawDeclinedEvent = createEvent(SSEEventType.DRAW_DECLINED, {
+          gameId: input.gameId,
+          declinedBy: respondingPlayer,
+          timestamp: new Date().toISOString(),
         });
+        eventEmitter.emitToChannel(`game:${input.gameId}`, drawDeclinedEvent);
+        if (game.player1Id) {
+          eventEmitter.emitToUser(game.player1Id, drawDeclinedEvent);
+        }
+        if (game.player2Id && game.player2Id !== game.player1Id) {
+          eventEmitter.emitToUser(game.player2Id, drawDeclinedEvent);
+        }
 
         return { success: true, result: "declined" };
       }
+    }),
+
+  /**
+   * Resign from a multiplayer game
+   */
+  resign: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        playerId: z.string().nullable(), // null for guests
+        guestSessionId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          player1: { select: { id: true, username: true, name: true } },
+          player2: { select: { id: true, username: true, name: true } },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.winner) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Game has already ended",
+        });
+      }
+
+      // Determine which player is resigning
+      let resigningPlayer: "PLAYER_1" | "PLAYER_2" | null = null;
+      let winnerColor: "red" | "black" | null = null;
+
+      if (input.playerId) {
+        // Authenticated player
+        if (game.player1Id === input.playerId) {
+          resigningPlayer = "PLAYER_1";
+          winnerColor = "black"; // Player 2 wins
+        } else if (game.player2Id === input.playerId) {
+          resigningPlayer = "PLAYER_2";
+          winnerColor = "red"; // Player 1 wins
+        }
+      } else if (input.guestSessionId) {
+        // Guest player - check sync metadata
+        const syncMetadata = game.syncMetadata
+          ? (JSON.parse(game.syncMetadata as string) as Record<string, unknown>)
+          : {};
+
+        if (syncMetadata.guestPlayer1SessionId === input.guestSessionId) {
+          resigningPlayer = "PLAYER_1";
+          winnerColor = "black";
+        } else if (
+          syncMetadata.guestPlayer2SessionId === input.guestSessionId
+        ) {
+          resigningPlayer = "PLAYER_2";
+          winnerColor = "red";
+        }
+      }
+
+      if (!resigningPlayer || !winnerColor) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a player in this game",
+        });
+      }
+
+      // Update game status to completed with winner
+      await ctx.db.game.update({
+        where: { id: input.gameId },
+        data: {
+          winner: winnerColor,
+          syncMetadata: JSON.stringify({
+            ...(game.syncMetadata
+              ? JSON.parse(game.syncMetadata as string)
+              : {}),
+            resignedBy: resigningPlayer,
+            resignedAt: new Date().toISOString(),
+          }),
+        },
+      });
+
+      // Create notification for the other player if they're authenticated
+      const otherPlayerId =
+        resigningPlayer === "PLAYER_1" ? game.player2Id : game.player1Id;
+      if (otherPlayerId) {
+        await ctx.db.notification.create({
+          data: {
+            userId: otherPlayerId,
+            type: "GAME_INVITE" as NotificationType, // Using existing type
+            title: "Opponent Resigned",
+            message: `Your opponent resigned. You won the game!`,
+            metadata: JSON.stringify({
+              gameId: input.gameId,
+              gameMode: "online",
+              winner: winnerColor,
+            }),
+            relatedEntityId: input.gameId,
+          },
+        });
+      }
+
+      // Broadcast resignation event to all connected clients
+      const resignEvent = createEvent(SSEEventType.GAME_RESIGNED, {
+        gameId: input.gameId,
+        resignedBy: resigningPlayer,
+        winner: winnerColor,
+        timestamp: new Date().toISOString(),
+      });
+
+      eventEmitter.emitToChannel(`game:${input.gameId}`, resignEvent);
+      // Also emit to both players directly
+      if (game.player1Id) {
+        eventEmitter.emitToUser(game.player1Id, resignEvent);
+      }
+      if (game.player2Id && game.player2Id !== game.player1Id) {
+        eventEmitter.emitToUser(game.player2Id, resignEvent);
+      }
+
+      return {
+        success: true,
+        winner: winnerColor,
+        message: `${resigningPlayer === "PLAYER_1" ? "Red" : "Black"} resigned. ${winnerColor === "red" ? "Red" : "Black"} wins!`,
+      };
     }),
 });

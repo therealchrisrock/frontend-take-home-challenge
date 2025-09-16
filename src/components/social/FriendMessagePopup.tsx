@@ -14,7 +14,8 @@ import { Badge } from "~/components/ui/badge";
 import { Users, MessageCircle, X, Minus, Maximize2 } from "lucide-react";
 import { FriendsList } from "./FriendsList";
 import { MessageCenter } from "./MessageCenter";
-import { api } from "~/trpc/react";
+import { useUnreadMessageCounts } from "~/hooks/useMessages";
+import { useFriendRequests } from "~/hooks/useFriendRequests";
 import type { SocialPopupProps, SocialTab } from "./types";
 
 export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
@@ -23,16 +24,11 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
-  // Get unread message count for badge
-  const { data: unreadCount } = api.message.getUnreadCount.useQuery({
-    enabled: !!session?.user,
-    refetchInterval: 30000,
-  });
+  // Get real-time unread message count
+  const { totalUnread } = useUnreadMessageCounts();
 
-  // Get pending friend requests count
-  const { data: pendingRequests } = api.user.getPendingFriendRequests.useQuery(
-    { enabled: !!session?.user },
-  );
+  // Get real-time pending friend requests count  
+  const { requests: pendingRequests } = useFriendRequests();
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -57,7 +53,7 @@ export function FriendMessagePopup({ isOpen, onClose }: SocialPopupProps) {
   if (!session?.user) return null;
 
   const pendingCount = pendingRequests?.length ?? 0;
-  const messageCount = unreadCount?.count ?? 0;
+  const messageCount = totalUnread ?? 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

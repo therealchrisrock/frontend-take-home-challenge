@@ -206,74 +206,74 @@ export function WinnerDialog({
 
               {/* Animated icon */}
               <m.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={
-                isVictory && winner !== "draw"
-                  ? {
-                    scale: [0, 1.2, 1],
-                    rotate: [180, 360, 360],
-                  }
-                  : {
-                    scale: [0, 1],
-                    rotate: 0,
-                  }
-              }
-              transition={
-                isVictory && winner !== "draw"
-                  ? {
-                    duration: 0.6,
-                    ease: "easeOut",
-                  }
-                  : {
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 15,
-                    duration: 0.6,
-                  }
-              }
-            >
-              {/* Glow effect for victory */}
-              {isVictory && winner !== "draw" && (
-                <m.div
-                  className="absolute inset-0 rounded-full blur-xl"
-                  style={{
-                    background:
-                      winner === "red"
-                        ? "radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)"
-                        : "radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)",
-                  }}
-                  animate={{
-                    scale: [1, 1.5, 1],
-                    opacity: [0.5, 0.8, 0.5],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-              )}
-
-              {/* Trophy bounce animation for victory */}
-              {icon && (
-                isVictory && winner !== "draw" ? (
+                initial={{ scale: 0, rotate: -180 }}
+                animate={
+                  isVictory && winner !== "draw"
+                    ? {
+                      scale: [0, 1.2, 1],
+                      rotate: [180, 360, 360],
+                    }
+                    : {
+                      scale: [0, 1],
+                      rotate: 0,
+                    }
+                }
+                transition={
+                  isVictory && winner !== "draw"
+                    ? {
+                      duration: 0.6,
+                      ease: "easeOut",
+                    }
+                    : {
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 15,
+                      duration: 0.6,
+                    }
+                }
+              >
+                {/* Glow effect for victory */}
+                {isVictory && winner !== "draw" && (
                   <m.div
+                    className="absolute inset-0 rounded-full blur-xl"
+                    style={{
+                      background:
+                        winner === "red"
+                          ? "radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%)"
+                          : "radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)",
+                    }}
                     animate={{
-                      y: [0, -10, 0],
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 0.8, 0.5],
                     }}
                     transition={{
-                      duration: 1.5,
+                      duration: 2,
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                  >
-                    {icon}
-                  </m.div>
-                ) : (
-                  icon
-                )
-              )}
-            </m.div>
+                  />
+                )}
+
+                {/* Trophy bounce animation for victory */}
+                {icon && (
+                  isVictory && winner !== "draw" ? (
+                    <m.div
+                      animate={{
+                        y: [0, -10, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      {icon}
+                    </m.div>
+                  ) : (
+                    icon
+                  )
+                )}
+              </m.div>
 
               <AlertDialogTitle className="relative z-10 text-2xl">
                 {title}
@@ -292,32 +292,35 @@ export function WinnerDialog({
         </AlertDialogHeader>
         {winner && (
           <AlertDialogFooter>
-          <div className="flex w-full gap-2">
-            {gameId && (
+            <div className="flex w-full gap-2">
+              {gameId && (
+                <Button
+                  onClick={() => router.push(`/game/${gameId}/replay?analysis=true`)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Analyze Game
+                </Button>
+              )}
               <Button
-                onClick={() => router.push(`/game/${gameId}/replay?analysis=true`)}
+                onClick={() => router.push("/game")}
                 variant="outline"
                 className="flex-1"
               >
-                Analyze Game
+                Main Menu
               </Button>
-            )}
-            <Button
-              onClick={() => router.push("/game")}
-              variant="outline"
-              className="flex-1"
-            >
-              Main Menu
-            </Button>
-            <AlertDialogAction
-              onClick={handlePlayAgain}
-              className="flex-1"
-              disabled={isCreatingGame}
-            >
-              {isCreatingGame ? "Creating..." : "Play Again"}
-            </AlertDialogAction>
-          </div>
-        </AlertDialogFooter>
+              {gameMode !== "online" && (
+                <AlertDialogAction
+                  onClick={handlePlayAgain}
+                  className="flex-1"
+                  disabled={isCreatingGame}
+                >
+                  {isCreatingGame ? "Creating..." : "Play Again"}
+                </AlertDialogAction>
+              )}
+
+            </div>
+          </AlertDialogFooter>
         )}
       </AlertDialogContent>
     </AlertDialog>

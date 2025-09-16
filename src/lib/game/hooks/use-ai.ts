@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { CheckersAI } from "~/lib/game/ai-engine";
-import { makeMove, checkWinner } from "~/lib/game/logic";
+import { makeMove } from "~/lib/game/logic";
 import { useGame } from "../state/game-context";
 
 export function useAI() {
@@ -39,10 +39,10 @@ export function useAI() {
       }
       
       const newBoard = makeMove(state.board, aiMove, state.rules);
-      const winner = checkWinner(newBoard, state.rules, state.drawState);
+      // Don't check winner here - let turn-based checking handle it
       dispatch({
         type: "APPLY_MOVE",
-        payload: { newBoard, move: aiMove, winner },
+        payload: { newBoard, move: aiMove, winner: null },
       });
       dispatch({ type: "SET_AI_THINKING", payload: false });
     };

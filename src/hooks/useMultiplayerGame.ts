@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useGameSync } from "~/hooks/useGameSync";
+import { useGameState } from "~/contexts/event-context";
 import { api } from "~/trpc/react";
 import type { Move, Board, PieceColor } from "~/lib/game/logic";
 
@@ -39,7 +39,7 @@ export interface UseMultiplayerGameOptions {
 
 /**
  * Enhanced multiplayer game hook that provides real-time multiplayer functionality
- * Built on top of the existing useGameSync hook with additional multiplayer features
+ * Now uses EventContext for all real-time synchronization
  */
 export function useMultiplayerGame(options: UseMultiplayerGameOptions) {
   const {
@@ -49,209 +49,141 @@ export function useMultiplayerGame(options: UseMultiplayerGameOptions) {
     onOpponentMove,
     onPlayerJoined: _onPlayerJoined,
     onPlayerLeft: _onPlayerLeft,
-    onSpectatorCountChanged: _onSpectatorCountChanged
+    onSpectatorCountChanged: _onSpectatorCountChanged,
   } = options;
 
-  const [multiplayerState, setMultiplayerState] = useState<MultiplayerGameState>({
-    gameId,
-    isConnected: false,
-    connectionError: null,
-    isReconnecting: false,
-    offlineMoveQueue: [],
-    playerRole: 'SPECTATOR',
-    playerColor: null,
-    opponentConnected: false,
-    spectatorCount: 0,
-    gameMode: 'online',
-    boardOrientation: 'normal',
-    ping: null,
-    lastSyncTime: null
-  });
+  // Use EventContext for real-time game sync
+  const { 
+    gameState: eventGameState, 
+    isConnected, 
+    isReconnecting, 
+    connectionError,
+    sendMove: sendGameMove,
+    reconnect: reconnectGame,
+  } = useGameState(enabled ? gameId : undefined);
 
-  // Get game data to determine player role
-  const { data: gameData, refetch: refetchGame } = api.game.getById.useQuery(
-    { id: gameId },
-    { 
-      enabled: !!gameId && enabled,
-      refetchOnWindowFocus: false,
-      refetchInterval: 30000 // Refetch every 30 seconds to check for changes
-    }
+  // Fetch initial game data
+  const { data: gameData } = api.multiplayerGame.getGameState.useQuery(
+    { gameId },
+    { enabled: enabled && !!gameId }
   );
 
-  // Determine player role and board orientation
+  // Local state for multiplayer-specific features
+  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [offlineMoveQueue, setOfflineMoveQueue] = useState<Move[]>([]);
+  const [lastPingTime] = useState<number | null>(null);
+
+  // Determine player role and color
+  const playerRole: 'PLAYER_1' | 'PLAYER_2' | 'SPECTATOR' = 
+    gameData?.player1Id === userId ? 'PLAYER_1' :
+    gameData?.player2Id === userId ? 'PLAYER_2' : 
+    'SPECTATOR';
+
+  const playerColor: PieceColor | null = 
+    playerRole === 'PLAYER_1' ? 'red' :
+    playerRole === 'PLAYER_2' ? 'black' : 
+    null;
+
+  const boardOrientation = playerRole === 'PLAYER_2' ? 'flipped' as const : 'normal' as const;
+  
+  // Determine if opponent is connected (simplified for now)
+  const opponentConnected = isConnected && gameData?.player2Id != null;
+
+  // Handle opponent moves from EventContext
   useEffect(() => {
-    if (!gameData || !userId) return;
-
-    let playerRole: 'PLAYER_1' | 'PLAYER_2' | 'SPECTATOR' = 'SPECTATOR';
-    let playerColor: PieceColor | null = null;
-    let boardOrientation: 'normal' | 'flipped' = 'normal';
-
-    if (gameData.player1Id === userId) {
-      playerRole = 'PLAYER_1';
-      playerColor = 'red'; // Player 1 is red
-      boardOrientation = 'normal'; // Red pieces at bottom
-    } else if (gameData.player2Id === userId) {
-      playerRole = 'PLAYER_2';
-      playerColor = 'black'; // Player 2 is black
-      boardOrientation = 'flipped'; // Black pieces at bottom (board flipped)
-    }
-
-    setMultiplayerState(prev => ({
-      ...prev,
-      playerRole,
-      playerColor,
-      boardOrientation
-    }));
-  }, [gameData, userId]);
-
-  // Handle multiplayer-specific events
-  const handleMultiplayerEvent = useCallback((move: Move, gameState: unknown) => {
-    // Update last sync time for ping calculation
-    setMultiplayerState(prev => ({
-      ...prev,
-      lastSyncTime: Date.now(),
-      opponentConnected: true
-    }));
-
-    // Forward to parent handler
-    onOpponentMove?.(move, gameState);
-  }, [onOpponentMove]);
-
-  // Handle connection status changes with multiplayer context
-  const handleConnectionStatusChange = useCallback((connected: boolean) => {
-    setMultiplayerState(prev => ({
-      ...prev,
-      isConnected: connected,
-      connectionError: connected ? null : prev.connectionError,
-      ping: connected && prev.lastSyncTime ? Date.now() - prev.lastSyncTime : null
-    }));
-  }, []);
-
-  // Use the existing game sync hook with multiplayer enhancements
-  const [syncState, syncActions] = useGameSync({
-    gameId,
-    enabled: enabled && !!gameId,
-    onOpponentMove: handleMultiplayerEvent,
-    onConnectionStatusChange: handleConnectionStatusChange
-  });
-
-  // Sync the game sync state with our multiplayer state
-  useEffect(() => {
-    setMultiplayerState(prev => ({
-      ...prev,
-      isConnected: syncState.isConnected,
-      connectionError: syncState.connectionError,
-      isReconnecting: syncState.isReconnecting,
-      offlineMoveQueue: syncState.offlineMoveQueue
-    }));
-  }, [syncState]);
-
-  // Enhanced move sending with multiplayer context
-  const sendMove = useCallback(async (
-    move: Move, 
-    gameState?: { board: Board; currentPlayer: PieceColor; moveCount: number }
-  ) => {
-    if (!gameState || multiplayerState.playerRole === 'SPECTATOR') {
-      return false;
-    }
-
-    // Check if it's this player's turn
-    if (multiplayerState.playerColor !== gameState.currentPlayer) {
-      console.warn("Not your turn to move");
-      return false;
-    }
-
-    const success = await syncActions.sendMove(
-      move, 
-      gameState.board, 
-      gameState.currentPlayer, 
-      gameState.moveCount
-    );
-
-    if (success) {
-      setMultiplayerState(prev => ({
-        ...prev,
-        lastSyncTime: Date.now()
-      }));
-    }
-
-    return success;
-  }, [syncActions, multiplayerState.playerRole, multiplayerState.playerColor]);
-
-  // Reconnect with multiplayer context
-  const reconnect = useCallback(async () => {
-    setMultiplayerState(prev => ({
-      ...prev,
-      isReconnecting: true
-    }));
+    if (!eventGameState?.lastMove || !onOpponentMove) return;
     
-    try {
-      await syncActions.connect();
-      await refetchGame(); // Refresh game state on reconnect
-    } catch (error) {
-      console.error("Failed to reconnect:", error);
-      setMultiplayerState(prev => ({
-        ...prev,
-        connectionError: "Failed to reconnect"
-      }));
+    // Only trigger for opponent moves
+    const movePlayer = eventGameState.currentPlayer === 'red' ? gameData?.player2Id : gameData?.player1Id;
+    if (movePlayer !== userId) {
+      onOpponentMove(eventGameState.lastMove, eventGameState.state);
     }
-  }, [syncActions, refetchGame]);
+  }, [eventGameState?.lastMove, eventGameState?.state, eventGameState?.currentPlayer, userId, gameData, onOpponentMove]);
 
-  // Leave game
-  const leaveGame = useCallback(() => {
-    syncActions.disconnect();
-    setMultiplayerState(prev => ({
-      ...prev,
-      isConnected: false,
-      opponentConnected: false
-    }));
-  }, [syncActions]);
-
-  // Join as spectator (placeholder for when Group 4 implements spectator system)
-  const joinAsSpectator = useCallback(async () => {
-    console.log("Joining as spectator - to be implemented by Group 4");
-    // This will be implemented when Group 4 completes spectator system
-  }, []);
-
-  // Promote from spectator to player (placeholder)
-  const promoteFromSpectator = useCallback(async () => {
-    console.log("Promoting from spectator - to be implemented by Group 4");
-    // This will be implemented when Group 4 completes spectator system
-  }, []);
-
-  // Monitor ping by measuring round-trip time
-  useEffect(() => {
-    if (!multiplayerState.isConnected) return;
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      if (multiplayerState.lastSyncTime) {
-        const ping = now - multiplayerState.lastSyncTime;
-        if (ping < 5000) { // Only update if recent
-          setMultiplayerState(prev => ({
-            ...prev,
-            ping: Math.min(ping, 999) // Cap at 999ms for display
-          }));
-        }
+  // Enhanced sendMove that handles offline queue
+  const sendMove = useCallback(
+    async (move: Move, gameState?: { board: Board; currentPlayer: PieceColor; moveCount: number }) => {
+      if (!isConnected) {
+        // Queue move for later when reconnected
+        setOfflineMoveQueue(prev => [...prev, move]);
+        return true; // Optimistically return success
       }
-    }, 1000);
 
-    return () => clearInterval(interval);
-  }, [multiplayerState.isConnected, multiplayerState.lastSyncTime]);
+      const success = await sendGameMove(move);
+      
+      if (!success && gameState) {
+        // Failed to send, queue for retry
+        setOfflineMoveQueue(prev => [...prev, move]);
+      }
+      
+      return success;
+    },
+    [isConnected, sendGameMove]
+  );
+
+  // Process offline queue when reconnected
+  useEffect(() => {
+    if (isConnected && offlineMoveQueue.length > 0) {
+      const processQueue = async () => {
+        const queue = [...offlineMoveQueue];
+        setOfflineMoveQueue([]);
+        
+        for (const move of queue) {
+          const success = await sendGameMove(move);
+          if (!success) {
+            // Re-queue failed moves
+            setOfflineMoveQueue(prev => [...prev, move]);
+            break;
+          }
+        }
+      };
+      
+      void processQueue();
+    }
+  }, [isConnected, offlineMoveQueue, sendGameMove]);
+
+  const reconnect = useCallback(async () => {
+    await reconnectGame();
+  }, [reconnectGame]);
+
+  const leaveGame = useCallback(() => {
+    // TODO: Implement leave game functionality
+    console.log("Leaving game", gameId);
+  }, [gameId]);
+
+  const joinAsSpectator = useCallback(async () => {
+    // TODO: Implement spectator mode
+    console.log("Joining as spectator", gameId);
+  }, [gameId]);
+
+  const promoteFromSpectator = useCallback(async () => {
+    // TODO: Implement promotion from spectator
+    console.log("Promoting from spectator", gameId);
+  }, [gameId]);
+
+  const state: MultiplayerGameState = {
+    gameId,
+    isConnected,
+    connectionError,
+    isReconnecting,
+    offlineMoveQueue,
+    playerRole,
+    playerColor,
+    opponentConnected,
+    spectatorCount,
+    gameMode: 'online',
+    boardOrientation,
+    ping: lastPingTime,
+    lastSyncTime: eventGameState?.lastUpdate ?? null,
+  };
 
   const actions: MultiplayerGameActions = {
     sendMove,
     reconnect,
     leaveGame,
     joinAsSpectator,
-    promoteFromSpectator
+    promoteFromSpectator,
   };
 
-  return {
-    state: multiplayerState,
-    actions,
-    // Expose sync actions for advanced usage
-    syncState,
-    syncActions
-  };
+  return [state, actions] as const;
 }

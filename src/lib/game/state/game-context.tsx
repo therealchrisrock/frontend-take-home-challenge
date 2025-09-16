@@ -62,6 +62,9 @@ export function GameProvider({
   initialConfig?: InitialGameData | null;
 }) {
   const { data: session } = useSession();
+  // Track last played move to prevent duplicate sounds
+  const lastPlayedSoundRef = React.useRef<string | null>(null);
+  
   // If we have initial config from database, use it
   // Otherwise create a default local game
   const initialState: GameState = useMemo(() => {
@@ -213,9 +216,14 @@ export function GameProvider({
 
   const dispatch = useCallback(
     (action: GameAction) => {
-      if (action.type === "APPLY_MOVE") {
-        const { move, newBoard } = action.payload;
-        const pieceBeforeMove = state.board[move.from.row]?.[move.from.col];
+      // Helper function to play move sounds
+      const playMoveSounds = (move: any, oldBoard: any, newBoard: any, moveId: string) => {
+        // Skip if we already played sound for this move
+        if (lastPlayedSoundRef.current === moveId) {
+          return;
+        }
+        
+        const pieceBeforeMove = oldBoard[move.from.row]?.[move.from.col];
         const pieceAfterMove = newBoard[move.to.row]?.[move.to.col];
         const becameKing =
           pieceBeforeMove &&
@@ -229,15 +237,47 @@ export function GameProvider({
         } else {
           playMove();
         }
+        
+        lastPlayedSoundRef.current = moveId;
+      };
+
+      // Handle regular moves (local/AI games)
+      if (action.type === "APPLY_MOVE") {
+        const { move, newBoard } = action.payload;
+        const moveId = `${move.from.row}-${move.from.col}-${move.to.row}-${move.to.col}-${state.moveCount}`;
+        playMoveSounds(move, state.board, newBoard, moveId);
+      }
+
+      // Handle optimistic moves in online games (local player's moves)
+      if (action.type === "OPTIMISTIC_MOVE_PREVIEW") {
+        const { move, previewBoard } = action.payload;
+        const moveId = `${move.from.row}-${move.from.col}-${move.to.row}-${move.to.col}-${state.moveCount}`;
+        playMoveSounds(move, state.board, previewBoard, moveId);
+      }
+
+      // Handle server state updates in online games (opponent's moves)
+      if (action.type === "SERVER_STATE_OVERRIDE") {
+        const { board: newBoard, moveCount, lastMove } = action.payload;
+        
+        // Only play sound if this is a new move (moveCount increased) and we have a lastMove
+        if (moveCount > state.moveCount && lastMove) {
+          const moveId = `${lastMove.from.row}-${lastMove.from.col}-${lastMove.to.row}-${lastMove.to.col}-${moveCount}`;
+          
+          // Use the current board as the previous board since the new board already has the move applied
+          playMoveSounds(lastMove, state.board, newBoard, moveId);
+        }
       }
 
       // Start game SFX on reset, controlled by settings-context in useGameSounds
       if (action.type === "RESET") {
         playStartGame();
+        lastPlayedSoundRef.current = null;  // Reset sound tracking
       }
 
       // Winner/complete SFX triggers
       if (action.type === "APPLY_MOVE" && action.payload.winner) {
+        playComplete();
+      } else if (action.type === "SERVER_STATE_OVERRIDE" && action.payload.winner) {
         playComplete();
       } else if (action.type === "SET_WINNER" && action.payload) {
         playComplete();
@@ -253,6 +293,7 @@ export function GameProvider({
     [
       baseDispatch,
       state.board,
+      state.moveCount,
       playMove,
       playCapture,
       playKing,
