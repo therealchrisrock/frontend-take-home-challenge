@@ -195,8 +195,11 @@ export function WinnerDialog({
 
   const { title, description, icon, isVictory } = getWinnerText();
 
+  // Only show dialog when there's actually a winner AND open is true
+  const shouldShowDialog = open && winner !== null;
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={shouldShowDialog} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <div className="relative flex flex-col items-center gap-4 py-4">
