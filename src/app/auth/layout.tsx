@@ -1,4 +1,5 @@
 import { type Metadata } from "next";
+import { Suspense } from "react";
 import { AuthTransitionProvider } from "./_components/AuthTransitionProvider";
 
 export const metadata: Metadata = {
@@ -22,5 +23,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthTransitionProvider>{children}</AuthTransitionProvider>;
+  return <Suspense><AuthTransitionProvider>{children}</AuthTransitionProvider></Suspense>;
 }
