@@ -198,8 +198,8 @@ export function WinnerDialog({
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
-        {winner ? (
-          <AlertDialogHeader>
+        <AlertDialogHeader>
+          {winner ? (
             <div className="relative flex flex-col items-center gap-4 py-4">
               {/* Confetti for victories */}
               {isVictory && winner !== "draw" && <Confetti />}
@@ -275,15 +275,21 @@ export function WinnerDialog({
               )}
             </m.div>
 
-            <AlertDialogTitle className="relative z-10 text-2xl">
-              {title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="relative z-10 text-center">
-              {description}
-            </AlertDialogDescription>
-          </div>
+              <AlertDialogTitle className="relative z-10 text-2xl">
+                {title}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="relative z-10 text-center">
+                {description}
+              </AlertDialogDescription>
+            </div>
+          ) : (
+            <div className="py-4">
+              <AlertDialogTitle className="sr-only">
+                Game Dialog
+              </AlertDialogTitle>
+            </div>
+          )}
         </AlertDialogHeader>
-        ) : null}
         {winner && (
           <AlertDialogFooter>
           <div className="flex w-full gap-2">
