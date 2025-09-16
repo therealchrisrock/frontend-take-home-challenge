@@ -11,10 +11,8 @@
 import { useSession } from 'next-auth/react';
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useReducer,
   type ReactNode
 } from 'react';
@@ -609,7 +607,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         case SSEEventType.MESSAGE_RECEIVED: {
           const payload = event.payload as MessagePayload;
           const message: Message = {
-            id: payload.messageId,
+            id: payload.id,  // Fixed: was payload.messageId which doesn't exist
             senderId: payload.senderId,
             senderName: payload.senderName,
             content: payload.content,
@@ -617,10 +615,16 @@ export function EventProvider({ children }: { children: ReactNode }) {
             read: false,
           };
 
+          // For the receiver: messages from sender go in sender's chatId
+          // For the sender: their own messages go in receiver's chatId
+          const chatId = payload.senderId === session?.user?.id
+            ? payload.receiverId  // Sender sees their message in receiver's chat
+            : payload.senderId;    // Receiver sees message in sender's chat
+
           dispatch({
             type: 'ADD_MESSAGE',
             payload: {
-              chatId: payload.chatId ?? payload.senderId,
+              chatId,
               message
             }
           });
@@ -923,7 +927,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   });
 
   // API Methods
-  const markNotificationRead = useCallback(async (notificationId: string) => {
+  const markNotificationRead = async (notificationId: string) => {
     try {
       dispatch({
         type: 'MARK_NOTIFICATION_READ',
@@ -941,9 +945,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     }
-  }, [markAsReadMutation]);
+  };
 
-  const markAllNotificationsRead = useCallback(async () => {
+  const markAllNotificationsRead = async () => {
     try {
       dispatch({ type: 'MARK_ALL_NOTIFICATIONS_READ' });
       await markAllAsReadMutation.mutateAsync();
@@ -955,9 +959,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     }
-  }, [markAllAsReadMutation]);
+  };
 
-  const deleteNotification = useCallback(async (notificationId: string) => {
+  const deleteNotification = async (notificationId: string) => {
     try {
       dispatch({ type: 'DELETE_NOTIFICATION', payload: notificationId });
       await dismissMutation.mutateAsync({ notificationId });
@@ -969,10 +973,10 @@ export function EventProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     }
-  }, [dismissMutation]);
+  };
 
   // Message methods using tRPC mutations
-  const sendMessage = useCallback(async (receiverId: string, content: string, chatId?: string) => {
+  const sendMessage = async (receiverId: string, content: string, chatId?: string) => {
     try {
       await sendMessageMutation.mutateAsync({ receiverId, content, chatId });
     } catch (error) {
@@ -983,19 +987,19 @@ export function EventProvider({ children }: { children: ReactNode }) {
         variant: 'destructive',
       });
     }
-  }, [sendMessageMutation]);
+  };
 
-  const setTyping = useCallback((receiverId: string, isTyping: boolean, chatId?: string) => {
+  const setTyping = (receiverId: string, isTyping: boolean, chatId?: string) => {
     if (chatId) {
       setTypingMutation.mutate({ chatId, isTyping });
     }
-  }, [setTypingMutation]);
+  };
 
-  const markMessagesRead = useCallback((chatId: string) => {
+  const markMessagesRead = (chatId: string) => {
     dispatch({ type: 'MARK_MESSAGES_READ', payload: { chatId } });
-  }, []);
+  };
 
-  const makeGameMove = useCallback(async (gameId: string, move: any, gameVersion?: number) => {
+  const makeGameMove = async (gameId: string, move: any, gameVersion?: number) => {
     try {
       const result = await makeGameMoveMutation.mutateAsync({
         gameId,
@@ -1012,34 +1016,34 @@ export function EventProvider({ children }: { children: ReactNode }) {
       });
       return false;
     }
-  }, [makeGameMoveMutation]);
+  };
 
-  const acceptGameInvite = useCallback(async (inviteId: string) => {
+  const acceptGameInvite = async (inviteId: string) => {
     console.log('acceptGameInvite not yet implemented', { inviteId });
     dispatch({ type: 'REMOVE_GAME_INVITE', payload: inviteId });
-  }, []);
+  };
 
-  const declineGameInvite = useCallback((inviteId: string) => {
+  const declineGameInvite = (inviteId: string) => {
     dispatch({ type: 'REMOVE_GAME_INVITE', payload: inviteId });
-  }, []);
+  };
 
-  const acceptFriendRequest = useCallback(async (requestId: string) => {
+  const acceptFriendRequest = async (requestId: string) => {
     console.log('acceptFriendRequest not yet implemented', { requestId });
     dispatch({ type: 'REMOVE_FRIEND_REQUEST', payload: requestId });
-  }, []);
+  };
 
-  const declineFriendRequest = useCallback(async (requestId: string) => {
+  const declineFriendRequest = async (requestId: string) => {
     console.log('declineFriendRequest not yet implemented', { requestId });
     dispatch({ type: 'REMOVE_FRIEND_REQUEST', payload: requestId });
-  }, []);
+  };
 
-  const reconnect = useCallback(() => {
+  const reconnect = () => {
     // tRPC handles reconnection automatically
     dispatch({ type: 'SET_CONNECTION_STATE', payload: 'reconnecting' });
-  }, []);
+  };
 
-  // Context value - memoized to prevent infinite re-renders
-  const value: EventContextValue = useMemo(() => ({
+  // Context value
+  const value: EventContextValue = {
     ...state,
     reconnect,
     markNotificationRead,
@@ -1053,21 +1057,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     declineGameInvite,
     acceptFriendRequest,
     declineFriendRequest,
-  }), [
-    state,
-    reconnect,
-    markNotificationRead,
-    markAllNotificationsRead,
-    deleteNotification,
-    sendMessage,
-    setTyping,
-    markMessagesRead,
-    makeGameMove,
-    acceptGameInvite,
-    declineGameInvite,
-    acceptFriendRequest,
-    declineFriendRequest,
-  ]);
+  };
 
   return (
     <EventContext.Provider value={value}>
@@ -1103,20 +1093,17 @@ export function useGameState(gameId: string | undefined, gameVersion?: number) {
   const isReconnecting = context.connectionState === 'reconnecting';
 
   // Game-specific methods
-  const sendMove = useCallback(
-    async (move: any, version?: number) => {
-      if (!gameId) return false;
+  const sendMove = async (move: any, version?: number) => {
+    if (!gameId) return false;
 
-      try {
-        const success = await context.makeGameMove(gameId, move, version ?? gameVersion);
-        return success;
-      } catch (error) {
-        console.error('Failed to send move:', error);
-        return false;
-      }
-    },
-    [gameId, gameVersion, context]
-  );
+    try {
+      const success = await context.makeGameMove(gameId, move, version ?? gameVersion);
+      return success;
+    } catch (error) {
+      console.error('Failed to send move:', error);
+      return false;
+    }
+  };
 
   return {
     // State

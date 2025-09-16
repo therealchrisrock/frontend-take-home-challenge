@@ -94,15 +94,18 @@ export interface ErrorPayload {
 
 // Message Payloads
 export interface MessagePayload {
-  messageId: string;
+  id: string;  // Changed from messageId to match server payload
+  messageId?: string;  // Keep for backwards compatibility
   chatId?: string;
   senderId: string;
+  receiverId?: string;  // Added - server sends this
   senderName: string;
   senderUsername?: string;
   senderAvatar?: string | null;
   senderImage?: string | null;
   content: string;
   createdAt?: string;
+  read?: boolean;  // Added - server sends this
   metadata?: Record<string, any>;
 }
 

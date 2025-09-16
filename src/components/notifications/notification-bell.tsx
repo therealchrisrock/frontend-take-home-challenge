@@ -15,6 +15,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { useNotifications } from "~/hooks/useNotifications";
+import { useUnreadMessageCounts } from "~/hooks/useMessages";
 import { NotificationItem } from "./notification-item";
 import { getConnectionStatusMessage } from "~/lib/notifications/utils";
 
@@ -30,6 +31,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
     markAllAsRead,
     refetch,
   } = useNotifications();
+
+  // Get unread message counts to include in the badge
+  const { totalUnread: unreadMessageCount } = useUnreadMessageCounts();
+
+  // Calculate total unread count (notifications + messages)
+  const totalUnreadCount = unreadCount + unreadMessageCount;
 
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -59,10 +66,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
           variant="ghost"
           size="icon"
           className={`relative h-10 w-10 rounded-full hover:bg-accent ${className}`}
-          aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ""}`}
+          aria-label={`Notifications ${totalUnreadCount > 0 ? `(${totalUnreadCount} unread)` : ""}`}
         >
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && (
             <m.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -73,7 +80,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 variant="destructive"
                 className="h-5 min-w-[1.25rem] px-1 text-xs"
               >
-                {unreadCount > 99 ? "99+" : unreadCount}
+                {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
               </Badge>
             </m.div>
           )}
@@ -106,9 +113,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
         <div className="flex items-center justify-between px-2 py-1.5">
           <DropdownMenuLabel className="p-0">
             Notifications
-            {unreadCount > 0 && (
+            {totalUnreadCount > 0 && (
               <span className="ml-2 text-xs text-muted-foreground">
-                ({unreadCount} unread)
+                ({totalUnreadCount} unread)
               </span>
             )}
           </DropdownMenuLabel>
