@@ -9,6 +9,7 @@ import {
   type Move,
   type Position,
 } from "~/lib/game/logic";
+import { GameConfigLoader } from "~/lib/game-engine/config-loader";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -321,14 +322,28 @@ export const multiplayerGameRouter = createTRPCRouter({
         });
       }
 
-      // Determine board size and validate move bounds dynamically (supports 8/10/12 etc.)
-      const boardSize: number =
-        typeof (game as any).boardSize === "number" &&
-        (game as any).boardSize > 0
-          ? (game as any).boardSize
-          : Array.isArray(currentBoard)
-            ? (currentBoard as any[]).length
-            : 8;
+      // Load variant configuration for move validation
+      let variantConfig;
+      try {
+        if (game.variant) {
+          const variantName = game.variant.toLowerCase();
+          variantConfig = GameConfigLoader.loadVariant(variantName);
+        } else if (game.gameConfig) {
+          // Fallback to gameConfig if variant is not set
+          const gameConfigData = JSON.parse(game.gameConfig);
+          if (gameConfigData.boardVariant) {
+            variantConfig = GameConfigLoader.loadVariant(gameConfigData.boardVariant);
+          }
+        }
+      } catch (error) {
+        // If variant loading fails, continue with default validation
+        console.warn("Failed to load variant configuration:", error);
+      }
+
+      // Determine board size from variant config or fallback to existing logic
+      const boardSize: number = variantConfig?.board?.size ||
+        (game.boardSize && game.boardSize > 0 ? game.boardSize :
+        (Array.isArray(currentBoard) ? currentBoard.length : 8));
 
       const positionsToCheck = [
         input.move.from,
@@ -353,6 +368,7 @@ export const multiplayerGameRouter = createTRPCRouter({
         currentBoard,
         input.move.from,
         playerColor!,
+        variantConfig, // Pass the variant configuration for proper validation
       );
 
       const moveObj: Move = {
@@ -377,10 +393,10 @@ export const multiplayerGameRouter = createTRPCRouter({
       }
 
       // Apply move to board
-      const newBoard = makeMove(currentBoard, moveObj);
+      const newBoard = makeMove(currentBoard, moveObj, variantConfig);
 
       // Check for winner after move
-      const winner = checkWinner(newBoard);
+      const winner = checkWinner(newBoard, variantConfig);
 
       // Extract captured pieces from the move (if any)
       const capturedPieces = moveObj.captures || [];
