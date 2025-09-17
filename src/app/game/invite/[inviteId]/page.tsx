@@ -6,7 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { BoardPreview } from "~/app/(checkers)/_components/game/BoardPreview";
 import { GameWrapper } from "~/app/(checkers)/_components/game/game-wrapper";
-import { GuestSessionManager } from "~/components/guest/GuestSessionManager";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
@@ -301,13 +300,6 @@ export default function InviteRedemptionPage() {
             </CardContent>
           </Card>
 
-          {/* Guest Session Manager (only for guests) */}
-          {isGuest && (
-            <GuestSessionManager
-              onSessionReady={handleGuestSessionReady}
-              showStats={false}
-            />
-          )}
 
           {/* Join Game Button */}
           <Card>
