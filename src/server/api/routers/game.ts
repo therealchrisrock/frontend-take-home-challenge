@@ -181,6 +181,12 @@ export const gameRouter = createTRPCRouter({
               moveIndex: "asc",
             },
           },
+          player1: {
+            select: { id: true, username: true, name: true, image: true },
+          },
+          player2: {
+            select: { id: true, username: true, name: true, image: true },
+          },
         },
       });
 
@@ -241,6 +247,8 @@ export const gameRouter = createTRPCRouter({
         gameStartTime: game.gameStartTime,
         player1Id: game.player1Id,
         player2Id: game.player2Id,
+        player1: game.player1,
+        player2: game.player2,
       };
     }),
 

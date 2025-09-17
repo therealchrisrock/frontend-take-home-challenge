@@ -50,6 +50,8 @@ interface InitialGameData {
   gameStartTime: Date;
   player1Id?: string | null;
   player2Id?: string | null;
+  player1?: { id: string; username: string; name: string | null; image: string | null } | null;
+  player2?: { id: string; username: string; name: string | null; image: string | null } | null;
 }
 
 export function GameProvider({
@@ -108,7 +110,9 @@ export function GameProvider({
             ? ({
               red: {
                 id: initialConfig.player1Id ?? `player-red`,
-                name: "Player 1",
+                name: initialConfig.player1?.name || initialConfig.player1?.username || "Red Player",
+                username: initialConfig.player1?.username,
+                avatar: initialConfig.player1?.image,
                 isAI: false,
                 isCurrentUser:
                   !!viewerUserId && initialConfig.player1Id === viewerUserId,
@@ -116,7 +120,9 @@ export function GameProvider({
               },
               black: {
                 id: initialConfig.player2Id ?? `player-black`,
-                name: "Player 2",
+                name: initialConfig.player2?.name || initialConfig.player2?.username || "Black Player",
+                username: initialConfig.player2?.username,
+                avatar: initialConfig.player2?.image,
                 isAI: false,
                 isCurrentUser:
                   !!viewerUserId && initialConfig.player2Id === viewerUserId,

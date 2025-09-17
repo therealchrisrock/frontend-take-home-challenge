@@ -176,7 +176,7 @@ export default function InviteRedemptionPage() {
   }
 
   // If invitation is already accepted and has a game, redirect to it
-  if ((invitation.status === "ACCEPTED" || invitation.status === "ready") && invitation.game) {
+  if (invitation.status === "ACCEPTED" && invitation.game) {
     router.push(`/game/${invitation.game.id}`);
     return null;
   }

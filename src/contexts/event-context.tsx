@@ -395,6 +395,10 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const setTypingMutation = api.events.setTyping.useMutation();
   const makeGameMoveMutation = api.multiplayerGame.makeMove.useMutation();
   const redeemInviteMutation = api.gameInvite.redeemInvitation.useMutation({
+    onSuccess: (data) => {
+      // Redirect to the game page after successfully accepting invitation
+      window.location.href = `/game/${data.gameId}`;
+    },
     onError: (error: { message: string }) => {
       toast({
         title: "Failed to join",
